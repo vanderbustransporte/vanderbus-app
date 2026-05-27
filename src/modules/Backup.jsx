@@ -20,23 +20,53 @@ export default function BackupBar() {
     setTimeout(() => setStatus(null), 4000)
   }
 
+  const btnBase = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '5px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    border: '1px solid #E2E8F0',
+    background: '#FFFFFF',
+    color: '#64748B',
+    transition: 'background 0.15s',
+  }
+
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {status && (
-        <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${status.type === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-          {status.type === 'ok' ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+        <div
+          className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg"
+          style={
+            status.type === 'ok'
+              ? { background: 'rgba(34,197,94,0.1)', color: '#16A34A', border: '1px solid rgba(34,197,94,0.2)' }
+              : { background: 'rgba(239,68,68,0.08)', color: '#DC2626', border: '1px solid rgba(239,68,68,0.2)' }
+          }
+        >
+          {status.type === 'ok' ? <CheckCircle size={13} /> : <AlertTriangle size={13} />}
           {status.msg}
         </div>
       )}
-      <button onClick={exportData}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors"
-        title="Exportar datos como JSON">
-        <Download size={14} /> Exportar
+      <button
+        onClick={exportData}
+        style={btnBase}
+        title="Exportar datos como JSON"
+        onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC' }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF' }}
+      >
+        <Download size={13} /> Exportar
       </button>
-      <button onClick={() => fileRef.current.click()}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors"
-        title="Importar datos desde JSON">
-        <Upload size={14} /> Importar
+      <button
+        onClick={() => fileRef.current.click()}
+        style={btnBase}
+        title="Importar datos desde JSON"
+        onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC' }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF' }}
+      >
+        <Upload size={13} /> Importar
       </button>
       <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
     </div>

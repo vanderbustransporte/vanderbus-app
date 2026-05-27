@@ -4,15 +4,28 @@ import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
-import { Field, Input, Select, Textarea } from '../components/shared/Field'
+import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Wrench, Plus, Trash2 } from 'lucide-react'
 
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
+
+const cardStyle = {
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+  borderRadius: '12px',
+}
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), categoria: 'Revisión general', descripcion: '',
   taller: '', costo: '', km: '', proximo_km: '', proximo_fecha: '', estado: 'Realizado', notas: ''
 })
+
+const ESTADO_STYLES = {
+  Realizado: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
+  Pendiente: { bg: 'rgba(217,119,6,0.1)', color: '#D97706' },
+  'En proceso': { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
+}
 
 export default function Mantenimiento() {
   const { data, update } = useStore()
@@ -57,20 +70,37 @@ export default function Mantenimiento() {
     return list.filter(r => r.fecha?.startsWith(mes)).reduce((s, r) => s + (parseFloat(r.costo) || 0), 0)
   }, [list])
 
-  const estadoColor = { Realizado: 'text-green-400', Pendiente: 'text-yellow-400', 'En proceso': 'text-blue-400' }
-
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
     { key: 'categoria', label: 'Categoría' },
     { key: 'descripcion', label: 'Descripción', render: r => <span className="max-w-xs truncate block">{r.descripcion}</span> },
-    { key: 'taller', label: 'Taller', render: r => r.taller || '-' },
-    { key: 'costo', label: 'Costo', render: r => r.costo ? <span className="font-semibold" style={{ color: '#4A8FD4' }}>{formatARS(r.costo)}</span> : '-' },
-    { key: 'km', label: 'KM', render: r => r.km ? `${Number(r.km).toLocaleString('es-AR')}` : '-' },
-    { key: 'estado', label: 'Estado', render: r => <span className={`text-xs font-semibold ${estadoColor[r.estado] || 'text-gray-400'}`}>{r.estado}</span> },
+    { key: 'taller', label: 'Taller', render: r => r.taller || '—' },
+    {
+      key: 'costo', label: 'Costo', render: r => r.costo
+        ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.costo)}</span>
+        : '—'
+    },
+    { key: 'km', label: 'KM', render: r => r.km ? `${Number(r.km).toLocaleString('es-AR')}` : '—' },
+    {
+      key: 'estado', label: 'Estado', render: r => {
+        const s = ESTADO_STYLES[r.estado] || { bg: '#F8FAFC', color: '#64748B' }
+        return (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
+            {r.estado}
+          </span>
+        )
+      }
+    },
     {
       key: 'acciones', label: '', render: r => (
-        <button onClick={() => handleDelete(r.id)} className="p-1 rounded hover:bg-red-500/20 text-red-400">
-          <Trash2 size={15} />
+        <button
+          onClick={() => handleDelete(r.id)}
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: '#EF4444' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '' }}
+        >
+          <Trash2 size={14} />
         </button>
       )
     }
@@ -80,42 +110,55 @@ export default function Mantenimiento() {
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,143,212,0.2)' }}>
-            <Wrench size={20} style={{ color: '#4A8FD4' }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+            <Wrench size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>MANTENIMIENTO</h1>
-            <p className="text-xs text-gray-500">Historial de reparaciones y servicios</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Mantenimiento</h1>
+            <p className="text-xs" style={{ color: '#64748B' }}>Historial de reparaciones y servicios</p>
           </div>
         </div>
-        <button onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>
+        <button
+          onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+        >
           <Plus size={16} /> Nuevo registro
         </button>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Gasto del mes</div>
-          <div className="text-xl font-bold" style={{ color: '#4A8FD4' }}>{formatARS(totalMes)}</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Gasto del mes</div>
+          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Pendientes</div>
-          <div className="text-xl font-bold text-yellow-400">{list.filter(r => r.estado === 'Pendiente').length}</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Pendientes</div>
+          <div className="text-xl font-bold" style={{ color: '#D97706' }}>{list.filter(r => r.estado === 'Pendiente').length}</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Total registros</div>
-          <div className="text-xl font-bold text-white">{list.length}</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total registros</div>
+          <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{list.length}</div>
         </div>
       </div>
 
-      <div className="rounded-xl p-5" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
+      {/* Table card */}
+      <div className="p-5 rounded-xl" style={cardStyle}>
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, taller..." />
-          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-white" style={{ background: '#252535', border: '1px solid #2E2E42' }}>
+          <select
+            value={filtroEstado}
+            onChange={e => setFiltroEstado(e.target.value)}
+            className="px-3 py-2 rounded-lg text-sm transition-colors"
+            style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#374151', cursor: 'pointer' }}
+            onFocus={e => { e.target.style.borderColor = '#3D8FD1' }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0' }}
+          >
             <option value="">Todos los estados</option>
-            <option>Realizado</option><option>Pendiente</option><option>En proceso</option>
+            <option>Realizado</option>
+            <option>Pendiente</option>
+            <option>En proceso</option>
           </select>
         </div>
         <Table columns={cols} data={filtered} emptyText="Sin registros de mantenimiento" />
@@ -126,7 +169,7 @@ export default function Mantenimiento() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-              {errors.fecha && <p className="text-red-400 text-xs mt-1">{errors.fecha}</p>}
+              {errors.fecha && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.fecha}</p>}
             </Field>
             <Field label="Categoría">
               <Select value={form.categoria} onChange={e => set('categoria', e.target.value)}>
@@ -136,7 +179,7 @@ export default function Mantenimiento() {
             <div className="col-span-2">
               <Field label="Descripción" required>
                 <Input value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Ej: Cambio de aceite 10W40 + filtro" />
-                {errors.descripcion && <p className="text-red-400 text-xs mt-1">{errors.descripcion}</p>}
+                {errors.descripcion && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.descripcion}</p>}
               </Field>
             </div>
             <Field label="Taller / Mecánico">
@@ -166,8 +209,8 @@ export default function Mantenimiento() {
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setModal(false)} className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10">Cancelar</button>
-            <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>Guardar</button>
+            <BtnCancel onClick={() => setModal(false)} />
+            <BtnPrimary onClick={handleSave}>Guardar</BtnPrimary>
           </div>
         </Modal>
       )}

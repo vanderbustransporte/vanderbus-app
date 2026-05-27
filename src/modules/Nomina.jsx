@@ -4,12 +4,22 @@ import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
-import { Field, Input, Select, Textarea } from '../components/shared/Field'
+import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { DollarSign, Plus, Trash2 } from 'lucide-react'
 
 const CONCEPTOS = ['Sueldo mensual', 'Horas extra', 'Aguinaldo', 'Vacaciones', 'Bono', 'Anticipo', 'Liquidación', 'Otro']
 
-const empty = () => ({ id: genId(), fecha: todayISO(), empleado: '', concepto: 'Sueldo mensual', importe: '', periodo: '', metodo: 'Efectivo', notas: '' })
+const cardStyle = {
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+  borderRadius: '12px',
+}
+
+const empty = () => ({
+  id: genId(), fecha: todayISO(), empleado: '', concepto: 'Sueldo mensual',
+  importe: '', periodo: '', metodo: 'Efectivo', notas: ''
+})
 
 export default function Nomina() {
   const { data, update } = useStore()
@@ -57,15 +67,21 @@ export default function Nomina() {
 
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'empleado', label: 'Empleado', render: r => <span className="font-semibold text-white">{r.empleado}</span> },
+    { key: 'empleado', label: 'Empleado', render: r => <span className="font-semibold" style={{ color: '#1A202C' }}>{r.empleado}</span> },
     { key: 'concepto', label: 'Concepto' },
-    { key: 'periodo', label: 'Período', render: r => r.periodo || '-' },
-    { key: 'importe', label: 'Importe', render: r => <span className="font-semibold" style={{ color: '#4A8FD4' }}>{formatARS(r.importe)}</span> },
-    { key: 'metodo', label: 'Método', render: r => r.metodo || '-' },
+    { key: 'periodo', label: 'Período', render: r => r.periodo || '—' },
+    { key: 'importe', label: 'Importe', render: r => <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.importe)}</span> },
+    { key: 'metodo', label: 'Método', render: r => r.metodo || '—' },
     {
       key: 'acciones', label: '', render: r => (
-        <button onClick={() => handleDelete(r.id)} className="p-1 rounded hover:bg-red-500/20 text-red-400">
-          <Trash2 size={15} />
+        <button
+          onClick={() => handleDelete(r.id)}
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: '#EF4444' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '' }}
+        >
+          <Trash2 size={14} />
         </button>
       )
     }
@@ -73,34 +89,40 @@ export default function Nomina() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,143,212,0.2)' }}>
-            <DollarSign size={20} style={{ color: '#4A8FD4' }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+            <DollarSign size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>NÓMINA</h1>
-            <p className="text-xs text-gray-500">Pagos de sueldos y haberes</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Nómina</h1>
+            <p className="text-xs" style={{ color: '#64748B' }}>Pagos de sueldos y haberes</p>
           </div>
         </div>
-        <button onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>
+        <button
+          onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+        >
           <Plus size={16} /> Registrar pago
         </button>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Pagado este mes</div>
-          <div className="text-xl font-bold" style={{ color: '#4A8FD4' }}>{formatARS(totalMes)}</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Pagado este mes</div>
+          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Empleados</div>
-          <div className="text-xl font-bold text-white">{empleados.length}</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Empleados</div>
+          <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{empleados.length}</div>
         </div>
       </div>
 
-      <div className="rounded-xl p-5" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
+      {/* Table */}
+      <div className="p-5 rounded-xl" style={cardStyle}>
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar empleado, concepto..." />
         </div>
@@ -112,7 +134,7 @@ export default function Nomina() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-              {errors.fecha && <p className="text-red-400 text-xs mt-1">{errors.fecha}</p>}
+              {errors.fecha && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.fecha}</p>}
             </Field>
             <Field label="Concepto">
               <Select value={form.concepto} onChange={e => set('concepto', e.target.value)}>
@@ -123,12 +145,12 @@ export default function Nomina() {
               <Field label="Empleado" required>
                 <Input value={form.empleado} onChange={e => set('empleado', e.target.value)} placeholder="Nombre del empleado" list="empleados-list" />
                 <datalist id="empleados-list">{empleados.map(e => <option key={e} value={e} />)}</datalist>
-                {errors.empleado && <p className="text-red-400 text-xs mt-1">{errors.empleado}</p>}
+                {errors.empleado && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.empleado}</p>}
               </Field>
             </div>
             <Field label="Importe ($)" required>
               <Input type="number" step="0.01" value={form.importe} onChange={e => set('importe', e.target.value)} placeholder="0.00" />
-              {errors.importe && <p className="text-red-400 text-xs mt-1">{errors.importe}</p>}
+              {errors.importe && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.importe}</p>}
             </Field>
             <Field label="Período">
               <Input value={form.periodo} onChange={e => set('periodo', e.target.value)} placeholder="Ej: Mayo 2026" />
@@ -145,8 +167,8 @@ export default function Nomina() {
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setModal(false)} className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10">Cancelar</button>
-            <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>Guardar</button>
+            <BtnCancel onClick={() => setModal(false)} />
+            <BtnPrimary onClick={handleSave}>Guardar</BtnPrimary>
           </div>
         </Modal>
       )}

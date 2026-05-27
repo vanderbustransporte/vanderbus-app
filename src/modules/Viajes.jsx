@@ -4,61 +4,51 @@ import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
-import { Field, Input, Select, Textarea } from '../components/shared/Field'
-import { Truck, Plus, Trash2 } from 'lucide-react'
+import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
+import { MapPin, Plus, Trash2 } from 'lucide-react'
 
 const TIPOS = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
 
-const ESTADO_BG = {
-  Pendiente: 'rgba(234,179,8,0.18)',
-  Confirmado: 'rgba(59,130,246,0.18)',
-  Realizado: 'rgba(34,197,94,0.18)',
-  Cancelado: 'rgba(239,68,68,0.18)',
+const cardStyle = {
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+  borderRadius: '12px',
 }
 
-const ESTADO_COLOR = {
-  Pendiente: '#facc15',
-  Confirmado: '#60a5fa',
-  Realizado: '#4ade80',
-  Cancelado: '#f87171',
+const ESTADO_STYLES = {
+  Pendiente: { bg: 'rgba(217,119,6,0.1)', color: '#D97706' },
+  Confirmado: { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
+  Realizado: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
+  Cancelado: { bg: 'rgba(239,68,68,0.1)', color: '#DC2626' },
 }
 
 const empty = () => ({
-  id: genId(),
-  fecha: todayISO(),
-  cliente: '',
-  tipo: 'Excursión',
-  origen: '',
-  destino: '',
-  monto_sena: '',
-  monto_total: '',
-  estado: 'Pendiente',
-  notas: '',
+  id: genId(), fecha: todayISO(), cliente: '', tipo: 'Excursión',
+  origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
 })
 
 function EstadoBadge({ estado, id, onChange }) {
-  const bg = ESTADO_BG[estado] || 'rgba(100,100,100,0.18)'
-  const color = ESTADO_COLOR[estado] || '#9ca3af'
+  const s = ESTADO_STYLES[estado] || { bg: '#F8FAFC', color: '#64748B' }
   return (
     <select
       value={estado}
       onChange={e => onChange(id, e.target.value)}
       style={{
-        background: bg,
-        color,
+        background: s.bg,
+        color: s.color,
         border: 'none',
         outline: 'none',
         borderRadius: '9999px',
-        padding: '2px 10px',
+        padding: '3px 10px',
         fontSize: '11px',
         fontWeight: '700',
         cursor: 'pointer',
-        letterSpacing: '0.02em',
       }}
     >
       {ESTADOS.map(e => (
-        <option key={e} value={e} style={{ background: '#1E1E2E', color: '#e2e8f0' }}>{e}</option>
+        <option key={e} value={e} style={{ background: '#FFFFFF', color: '#1A202C' }}>{e}</option>
       ))}
     </select>
   )
@@ -104,41 +94,44 @@ export default function Viajes() {
     const q = search.toLowerCase()
     return list
       .filter(r => {
-        const matchQ = !q ||
-          r.cliente?.toLowerCase().includes(q) ||
-          r.tipo?.toLowerCase().includes(q) ||
-          r.estado?.toLowerCase().includes(q)
+        const matchQ = !q || r.cliente?.toLowerCase().includes(q) || r.tipo?.toLowerCase().includes(q) || r.estado?.toLowerCase().includes(q)
         const matchEstado = !estadoFilter || r.estado === estadoFilter
         return matchQ && matchEstado
       })
       .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   }, [list, search, estadoFilter])
 
-  const totalEsperado = list
-    .filter(r => r.estado === 'Pendiente' || r.estado === 'Confirmado')
-    .reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
-
-  const totalConfirmado = list
-    .filter(r => r.estado === 'Confirmado')
-    .reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
-
-  const totalRealizado = list
-    .filter(r => r.estado === 'Realizado')
-    .reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
+  const totalEsperado = list.filter(r => r.estado === 'Pendiente' || r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
+  const totalConfirmado = list.filter(r => r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
+  const totalRealizado = list.filter(r => r.estado === 'Realizado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
 
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold text-white">{r.cliente}</span> },
+    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: '#1A202C' }}>{r.cliente}</span> },
     { key: 'tipo', label: 'Tipo' },
     { key: 'origen', label: 'Origen' },
     { key: 'destino', label: 'Destino' },
-    { key: 'monto_sena', label: 'Monto seña', render: r => r.monto_sena ? formatARS(r.monto_sena) : <span className="text-gray-600">—</span> },
-    { key: 'monto_total', label: 'Monto total', render: r => r.monto_total ? <span style={{ color: '#4A8FD4' }}>{formatARS(r.monto_total)}</span> : <span className="text-gray-600">—</span> },
+    {
+      key: 'monto_sena', label: 'Seña',
+      render: r => r.monto_sena ? formatARS(r.monto_sena) : <span style={{ color: '#CBD5E1' }}>—</span>
+    },
+    {
+      key: 'monto_total', label: 'Total',
+      render: r => r.monto_total
+        ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.monto_total)}</span>
+        : <span style={{ color: '#CBD5E1' }}>—</span>
+    },
     { key: 'estado', label: 'Estado', render: r => <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} /> },
     {
       key: 'acciones', label: '', render: r => (
-        <button onClick={() => handleDelete(r.id)} className="p-1 rounded hover:bg-red-500/20 text-red-400">
-          <Trash2 size={15} />
+        <button
+          onClick={() => handleDelete(r.id)}
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: '#EF4444' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '' }}
+        >
+          <Trash2 size={14} />
         </button>
       )
     },
@@ -149,40 +142,44 @@ export default function Viajes() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,143,212,0.2)' }}>
-            <Truck size={20} style={{ color: '#4A8FD4' }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+            <MapPin size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>VIAJES</h1>
-            <p className="text-xs text-gray-500">Gestión de viajes y traslados</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Viajes</h1>
+            <p className="text-xs" style={{ color: '#64748B' }}>Gestión de viajes y traslados</p>
           </div>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>
+        <button
+          onClick={openNew}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+        >
           <Plus size={16} /> Nuevo viaje
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Ingresos esperados</div>
-          <div className="text-xl font-bold text-yellow-400">{formatARS(totalEsperado)}</div>
-          <div className="text-xs text-gray-600 mt-1">Pendientes + Confirmados</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Ingresos esperados</div>
+          <div className="text-xl font-bold" style={{ color: '#D97706' }}>{formatARS(totalEsperado)}</div>
+          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>Pendientes + Confirmados</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Confirmados</div>
-          <div className="text-xl font-bold" style={{ color: '#4A8FD4' }}>{formatARS(totalConfirmado)}</div>
-          <div className="text-xs text-gray-600 mt-1">{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Confirmados</div>
+          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalConfirmado)}</div>
+          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
         </div>
-        <div className="rounded-xl p-4" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
-          <div className="text-xs text-gray-500 mb-1">Realizados</div>
-          <div className="text-xl font-bold text-green-400">{formatARS(totalRealizado)}</div>
-          <div className="text-xs text-gray-600 mt-1">{list.filter(r => r.estado === 'Realizado').length} viajes</div>
+        <div className="p-4 rounded-xl" style={cardStyle}>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Realizados</div>
+          <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalRealizado)}</div>
+          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="rounded-xl p-5" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
+      {/* Table */}
+      <div className="p-5 rounded-xl" style={cardStyle}>
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <SearchBar value={search} onChange={setSearch} placeholder="Buscar por cliente, tipo, estado..." />
@@ -190,8 +187,10 @@ export default function Viajes() {
           <select
             value={estadoFilter}
             onChange={e => setEstadoFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-gray-300"
-            style={{ background: '#252535', border: '1px solid #2E2E42' }}
+            className="px-3 py-2 rounded-lg text-sm transition-colors"
+            style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#374151', cursor: 'pointer' }}
+            onFocus={e => { e.target.style.borderColor = '#3D8FD1' }}
+            onBlur={e => { e.target.style.borderColor = '#E2E8F0' }}
           >
             <option value="">Todos los estados</option>
             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
@@ -214,7 +213,7 @@ export default function Viajes() {
             </Field>
             <Field label="Cliente" required>
               <Input value={form.cliente} onChange={e => set('cliente', e.target.value)} placeholder="Nombre del cliente o grupo" />
-              {errors.cliente && <p className="text-red-400 text-xs mt-1">{errors.cliente}</p>}
+              {errors.cliente && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.cliente}</p>}
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={e => set('estado', e.target.value)}>
@@ -223,11 +222,11 @@ export default function Viajes() {
             </Field>
             <Field label="Origen" required>
               <Input value={form.origen} onChange={e => set('origen', e.target.value)} placeholder="Ciudad / Punto de salida" />
-              {errors.origen && <p className="text-red-400 text-xs mt-1">{errors.origen}</p>}
+              {errors.origen && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.origen}</p>}
             </Field>
             <Field label="Destino" required>
               <Input value={form.destino} onChange={e => set('destino', e.target.value)} placeholder="Ciudad / Punto de llegada" />
-              {errors.destino && <p className="text-red-400 text-xs mt-1">{errors.destino}</p>}
+              {errors.destino && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.destino}</p>}
             </Field>
             <Field label="Monto seña ($)">
               <Input type="number" step="0.01" min="0" value={form.monto_sena} onChange={e => set('monto_sena', e.target.value)} placeholder="0.00" />
@@ -242,8 +241,8 @@ export default function Viajes() {
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button onClick={() => setModal(false)} className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10">Cancelar</button>
-            <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>Guardar</button>
+            <BtnCancel onClick={() => setModal(false)} />
+            <BtnPrimary onClick={handleSave}>Guardar</BtnPrimary>
           </div>
         </Modal>
       )}

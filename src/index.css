@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --font-bebas: 'Bebas Neue', sans-serif;
   --font-inter: 'Inter', sans-serif;
-  --color-primary: #4A8FD4;
-  --color-dark: #0F0F1A;
-  --color-card: #1E1E2E;
-  --color-card2: #252535;
-  --color-border: #2E2E42;
+  --color-primary: #3D8FD1;
+  --color-secondary: #7EC8E3;
+  --color-bg: #F0F4F8;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text: #1A202C;
+  --color-muted: #64748B;
 }
 
 * {
@@ -16,8 +17,8 @@
 
 body {
   margin: 0;
-  background-color: #0F0F1A;
-  color: #FFFFFF;
+  background-color: #F0F4F8;
+  color: #1A202C;
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
 }
@@ -27,11 +28,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1E1E2E;
+  background: #F0F4F8;
 }
 ::-webkit-scrollbar-thumb {
-  background: #4A8FD4;
+  background: #CBD5E1;
   border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 input, select, textarea {
@@ -39,5 +43,11 @@ input, select, textarea {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: none;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
 }
