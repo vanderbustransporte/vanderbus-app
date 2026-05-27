@@ -11,10 +11,10 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid #E2E8F0' }}>
+      <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.6)' }}>
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ background: '#F8FAFC' }}>
+            <tr style={{ background: 'rgba(248,250,252,0.6)' }}>
               {columns.map(c => (
                 <th
                   key={c.key}
@@ -42,7 +42,7 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
                 key={row.id || i}
                 className="border-t transition-colors"
                 style={{ borderColor: '#E2E8F0' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#F0F4F8' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}
               >
                 {columns.map(c => (
@@ -67,8 +67,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
               className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ border: '1px solid #E2E8F0' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#F0F4F8' }}
+              style={{ border: '1px solid rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '8px' }}
+              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.65)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '' }}
             >
               <ChevronLeft size={16} />
@@ -77,8 +77,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
               className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ border: '1px solid #E2E8F0' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#F0F4F8' }}
+              style={{ border: '1px solid rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '8px' }}
+              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.65)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '' }}
             >
               <ChevronRight size={16} />

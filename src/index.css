@@ -17,7 +17,8 @@
 
 body {
   margin: 0;
-  background-color: #F0F4F8;
+  background: linear-gradient(135deg, #e8f4fd 0%, #dbeafe 50%, #ede9fe 100%);
+  background-attachment: fixed;
   color: #1A202C;
   font-family: 'Inter', sans-serif;
   min-height: 100vh;

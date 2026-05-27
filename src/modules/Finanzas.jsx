@@ -11,10 +11,12 @@ const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Flete', 'Alquiler de veh�
 const CATEGORIAS_GASTO = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.6)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.8)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+  borderRadius: '16px',
 }
 
 const emptyIngreso = () => ({ id: genId(), tipo: 'ingreso', fecha: todayISO(), descripcion: '', categoria: 'Servicio de transporte', importe: '', cliente: '', comprobante: '', notas: '' })
@@ -95,7 +97,7 @@ function MovimientoModal({ onClose, onSave, tipo }) {
         <button
           onClick={() => { if (validate()) onSave(form) }}
           className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: isIngreso ? '#16A34A' : '#DC2626', borderRadius: '8px' }}
+          style={{ background: isIngreso ? 'rgba(22,163,74,0.85)' : 'rgba(220,38,38,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: isIngreso ? '0 4px 15px rgba(22,163,74,0.3)' : '0 4px 15px rgba(220,38,38,0.3)', borderRadius: '10px' }}
         >
           Guardar {isIngreso ? 'ingreso' : 'gasto'}
         </button>
@@ -198,14 +200,14 @@ export default function Finanzas() {
           <button
             onClick={() => setModal('ingreso')}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#16A34A', borderRadius: '8px' }}
+            style={{ background: 'rgba(22,163,74,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(22,163,74,0.3)', borderRadius: '10px' }}
           >
             <ArrowUpCircle size={16} /> Ingreso
           </button>
           <button
             onClick={() => setModal('gasto')}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#DC2626', borderRadius: '8px' }}
+            style={{ background: 'rgba(220,38,38,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(220,38,38,0.3)', borderRadius: '10px' }}
           >
             <ArrowDownCircle size={16} /> Gasto
           </button>
@@ -226,8 +228,8 @@ export default function Finanzas() {
           className="p-4 rounded-xl"
           style={{
             ...cardStyle,
-            background: balance >= 0 ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
-            border: balance >= 0 ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(239,68,68,0.2)',
+            background: balance >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.10)',
+            border: balance >= 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)',
           }}
         >
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Balance neto</div>
@@ -239,7 +241,7 @@ export default function Finanzas() {
       <div className="p-5 rounded-xl" style={cardStyle}>
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, categoría..." />
-          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #E2E8F0' }}>
+          <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
             {[['todos', 'Todos'], ['ingreso', 'Ingresos'], ['gasto', 'Gastos']].map(([val, lbl]) => (
               <button
                 key={val}
@@ -247,11 +249,11 @@ export default function Finanzas() {
                 className="px-3 py-2 text-sm font-medium transition-colors"
                 style={
                   tab === val
-                    ? { background: '#3D8FD1', color: '#FFFFFF' }
-                    : { background: '#F8FAFC', color: '#64748B' }
+                    ? { background: 'rgba(61,143,209,0.85)', color: '#FFFFFF', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }
+                    : { background: 'rgba(248,250,252,0.5)', color: '#64748B' }
                 }
-                onMouseEnter={e => { if (tab !== val) e.currentTarget.style.background = '#F0F4F8' }}
-                onMouseLeave={e => { if (tab !== val) e.currentTarget.style.background = '#F8FAFC' }}
+                onMouseEnter={e => { if (tab !== val) e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+                onMouseLeave={e => { if (tab !== val) e.currentTarget.style.background = 'rgba(248,250,252,0.5)' }}
               >
                 {lbl}
               </button>

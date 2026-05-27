@@ -6,20 +6,23 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,23,42,0.45)' }}
+      style={{ background: 'rgba(15,23,42,0.35)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
     >
       <div
-        className={`w-full ${sizes[size]} rounded-2xl`}
+        className={`w-full ${sizes[size]}`}
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+          background: 'rgba(255,255,255,0.75)',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+          border: '1px solid rgba(255,255,255,0.9)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.15)',
+          borderRadius: '16px',
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: '#E2E8F0' }}
+          style={{ borderColor: 'rgba(255,255,255,0.5)' }}
         >
           <h2 className="text-base font-700 font-bold" style={{ color: '#1A202C' }}>{title}</h2>
           <button

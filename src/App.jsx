@@ -33,10 +33,35 @@ export default function App() {
   const navigate = (p) => setPage(p)
 
   return (
-    <div className="min-h-screen" style={{ background: '#F0F4F8', WebkitAppRegion: 'drag' }}>
+    <div className="min-h-screen" style={{
+      background: 'linear-gradient(135deg, #e8f4fd 0%, #dbeafe 50%, #ede9fe 100%)',
+      WebkitAppRegion: 'drag',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Blobs de fondo */}
+      <div style={{
+        position: 'fixed', top: '-100px', left: '-100px',
+        width: '600px', height: '600px',
+        background: 'radial-gradient(circle, rgba(61,143,209,0.15) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none', zIndex: 0
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '100px', right: '-100px',
+        width: '500px', height: '500px',
+        background: 'radial-gradient(circle, rgba(126,200,227,0.15) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none', zIndex: 0
+      }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '40%',
+        width: '400px', height: '400px',
+        background: 'radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%)',
+        borderRadius: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 0
+      }} />
+
       <TopNav active={page} onNav={navigate} rightContent={<BackupBar />} />
 
-      <div className="pt-14 min-h-screen flex flex-col">
+      <div className="pt-14 min-h-screen flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Actualización descargada → botón para instalar */}
           {updateDownloaded && (

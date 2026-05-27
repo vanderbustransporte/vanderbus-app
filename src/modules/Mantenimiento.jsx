@@ -10,10 +10,12 @@ import { Wrench, Plus, Trash2 } from 'lucide-react'
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.6)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.8)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+  borderRadius: '16px',
 }
 
 const empty = () => ({
@@ -121,7 +123,7 @@ export default function Mantenimiento() {
         <button
           onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
           <Plus size={16} /> Nuevo registro
         </button>
@@ -151,9 +153,9 @@ export default function Mantenimiento() {
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
             className="px-3 py-2 rounded-lg text-sm transition-colors"
-            style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', color: '#374151', cursor: 'pointer' }}
-            onFocus={e => { e.target.style.borderColor = '#3D8FD1' }}
-            onBlur={e => { e.target.style.borderColor = '#E2E8F0' }}
+            style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.6)', color: '#374151', cursor: 'pointer', borderRadius: '10px' }}
+            onFocus={e => { e.target.style.borderColor = 'rgba(61,143,209,0.6)' }}
+            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.6)' }}
           >
             <option value="">Todos los estados</option>
             <option>Realizado</option>

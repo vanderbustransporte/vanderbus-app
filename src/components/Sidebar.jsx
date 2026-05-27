@@ -24,9 +24,11 @@ export default function TopNav({ active, onNav, rightContent }) {
       <header
         className="fixed top-0 left-0 right-0 z-40"
         style={{
-          background: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+          background: 'rgba(255,255,255,0.7)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderBottom: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '0 2px 20px rgba(0,0,0,0.06)'
         }}
       >
         <div className="flex items-center px-4 h-14 gap-3">
@@ -57,10 +59,10 @@ export default function TopNav({ active, onNav, rightContent }) {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
                   style={
                     isActive
-                      ? { background: '#EBF4FF', color: '#3D8FD1', fontWeight: 600, WebkitAppRegion: 'no-drag' }
+                      ? { background: 'rgba(61,143,209,0.12)', color: '#3D8FD1', fontWeight: 600, WebkitAppRegion: 'no-drag', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(61,143,209,0.15)' }
                       : { color: '#64748B', WebkitAppRegion: 'no-drag' }
                   }
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#1A202C' } }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.45)'; e.currentTarget.style.color = '#1A202C' } }}
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#64748B' } }}
                 >
                   <Icon size={14} />
@@ -98,7 +100,7 @@ export default function TopNav({ active, onNav, rightContent }) {
               onClick={() => setMobileOpen(o => !o)}
               className="md:hidden p-2 rounded-lg transition-colors"
               style={{ color: '#64748B', WebkitAppRegion: 'no-drag' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F0F4F8' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.45)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '' }}
             >
               {mobileOpen
@@ -113,7 +115,7 @@ export default function TopNav({ active, onNav, rightContent }) {
         {mobileOpen && (
           <nav
             className="md:hidden border-t py-2"
-            style={{ borderColor: '#E2E8F0', background: '#FFFFFF' }}
+            style={{ borderColor: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
           >
             {navItems.map(({ id, label, icon: Icon }) => {
               const isActive = active === id
@@ -124,7 +126,7 @@ export default function TopNav({ active, onNav, rightContent }) {
                   className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all"
                   style={
                     isActive
-                      ? { background: '#EBF4FF', color: '#3D8FD1', borderLeft: '3px solid #3D8FD1', WebkitAppRegion: 'no-drag' }
+                      ? { background: 'rgba(61,143,209,0.12)', color: '#3D8FD1', borderLeft: '3px solid #3D8FD1', WebkitAppRegion: 'no-drag', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }
                       : { color: '#64748B', borderLeft: '3px solid transparent', WebkitAppRegion: 'no-drag' }
                   }
                 >

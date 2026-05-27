@@ -13,19 +13,23 @@ const CONSUMO_BUENO = 30
 const CONSUMO_NORMAL = 40
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.6)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.8)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+  borderRadius: '16px',
 }
 
 const TOOLTIP_STYLE = {
   contentStyle: {
-    background: '#FFFFFF',
-    border: '1px solid #E2E8F0',
-    borderRadius: 10,
+    background: 'rgba(255,255,255,0.75)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.8)',
+    borderRadius: 12,
     color: '#1A202C',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
   },
   labelStyle: { color: '#374151' },
   itemStyle: { color: '#374151' },
@@ -176,7 +180,7 @@ function Combustible() {
         <button
           onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
           <Plus size={16} /> Nueva carga
         </button>
@@ -252,7 +256,7 @@ function Combustible() {
                     <tr
                       key={r.id}
                       style={{ borderBottom: '1px solid #F0F4F8' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = '' }}
                     >
                       <td className="py-3 px-3" style={{ color: '#374151' }}>{formatDate(r.fecha)}</td>

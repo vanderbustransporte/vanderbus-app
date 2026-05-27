@@ -10,10 +10,12 @@ import { DollarSign, Plus, Trash2 } from 'lucide-react'
 const CONCEPTOS = ['Sueldo mensual', 'Horas extra', 'Aguinaldo', 'Vacaciones', 'Bono', 'Anticipo', 'Liquidación', 'Otro']
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.6)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.8)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+  borderRadius: '16px',
 }
 
 const empty = () => ({
@@ -103,7 +105,7 @@ export default function Nomina() {
         <button
           onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: '#3D8FD1', borderRadius: '8px' }}
+          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
           <Plus size={16} /> Registrar pago
         </button>

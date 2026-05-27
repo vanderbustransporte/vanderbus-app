@@ -7,10 +7,12 @@ import { TrendingUp, TrendingDown, Fuel, Wrench, DollarSign, Truck, ArrowUpCircl
 const COLORS = ['#3D8FD1', '#7EC8E3', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.6)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.8)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+  borderRadius: '16px',
 }
 
 function TrendBadge({ actual, anterior }) {
@@ -57,8 +59,8 @@ function QuickBtn({ icon: Icon, label, color, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-      style={{ background: color, borderRadius: '8px' }}
+      className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+      style={{ background: color, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: `0 4px 15px ${color}55`, borderRadius: '10px' }}
     >
       <Icon size={16} /> {label}
     </button>
@@ -70,7 +72,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return (
     <div
       className="rounded-xl p-3 text-sm"
-      style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+      style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', borderRadius: '12px' }}
     >
       <p className="font-medium mb-1" style={{ color: '#64748B' }}>{label}</p>
       {payload.map(p => (
@@ -191,7 +193,8 @@ export default function Dashboard({ onNav }) {
           className="p-5 rounded-xl"
           style={{
             ...cardStyle,
-            background: balance >= 0 ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
+            background: balance >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.10)',
+            border: balance >= 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)',
           }}
         >
           <div className="flex items-center gap-2 mb-2">

@@ -1,0 +1,24 @@
+Rediseñá toda la app con estética Liquid Glass moderna. 
+
+CONCEPTO: Liquid Glass es un estilo visual con elementos translúcidos, fondos con blur, bordes sutiles brillantes y profundidad visual. Similar al diseño de iOS 18 / visionOS.
+
+FONDO DE LA APP (App.jsx):
+- Fondo general: gradiente suave "linear-gradient(135deg, #e8f4fd 0%, #dbeafe 50%, #ede9fe 100%)"
+- Agregar un div de fondo fijo con círculos de color difuminados (blobs) para dar profundidad
+
+ESTILO LIQUID GLASS para todos los componentes:
+- Cards: background "rgba(255,255,255,0.6)", backdropFilter "blur(20px)", border "1px solid rgba(255,255,255,0.8)", boxShadow "0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)"
+- TopNav: background "rgba(255,255,255,0.7)", backdropFilter "blur(24px)", borderBottom "1px solid rgba(255,255,255,0.6)", boxShadow "0 2px 20px rgba(0,0,0,0.06)"
+- Botones primarios: background "rgba(61,143,209,0.85)", backdropFilter "blur(10px)", border "1px solid rgba(255,255,255,0.3)", boxShadow "0 4px 15px rgba(61,143,209,0.3)"
+- Botones secundarios/cancelar: background "rgba(255,255,255,0.5)", backdropFilter "blur(10px)", border "1px solid rgba(255,255,255,0.8)"
+- Inputs: background "rgba(255,255,255,0.5)", backdropFilter "blur(10px)", border "1px solid rgba(255,255,255,0.6)", focus border "rgba(61,143,209,0.6)"
+- Modales: background "rgba(255,255,255,0.75)", backdropFilter "blur(30px)", border "1px solid rgba(255,255,255,0.9)", boxShadow "0 25px 50px rgba(0,0,0,0.15)"
+- Tablas: header background "rgba(248,250,252,0.6)", filas hover "rgba(255,255,255,0.5)"
+- border-radius: 16px en cards y modales, 10px en botones e inputs
+
+BLOBS DE FONDO en App.jsx (posición fija, no afectan el layout):
+- Blob 1: 600px, top:-100px, left:-100px, background "radial-gradient(circle, rgba(61,143,209,0.15) 0%, transparent 70%)"
+- Blob 2: 500px, bottom:100px, right:-100px, background "radial-gradient(circle, rgba(126,200,227,0.15) 0%, transparent 70%)"
+- Blob 3: 400px, top:50%, left:40%, background "radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%)"
+
+Aplicar en: Sidebar.jsx, App.jsx, Modal.jsx, Field.jsx, Dashboard.jsx, Combustible.jsx, Mantenimiento.jsx, Vehiculo.jsx, Nomina.jsx, Finanzas.jsx, Viajes.jsx, Marketing.jsx
