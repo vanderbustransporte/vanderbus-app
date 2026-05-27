@@ -9,15 +9,6 @@ import { Wrench, Plus, Trash2 } from 'lucide-react'
 
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
-
 const empty = () => ({
   id: genId(), fecha: todayISO(), categoria: 'Revisión general', descripcion: '',
   taller: '', costo: '', km: '', proximo_km: '', proximo_fecha: '', estado: 'Realizado', notas: ''
@@ -112,12 +103,12 @@ export default function Mantenimiento() {
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <Wrench size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Mantenimiento</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Historial de reparaciones y servicios</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Mantenimiento</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Historial de reparaciones y servicios</p>
           </div>
         </div>
         <button
@@ -131,22 +122,22 @@ export default function Mantenimiento() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Gasto del mes</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Pendientes</div>
           <div className="text-xl font-bold" style={{ color: '#D97706' }}>{list.filter(r => r.estado === 'Pendiente').length}</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total registros</div>
           <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{list.length}</div>
         </div>
       </div>
 
       {/* Table card */}
-      <div className="p-5 rounded-xl" style={cardStyle}>
+      <div className="p-5 glass">
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, taller..." />
           <select

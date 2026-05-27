@@ -10,15 +10,6 @@ import { TrendingUp, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide
 const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Flete', 'Alquiler de vehículo', 'Otro ingreso']
 const CATEGORIAS_GASTO = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
-
 const emptyIngreso = () => ({ id: genId(), tipo: 'ingreso', fecha: todayISO(), descripcion: '', categoria: 'Servicio de transporte', importe: '', cliente: '', comprobante: '', notas: '' })
 const emptyGasto = () => ({ id: genId(), tipo: 'gasto', fecha: todayISO(), descripcion: '', categoria: 'Combustible', importe: '', proveedor: '', comprobante: '', notas: '' })
 
@@ -188,12 +179,12 @@ export default function Finanzas() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <TrendingUp size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Finanzas</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Ingresos y gastos</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Finanzas</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Ingresos y gastos</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -216,18 +207,17 @@ export default function Finanzas() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Ingresos del mes</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalIngresosMes)}</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Gastos del mes</div>
           <div className="text-xl font-bold" style={{ color: '#DC2626' }}>{formatARS(totalGastosMes)}</div>
         </div>
         <div
-          className="p-4 rounded-xl"
+          className="p-4 glass"
           style={{
-            ...cardStyle,
             background: balance >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.10)',
             border: balance >= 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)',
           }}
@@ -238,7 +228,7 @@ export default function Finanzas() {
       </div>
 
       {/* Table card */}
-      <div className="p-5 rounded-xl" style={cardStyle}>
+      <div className="p-5 glass">
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, categoría..." />
           <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>

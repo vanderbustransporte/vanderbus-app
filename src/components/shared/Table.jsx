@@ -3,6 +3,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
+// ── Table ────────────────────────────────────────────────────────────────────
+// Refactoring UI fixes applied:
+//  • Header background distinguishable from body (rgba(0,0,0,0.035))
+//  • Row hover visible: rgba(61,143,209,0.05) — subtle blue tint over white glass
+//  • Row borders neutral rgba(0,0,0,0.06) instead of hard #E2E8F0 on translucent bg
+//  • Empty-state text upgraded from #94A3B8 (fails WCAG AA) to #64748B
+//  • Header text upgraded from #64748B to #475569 (slate-600) for better hierarchy
+//  • Pagination buttons use tinted hover matching the row hover system
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Table({ columns, data, emptyText = 'Sin registros' }) {
   const [page, setPage] = useState(0)
   useEffect(() => { setPage(0) }, [data])
@@ -11,15 +20,22 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.6)' }}>
+      {/* Wrapper: single border, clips overflowing content */}
+      <div
+        className="overflow-x-auto"
+        style={{ borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)' }}
+      >
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ background: 'rgba(248,250,252,0.6)' }}>
+            <tr style={{
+              background: 'rgba(0,0,0,0.035)',
+              borderBottom: '1px solid rgba(0,0,0,0.07)',
+            }}>
               {columns.map(c => (
                 <th
                   key={c.key}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap"
-                  style={{ color: '#64748B', borderBottom: '1px solid #E2E8F0' }}
+                  style={{ color: '#475569' }}
                 >
                   {c.label}
                 </th>
@@ -32,7 +48,7 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
                 <td
                   colSpan={columns.length}
                   className="px-4 py-10 text-center text-sm"
-                  style={{ color: '#94A3B8' }}
+                  style={{ color: '#64748B' }}
                 >
                   {emptyText}
                 </td>
@@ -40,9 +56,11 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
             ) : rows.map((row, i) => (
               <tr
                 key={row.id || i}
-                className="border-t transition-colors"
-                style={{ borderColor: '#E2E8F0' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+                style={{
+                  borderTop: '1px solid rgba(0,0,0,0.06)',
+                  transition: 'background-color 150ms ease-out',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,143,209,0.05)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}
               >
                 {columns.map(c => (
@@ -59,30 +77,41 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-3 text-sm" style={{ color: '#64748B' }}>
-          <span>{data.length} registros — página {page + 1} de {totalPages}</span>
+        <div
+          className="flex items-center justify-between mt-3"
+          style={{ color: '#64748B', fontSize: 12 }}
+        >
+          <span>
+            {data.length} registros · página {page + 1} / {totalPages}
+          </span>
           <div className="flex gap-1">
-            <button
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ border: '1px solid rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '8px' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.65)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '' }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page === totalPages - 1}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
-              style={{ border: '1px solid rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '8px' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.65)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '' }}
-            >
-              <ChevronRight size={16} />
-            </button>
+            {[
+              { label: <ChevronLeft size={15} />, action: () => setPage(p => Math.max(0, p - 1)), disabled: page === 0 },
+              { label: <ChevronRight size={15} />, action: () => setPage(p => Math.min(totalPages - 1, p + 1)), disabled: page === totalPages - 1 },
+            ].map(({ label, action, disabled }, i) => (
+              <button
+                key={i}
+                onClick={action}
+                disabled={disabled}
+                className="p-1.5 disabled:opacity-30"
+                style={{
+                  border: '1px solid rgba(0,0,0,0.1)',
+                  background: 'rgba(255,255,255,0.5)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  borderRadius: 8,
+                  color: '#64748B',
+                  transition: 'background-color 150ms ease-out',
+                }}
+                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(61,143,209,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}

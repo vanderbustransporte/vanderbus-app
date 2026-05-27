@@ -34,7 +34,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{
-      background: 'linear-gradient(135deg, #e8f4fd 0%, #dbeafe 50%, #ede9fe 100%)',
+      background: 'linear-gradient(135deg, #0f2a4a 0%, #1a5276 40%, #2e86ab 70%, #7b2d8b 100%)',
       WebkitAppRegion: 'drag',
       position: 'relative',
       overflow: 'hidden'
@@ -43,30 +43,32 @@ export default function App() {
       <div style={{
         position: 'fixed', top: '-100px', left: '-100px',
         width: '600px', height: '600px',
-        background: 'radial-gradient(circle, rgba(61,143,209,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(61,143,209,0.30) 0%, transparent 70%)',
         borderRadius: '50%', pointerEvents: 'none', zIndex: 0
       }} />
       <div style={{
         position: 'fixed', bottom: '100px', right: '-100px',
         width: '500px', height: '500px',
-        background: 'radial-gradient(circle, rgba(126,200,227,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(126,200,227,0.22) 0%, transparent 70%)',
         borderRadius: '50%', pointerEvents: 'none', zIndex: 0
       }} />
       <div style={{
         position: 'fixed', top: '50%', left: '40%',
         width: '400px', height: '400px',
-        background: 'radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(167,139,250,0.25) 0%, transparent 70%)',
         borderRadius: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 0
       }} />
 
-      <TopNav active={page} onNav={navigate} rightContent={<BackupBar />} />
+      <div style={{ WebkitAppRegion: 'no-drag' }}>
+        <TopNav active={page} onNav={navigate} rightContent={<BackupBar />} />
+      </div>
 
-      <div className="pt-14 min-h-screen flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <div className="pt-14 min-h-screen flex flex-col" style={{ position: 'relative', zIndex: 1, WebkitAppRegion: 'no-drag' }}>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8" style={{ WebkitAppRegion: 'no-drag' }}>
           {/* Actualización descargada → botón para instalar */}
           {updateDownloaded && (
             <div className="mb-4 flex items-center justify-between px-4 py-3 rounded-xl text-sm"
-              style={{ background: 'rgba(61,143,209,0.1)', border: '1px solid #3D8FD1', color: '#1E5F8E' }}>
+              style={{ background: 'rgba(61,143,209,0.2)', border: '1px solid rgba(61,143,209,0.5)', color: 'rgba(255,255,255,0.92)' }}>
               <span>✅ Actualización lista para instalar</span>
               <button
                 onClick={handleInstall}
@@ -80,7 +82,7 @@ export default function App() {
           {/* Actualización disponible pero aún descargando */}
           {updateAvailable && !updateDownloaded && (
             <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-              style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid #F59E0B', color: '#92400E' }}>
+              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.5)', color: '#FCD34D' }}>
               ⬇️ Descargando actualización...
             </div>
           )}
@@ -88,15 +90,15 @@ export default function App() {
           {error && (
             <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
               style={{
-                background: 'rgba(239,68,68,0.06)',
-                border: '1px solid rgba(239,68,68,0.2)',
-                color: '#DC2626'
+                background: 'rgba(239,68,68,0.15)',
+                border: '1px solid rgba(239,68,68,0.4)',
+                color: '#FCA5A5'
               }}>
               <span className="font-bold">Sin conexión al servidor:</span> {error}
             </div>
           )}
           {loading && !error && (
-            <div className="mb-4 text-sm px-1" style={{ color: '#64748B' }}>Cargando datos...</div>
+            <div className="mb-4 text-sm px-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Cargando datos...</div>
           )}
           {page === 'dashboard' && <Dashboard onNav={navigate} />}
           {page === 'vehiculo' && <Vehiculo />}

@@ -10,18 +10,9 @@ const emptyVehiculo = {
   aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: ''
 }
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
-
 function ExpiryBadge({ label, date }) {
   if (!date) return (
-    <div className="p-4 rounded-xl" style={cardStyle}>
+    <div className="p-4 glass">
       <div className="text-xs font-medium mb-1" style={{ color: '#64748B' }}>{label}</div>
       <div className="text-sm" style={{ color: '#94A3B8' }}>Sin fecha</div>
     </div>
@@ -75,12 +66,12 @@ export default function Vehiculo() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <Truck size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Vehículo</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Ficha técnica y documentación</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Vehículo</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Ficha técnica y documentación</p>
           </div>
         </div>
         {!editing ? (
@@ -123,7 +114,7 @@ export default function Vehiculo() {
       )}
 
       {/* Data card */}
-      <div className="p-6 rounded-xl" style={cardStyle}>
+      <div className="p-6 glass">
         {!editing ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5">
             {[

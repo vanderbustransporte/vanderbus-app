@@ -10,15 +10,6 @@ import { MapPin, Plus, Trash2 } from 'lucide-react'
 const TIPOS = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
-
 const ESTADO_STYLES = {
   Pendiente: { bg: 'rgba(217,119,6,0.1)', color: '#D97706' },
   Confirmado: { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
@@ -144,12 +135,12 @@ export default function Viajes() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <MapPin size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Viajes</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Gestión de viajes y traslados</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Viajes</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Gestión de viajes y traslados</p>
           </div>
         </div>
         <button
@@ -163,25 +154,25 @@ export default function Viajes() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Ingresos esperados</div>
           <div className="text-xl font-bold" style={{ color: '#D97706' }}>{formatARS(totalEsperado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>Pendientes + Confirmados</div>
+          <div className="text-xs mt-1" style={{ color: '#64748B' }}>Pendientes + Confirmados</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Confirmados</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalConfirmado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
+          <div className="text-xs mt-1" style={{ color: '#64748B' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Realizados</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalRealizado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94A3B8' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
+          <div className="text-xs mt-1" style={{ color: '#64748B' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="p-5 rounded-xl" style={cardStyle}>
+      <div className="p-5 glass">
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <SearchBar value={search} onChange={setSearch} placeholder="Buscar por cliente, tipo, estado..." />

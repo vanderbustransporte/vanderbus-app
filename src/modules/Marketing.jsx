@@ -10,14 +10,6 @@ import { Megaphone, Plus, Trash2, Edit2 } from 'lucide-react'
 const TIPOS = ['Publicidad online', 'Redes sociales', 'Volantes / Impresión', 'Referido', 'Boca a boca', 'WhatsApp', 'Otro']
 const ESTADOS = ['Activo', 'Finalizado', 'Planificado']
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
 
 const ESTADO_STYLES = {
   Activo: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
@@ -121,12 +113,12 @@ export default function Marketing() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <Megaphone size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Marketing</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Campañas y acciones comerciales</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Marketing</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Campañas y acciones comerciales</p>
           </div>
         </div>
         <button
@@ -140,22 +132,22 @@ export default function Marketing() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total invertido</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalInvertido)}</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Campañas activas</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{list.filter(r => r.estado === 'Activo').length}</div>
         </div>
-        <div className="p-4 rounded-xl" style={cardStyle}>
+        <div className="p-4 glass">
           <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total campañas</div>
           <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{list.length}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="p-5 rounded-xl" style={cardStyle}>
+      <div className="p-5 glass">
         <div className="mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar campaña, canal..." />
         </div>

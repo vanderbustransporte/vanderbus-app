@@ -56,13 +56,13 @@ export default function TopNav({ active, onNav, rightContent }) {
                 <button
                   key={id}
                   onClick={() => onNav(id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex-shrink-0"
                   style={
                     isActive
-                      ? { background: 'rgba(61,143,209,0.12)', color: '#3D8FD1', fontWeight: 600, WebkitAppRegion: 'no-drag', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(61,143,209,0.15)' }
-                      : { color: '#64748B', WebkitAppRegion: 'no-drag' }
+                      ? { background: 'rgba(61,143,209,0.12)', color: '#3D8FD1', fontWeight: 600, WebkitAppRegion: 'no-drag', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(61,143,209,0.15)', transition: 'background-color 150ms ease-out, color 150ms ease-out' }
+                      : { color: '#64748B', WebkitAppRegion: 'no-drag', transition: 'background-color 150ms ease-out, color 150ms ease-out' }
                   }
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.45)'; e.currentTarget.style.color = '#1A202C' } }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#1A202C' } }}
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#64748B' } }}
                 >
                   <Icon size={14} />

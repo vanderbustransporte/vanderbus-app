@@ -12,15 +12,6 @@ import {
 const CONSUMO_BUENO = 30
 const CONSUMO_NORMAL = 40
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.6)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(255,255,255,0.8)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
-  borderRadius: '16px',
-}
-
 const TOOLTIP_STYLE = {
   contentStyle: {
     background: 'rgba(255,255,255,0.75)',
@@ -40,10 +31,10 @@ class ErrorBoundary extends React.Component {
   static getDerivedStateFromError() { return { hasError: true } }
   render() {
     if (this.state.hasError) return (
-      <div className="rounded-xl p-10 flex flex-col items-center justify-center text-center" style={cardStyle}>
+      <div className="glass p-10 flex flex-col items-center justify-center text-center">
         <Fuel size={32} style={{ color: '#94A3B8' }} className="mb-3" />
         <p className="font-semibold" style={{ color: '#64748B' }}>Sin registros aún</p>
-        <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>Recargá la página si el problema persiste.</p>
+        <p className="text-sm mt-1" style={{ color: '#64748B' }}>Recargá la página si el problema persiste.</p>
       </div>
     )
     return this.props.children
@@ -169,12 +160,12 @@ function Combustible() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.1)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
             <Fuel size={20} style={{ color: '#3D8FD1' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A202C', fontFamily: "'Inter', sans-serif" }}>Combustible</h1>
-            <p className="text-xs" style={{ color: '#64748B' }}>Historial de cargas</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Combustible</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Historial de cargas</p>
           </div>
         </div>
         <button
@@ -189,7 +180,7 @@ function Combustible() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {stats.map(s => (
-          <div key={s.label} className="p-4 rounded-xl" style={cardStyle}>
+          <div key={s.label} className="p-4 glass">
             <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>{s.label}</div>
             <div className="text-lg font-bold" style={{ color: s.color }}>{s.value}</div>
           </div>
@@ -198,31 +189,31 @@ function Combustible() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="p-5 rounded-xl" style={cardStyle}>
+        <div className="p-5 glass">
           <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Gasto mensual — últimos 6 meses</h2>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8" vertical={false} />
-              <XAxis dataKey="mes" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
+              <XAxis dataKey="mes" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
               <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), 'Gasto']} />
               <Bar dataKey="importe" fill="#3D8FD1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="p-5 rounded-xl" style={cardStyle}>
+        <div className="p-5 glass">
           <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Evolución del precio por litro</h2>
           {lineData.length < 2 ? (
-            <div className="flex items-center justify-center h-[180px] text-sm" style={{ color: '#94A3B8' }}>
+            <div className="flex items-center justify-center h-[180px] text-sm" style={{ color: '#64748B' }}>
               Cargá al menos 2 registros para ver la evolución
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8" vertical={false} />
-                <XAxis dataKey="fecha" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
+                <XAxis dataKey="fecha" tick={{ fill: '#64748B', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
                 <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), '$/litro']} />
                 <Line type="monotone" dataKey="precio" stroke="#D97706" strokeWidth={2} dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
@@ -232,17 +223,17 @@ function Combustible() {
       </div>
 
       {/* History table */}
-      <div className="p-5 rounded-xl" style={cardStyle}>
+      <div className="p-5 glass">
         <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Historial de cargas</h2>
         {withConsumo.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: '#94A3B8' }}>Sin registros aún</p>
+          <p className="text-sm text-center py-8" style={{ color: '#64748B' }}>Sin registros aún</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'rgba(0,0,0,0.035)' }}>
                   {['Fecha', 'KM', 'Litros', 'Importe', '$/Litro', 'L/100km', ''].map(h => (
-                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: '#64748B' }}>
+                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: '#475569' }}>
                       {h}
                     </th>
                   ))}
@@ -255,8 +246,8 @@ function Combustible() {
                   return (
                     <tr
                       key={r.id}
-                      style={{ borderBottom: '1px solid #F0F4F8' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+                      style={{ borderTop: '1px solid rgba(0,0,0,0.06)', transition: 'background-color 150ms ease-out' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,143,209,0.05)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = '' }}
                     >
                       <td className="py-3 px-3" style={{ color: '#374151' }}>{formatDate(r.fecha)}</td>
