@@ -208,11 +208,11 @@ export default function Finanzas() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Ingresos del mes</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Ingresos del mes</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalIngresosMes)}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Gastos del mes</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Gastos del mes</div>
           <div className="text-xl font-bold" style={{ color: '#DC2626' }}>{formatARS(totalGastosMes)}</div>
         </div>
         <div
@@ -222,7 +222,7 @@ export default function Finanzas() {
             border: balance >= 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)',
           }}
         >
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Balance neto</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Balance neto</div>
           <div className="text-xl font-bold" style={{ color: balance >= 0 ? '#16A34A' : '#DC2626' }}>{formatARS(balance)}</div>
         </div>
       </div>
@@ -231,19 +231,19 @@ export default function Finanzas() {
       <div className="p-5 glass">
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, categoría..." />
-          <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             {[['todos', 'Todos'], ['ingreso', 'Ingresos'], ['gasto', 'Gastos']].map(([val, lbl]) => (
               <button
                 key={val}
                 onClick={() => setTab(val)}
-                className="px-3 py-2 text-sm font-medium transition-colors"
+                className="px-3 py-2 text-sm font-medium"
                 style={
                   tab === val
-                    ? { background: 'rgba(61,143,209,0.85)', color: '#FFFFFF', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }
-                    : { background: 'rgba(248,250,252,0.5)', color: '#64748B' }
+                    ? { background: 'var(--accent-dim)', color: 'var(--accent)', borderRight: '1px solid var(--border)' }
+                    : { background: 'var(--bg-overlay)', color: 'var(--text-2)', borderRight: '1px solid var(--border)' }
                 }
-                onMouseEnter={e => { if (tab !== val) e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
-                onMouseLeave={e => { if (tab !== val) e.currentTarget.style.background = 'rgba(248,250,252,0.5)' }}
+                onMouseEnter={e => { if (tab !== val) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-1)' } }}
+                onMouseLeave={e => { if (tab !== val) { e.currentTarget.style.background = 'var(--bg-overlay)'; e.currentTarget.style.color = 'var(--text-2)' } }}
               >
                 {lbl}
               </button>

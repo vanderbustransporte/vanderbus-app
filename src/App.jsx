@@ -15,7 +15,6 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const { error, loading } = useStore()
 
-  // ── Auto-actualización (sólo disponible en la app Electron) ──
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
 
@@ -25,89 +24,64 @@ export default function App() {
     window.electronAPI.onUpdateDownloaded(() => setUpdateDownloaded(true))
   }, [])
 
-  const handleInstall = () => {
-    window.electronAPI?.installUpdate()
-  }
-  // ─────────────────────────────────────────────────────────────
-
-  const navigate = (p) => setPage(p)
+  const handleInstall = () => window.electronAPI?.installUpdate()
 
   return (
-    <div className="min-h-screen" style={{
-      background: 'linear-gradient(135deg, #0f2a4a 0%, #1a5276 40%, #2e86ab 70%, #7b2d8b 100%)',
-      WebkitAppRegion: 'drag',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Blobs de fondo */}
-      <div style={{
-        position: 'fixed', top: '-100px', left: '-100px',
-        width: '600px', height: '600px',
-        background: 'radial-gradient(circle, rgba(61,143,209,0.30) 0%, transparent 70%)',
-        borderRadius: '50%', pointerEvents: 'none', zIndex: 0
-      }} />
-      <div style={{
-        position: 'fixed', bottom: '100px', right: '-100px',
-        width: '500px', height: '500px',
-        background: 'radial-gradient(circle, rgba(126,200,227,0.22) 0%, transparent 70%)',
-        borderRadius: '50%', pointerEvents: 'none', zIndex: 0
-      }} />
-      <div style={{
-        position: 'fixed', top: '50%', left: '40%',
-        width: '400px', height: '400px',
-        background: 'radial-gradient(circle, rgba(167,139,250,0.25) 0%, transparent 70%)',
-        borderRadius: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 0
-      }} />
-
+    <div className="min-h-screen" style={{ WebkitAppRegion: 'drag' }}>
       <div style={{ WebkitAppRegion: 'no-drag' }}>
-        <TopNav active={page} onNav={navigate} rightContent={<BackupBar />} />
+        <TopNav active={page} onNav={p => setPage(p)} rightContent={<BackupBar />} />
       </div>
 
-      <div className="pt-14 min-h-screen flex flex-col" style={{ position: 'relative', zIndex: 1, WebkitAppRegion: 'no-drag' }}>
+      <div className="pt-12 min-h-screen flex flex-col" style={{ WebkitAppRegion: 'no-drag' }}>
         <main className="flex-1 p-4 sm:p-6 lg:p-8" style={{ WebkitAppRegion: 'no-drag' }}>
-          {/* Actualización descargada → botón para instalar */}
           {updateDownloaded && (
-            <div className="mb-4 flex items-center justify-between px-4 py-3 rounded-xl text-sm"
-              style={{ background: 'rgba(61,143,209,0.2)', border: '1px solid rgba(61,143,209,0.5)', color: 'rgba(255,255,255,0.92)' }}>
-              <span>✅ Actualización lista para instalar</span>
+            <div
+              className="mb-4 flex items-center justify-between px-4 py-3 rounded-lg text-sm"
+              style={{ background: 'var(--accent-dim)', border: '1px solid rgba(56,189,248,0.2)', color: 'var(--text-1)' }}
+            >
+              <span>Actualización lista para instalar</span>
               <button
                 onClick={handleInstall}
-                className="ml-4 px-4 py-1.5 rounded-lg text-white text-xs font-semibold"
-                style={{ background: '#3D8FD1', WebkitAppRegion: 'no-drag' }}>
+                className="ml-4 px-4 py-1.5 rounded-md text-xs font-semibold"
+                style={{ background: 'var(--accent)', color: '#09090b', WebkitAppRegion: 'no-drag' }}
+              >
                 Reiniciar y actualizar
               </button>
             </div>
           )}
 
-          {/* Actualización disponible pero aún descargando */}
           {updateAvailable && !updateDownloaded && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.5)', color: '#FCD34D' }}>
-              ⬇️ Descargando actualización...
+            <div
+              className="mb-4 px-4 py-3 rounded-lg text-sm"
+              style={{ background: 'var(--warning-dim)', border: '1px solid rgba(251,191,36,0.2)', color: 'var(--warning)' }}
+            >
+              Descargando actualización…
             </div>
           )}
 
           {error && (
-            <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
-              style={{
-                background: 'rgba(239,68,68,0.15)',
-                border: '1px solid rgba(239,68,68,0.4)',
-                color: '#FCA5A5'
-              }}>
-              <span className="font-bold">Sin conexión al servidor:</span> {error}
+            <div
+              className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
+              style={{ background: 'var(--danger-dim)', border: '1px solid rgba(248,113,113,0.2)', color: 'var(--danger)' }}
+            >
+              <span className="font-semibold">Sin conexión al servidor:</span> {error}
             </div>
           )}
+
           {loading && !error && (
-            <div className="mb-4 text-sm px-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Cargando datos...</div>
+            <div className="mb-4 text-sm px-1" style={{ color: 'var(--text-2)' }}>
+              Cargando datos…
+            </div>
           )}
-          {page === 'dashboard' && <Dashboard onNav={navigate} />}
-          {page === 'vehiculo' && <Vehiculo />}
-          {page === 'combustible' && <Combustible />}
+
+          {page === 'dashboard'     && <Dashboard onNav={p => setPage(p)} />}
+          {page === 'vehiculo'      && <Vehiculo />}
+          {page === 'combustible'   && <Combustible />}
           {page === 'mantenimiento' && <Mantenimiento />}
-          {page === 'nomina' && <Nomina />}
-          {page === 'finanzas' && <Finanzas />}
-          {page === 'viajes' && <Viajes />}
-          {page === 'marketing' && <Marketing />}
+          {page === 'nomina'        && <Nomina />}
+          {page === 'finanzas'      && <Finanzas />}
+          {page === 'viajes'        && <Viajes />}
+          {page === 'marketing'     && <Marketing />}
         </main>
       </div>
     </div>

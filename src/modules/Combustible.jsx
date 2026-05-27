@@ -14,16 +14,14 @@ const CONSUMO_NORMAL = 40
 
 const TOOLTIP_STYLE = {
   contentStyle: {
-    background: 'rgba(255,255,255,0.75)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.8)',
-    borderRadius: 12,
-    color: '#1A202C',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+    background: '#27272a',
+    border: '1px solid rgba(255,255,255,0.13)',
+    borderRadius: 8,
+    color: '#f1f5f9',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.6)'
   },
-  labelStyle: { color: '#374151' },
-  itemStyle: { color: '#374151' },
+  labelStyle: { color: '#94a3b8' },
+  itemStyle: { color: '#94a3b8' },
 }
 
 class ErrorBoundary extends React.Component {
@@ -53,7 +51,7 @@ function consumoColor(c) {
 }
 
 function consumoBg(c) {
-  if (c == null) return { bg: '#F8FAFC', color: '#94A3B8' }
+  if (c == null) return { bg: 'rgba(255,255,255,0.06)', color: '#94a3b8' }
   if (c <= CONSUMO_BUENO) return { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' }
   if (c <= CONSUMO_NORMAL) return { bg: 'rgba(217,119,6,0.1)', color: '#D97706' }
   return { bg: 'rgba(220,38,38,0.1)', color: '#DC2626' }
@@ -181,7 +179,7 @@ function Combustible() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {stats.map(s => (
           <div key={s.label} className="p-4 glass">
-            <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>{s.label}</div>
+            <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>{s.label}</div>
             <div className="text-lg font-bold" style={{ color: s.color }}>{s.value}</div>
           </div>
         ))}
@@ -190,12 +188,12 @@ function Combustible() {
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="p-5 glass">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Gasto mensual — últimos 6 meses</h2>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Gasto mensual — últimos 6 meses</h2>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8" vertical={false} />
-              <XAxis dataKey="mes" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <XAxis dataKey="mes" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
               <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), 'Gasto']} />
               <Bar dataKey="importe" fill="#3D8FD1" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -203,17 +201,17 @@ function Combustible() {
         </div>
 
         <div className="p-5 glass">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Evolución del precio por litro</h2>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Evolución del precio por litro</h2>
           {lineData.length < 2 ? (
-            <div className="flex items-center justify-center h-[180px] text-sm" style={{ color: '#64748B' }}>
+            <div className="flex items-center justify-center h-[180px] text-sm" style={{ color: '#94a3b8' }}>
               Cargá al menos 2 registros para ver la evolución
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8" vertical={false} />
-                <XAxis dataKey="fecha" tick={{ fill: '#64748B', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#64748B', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis dataKey="fecha" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
                 <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), '$/litro']} />
                 <Line type="monotone" dataKey="precio" stroke="#D97706" strokeWidth={2} dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
@@ -224,16 +222,16 @@ function Combustible() {
 
       {/* History table */}
       <div className="p-5 glass">
-        <h2 className="text-sm font-semibold mb-4" style={{ color: '#374151' }}>Historial de cargas</h2>
+        <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Historial de cargas</h2>
         {withConsumo.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: '#64748B' }}>Sin registros aún</p>
+          <p className="text-sm text-center py-8" style={{ color: '#94a3b8' }}>Sin registros aún</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'rgba(0,0,0,0.035)' }}>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'var(--bg-base)' }}>
                   {['Fecha', 'KM', 'Litros', 'Importe', '$/Litro', 'L/100km', ''].map(h => (
-                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: '#475569' }}>
+                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: '#94a3b8' }}>
                       {h}
                     </th>
                   ))}
@@ -246,21 +244,21 @@ function Combustible() {
                   return (
                     <tr
                       key={r.id}
-                      style={{ borderTop: '1px solid rgba(0,0,0,0.06)', transition: 'background-color 150ms ease-out' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,143,209,0.05)' }}
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.07)', transition: 'background 150ms ease-out' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.04)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = '' }}
                     >
-                      <td className="py-3 px-3" style={{ color: '#374151' }}>{formatDate(r.fecha)}</td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#374151' }}>
+                      <td className="py-3 px-3" style={{ color: '#f1f5f9' }}>{formatDate(r.fecha)}</td>
+                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
                         {r.km ? Number(r.km).toLocaleString('es-AR') : '—'}
                       </td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#374151' }}>
+                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
                         {r.litros ? `${parseFloat(r.litros).toFixed(1)} L` : '—'}
                       </td>
                       <td className="py-3 px-3 text-right font-semibold" style={{ color: '#3D8FD1' }}>
                         {r.importe ? formatARS(r.importe) : '—'}
                       </td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#64748B' }}>
+                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
                         {precio && isFinite(precio) ? formatARS(precio) : '—'}
                       </td>
                       <td className="py-3 px-3 text-right">

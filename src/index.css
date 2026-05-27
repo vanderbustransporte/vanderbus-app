@@ -1,114 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-inter: 'Inter', sans-serif;
-  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono: 'Space Mono', 'Courier New', monospace;
-  --color-primary: #3D8FD1;
-  --color-secondary: #7EC8E3;
-  --color-bg: #F0F4F8;
-  --color-card: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-text: #1A202C;
-  --color-muted: #475569;
+  --font-sans:     'Geist', system-ui, sans-serif;
+  --font-mono:     'Geist Mono', ui-monospace, monospace;
+  --color-accent:   #38bdf8;
+  --color-positive: #34d399;
+  --color-danger:   #f87171;
+  --color-warning:  #fbbf24;
 }
 
-* {
-  box-sizing: border-box;
+/* ── Design tokens ─────────────────────────────────────── */
+:root {
+  /* Surfaces — stepped dark, never pure black */
+  --bg-base:     #09090b;
+  --bg-surface:  #101012;
+  --bg-elevated: #18181b;
+  --bg-overlay:  #27272a;
+
+  /* Borders */
+  --border:    rgba(255, 255, 255, 0.07);
+  --border-hi: rgba(255, 255, 255, 0.13);
+
+  /* Text */
+  --text-1: #f1f5f9;   /* primary */
+  --text-2: #94a3b8;   /* secondary */
+  --text-3: #52525b;   /* muted / labels */
+
+  /* Accent — sky-400, electric but not AI-purple */
+  --accent:      #38bdf8;
+  --accent-dim:  rgba(56, 189, 248, 0.10);
+  --accent-glow: rgba(56, 189, 248, 0.06);
+
+  /* Semantic */
+  --positive:     #34d399;
+  --positive-dim: rgba(52, 211, 153, 0.10);
+  --danger:       #f87171;
+  --danger-dim:   rgba(248, 113, 113, 0.10);
+  --warning:      #fbbf24;
+  --warning-dim:  rgba(251, 191, 36, 0.10);
+
+  /* Shape — one system, applied everywhere */
+  --radius:    8px;
+  --radius-sm: 6px;
 }
+
+/* ── Reset & base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
 
 body {
   margin: 0;
-  background: linear-gradient(135deg, #0f2a4a 0%, #1a5276 40%, #2e86ab 70%, #7b2d8b 100%);
-  background-attachment: fixed;
-  color: #1A202C;
-  font-family: 'Inter', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-1);
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F0F4F8;
-}
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--border-hi); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
 
-input, select, textarea {
-  outline: none;
-}
+/* ── Form elements ─────────────────────────────────────── */
+input, select, textarea { outline: none; }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: none;
-  opacity: 0.5;
+  filter: invert(0.5);
   cursor: pointer;
 }
-
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 0.8;
+  filter: invert(0.7);
 }
 
-/* ═══════════════════════════════════════
-   GLASS MORPHISM
-   ═══════════════════════════════════════ */
-.glass {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
+/* ── Surface utilities ─────────────────────────────────── */
+.glass,
+.surface {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-/* ═══════════════════════════════════════
-   BOTONES — feedback de press (Emil)
-   scale(0.97) + 160ms ease-out
-   ═══════════════════════════════════════ */
+/* Hover lift for interactive panels — gated behind pointer media */
+.surface-hover {
+  transition:
+    border-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform    180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .surface-hover:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+  }
+}
+
+/* ── Button press feedback (Emil: scale 0.97, ease-out) ── */
 button {
-  transition: transform 160ms ease-out;
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-button:active {
-  transform: scale(0.97);
-}
+button:active { transform: scale(0.97); }
 
-/* ═══════════════════════════════════════
-   MODAL — entrada scale + fade (Emil)
-   scale(0.95)+opacity(0) → scale(1)+opacity(1)
-   ═══════════════════════════════════════ */
+/* ── Modal entry (Emil: from scale 0.97 + opacity 0) ───── */
 @keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
 }
-
 .modal-panel {
-  animation: modal-in 200ms ease-out both;
+  animation: modal-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-/* ═══════════════════════════════════════
-   ACCESIBILIDAD — prefers-reduced-motion
-   ═══════════════════════════════════════ */
+/* ── Dashboard stagger (Emil: translateY, never scale(0)) ─ */
+@keyframes db-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+.db-in {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: db-up 320ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+/* 50ms stagger intervals — within Emil's 30-80ms rule */
+.db-d0 { animation-delay:   0ms; }
+.db-d1 { animation-delay:  50ms; }
+.db-d2 { animation-delay: 100ms; }
+.db-d3 { animation-delay: 150ms; }
+.db-d4 { animation-delay: 200ms; }
+.db-d5 { animation-delay: 250ms; }
+.db-d6 { animation-delay: 300ms; }
+.db-d7 { animation-delay: 350ms; }
+.db-d8 { animation-delay: 400ms; }
+
+/* ── Dashboard section label ───────────────────────────── */
+.db-slabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-2);
+  margin-bottom: 14px;
+  font-family: 'Geist Mono', monospace;
+}
+
+/* ── Dashboard empty state ─────────────────────────────── */
+.db-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+/* ── Reduced motion (mandatory for MOTION_INTENSITY > 3) ─ */
 @media (prefers-reduced-motion: reduce) {
-  button {
-    transition: none;
-  }
-  button:active {
-    transform: none;
-  }
-  .modal-panel {
-    animation: none;
-  }
+  button          { transition: none; }
+  button:active   { transform: none; }
+  .modal-panel    { animation: none; }
+  .surface-hover  { transition: none; }
+  .surface-hover:hover { transform: none; }
+  .db-in { opacity: 1; transform: none; animation: none; }
 }

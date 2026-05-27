@@ -3,15 +3,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
-// ── Table ────────────────────────────────────────────────────────────────────
-// Refactoring UI fixes applied:
-//  • Header background distinguishable from body (rgba(0,0,0,0.035))
-//  • Row hover visible: rgba(61,143,209,0.05) — subtle blue tint over white glass
-//  • Row borders neutral rgba(0,0,0,0.06) instead of hard #E2E8F0 on translucent bg
-//  • Empty-state text upgraded from #94A3B8 (fails WCAG AA) to #64748B
-//  • Header text upgraded from #64748B to #475569 (slate-600) for better hierarchy
-//  • Pagination buttons use tinted hover matching the row hover system
-// ─────────────────────────────────────────────────────────────────────────────
 export default function Table({ columns, data, emptyText = 'Sin registros' }) {
   const [page, setPage] = useState(0)
   useEffect(() => { setPage(0) }, [data])
@@ -20,22 +11,15 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
 
   return (
     <div>
-      {/* Wrapper: single border, clips overflowing content */}
-      <div
-        className="overflow-x-auto"
-        style={{ borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)' }}
-      >
+      <div className="overflow-x-auto" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
         <table className="w-full text-sm">
           <thead>
-            <tr style={{
-              background: 'rgba(0,0,0,0.035)',
-              borderBottom: '1px solid rgba(0,0,0,0.07)',
-            }}>
+            <tr style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
               {columns.map(c => (
                 <th
                   key={c.key}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap"
-                  style={{ color: '#475569' }}
+                  style={{ color: 'var(--text-2)' }}
                 >
                   {c.label}
                 </th>
@@ -45,30 +29,19 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-4 py-10 text-center text-sm"
-                  style={{ color: '#64748B' }}
-                >
+                <td colSpan={columns.length} className="px-4 py-10 text-center text-sm" style={{ color: 'var(--text-2)' }}>
                   {emptyText}
                 </td>
               </tr>
             ) : rows.map((row, i) => (
               <tr
                 key={row.id || i}
-                style={{
-                  borderTop: '1px solid rgba(0,0,0,0.06)',
-                  transition: 'background-color 150ms ease-out',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,143,209,0.05)' }}
+                style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms ease-out' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.04)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}
               >
                 {columns.map(c => (
-                  <td
-                    key={c.key}
-                    className="px-4 py-3 whitespace-nowrap"
-                    style={{ color: '#374151' }}
-                  >
+                  <td key={c.key} className="px-4 py-3 whitespace-nowrap" style={{ color: 'var(--text-1)' }}>
                     {c.render ? c.render(row) : row[c.key]}
                   </td>
                 ))}
@@ -78,15 +51,9 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div
-          className="flex items-center justify-between mt-3"
-          style={{ color: '#64748B', fontSize: 12 }}
-        >
-          <span>
-            {data.length} registros · página {page + 1} / {totalPages}
-          </span>
+        <div className="flex items-center justify-between mt-3" style={{ color: 'var(--text-2)', fontSize: 12 }}>
+          <span>{data.length} registros · página {page + 1} / {totalPages}</span>
           <div className="flex gap-1">
             {[
               { label: <ChevronLeft size={15} />, action: () => setPage(p => Math.max(0, p - 1)), disabled: page === 0 },
@@ -97,17 +64,9 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
                 onClick={action}
                 disabled={disabled}
                 className="p-1.5 disabled:opacity-30"
-                style={{
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  background: 'rgba(255,255,255,0.5)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  borderRadius: 8,
-                  color: '#64748B',
-                  transition: 'background-color 150ms ease-out',
-                }}
-                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(61,143,209,0.08)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--border)', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-sm)', color: 'var(--text-2)', transition: 'background 150ms ease-out' }}
+                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(56,189,248,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#27272a' }}
               >
                 {label}
               </button>

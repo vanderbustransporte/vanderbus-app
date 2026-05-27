@@ -23,7 +23,7 @@ const empty = () => ({
 })
 
 function EstadoBadge({ estado, id, onChange }) {
-  const s = ESTADO_STYLES[estado] || { bg: '#F8FAFC', color: '#64748B' }
+  const s = ESTADO_STYLES[estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
   return (
     <select
       value={estado}
@@ -100,19 +100,19 @@ export default function Viajes() {
 
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: '#1A202C' }}>{r.cliente}</span> },
+    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: '#f1f5f9' }}>{r.cliente}</span> },
     { key: 'tipo', label: 'Tipo' },
     { key: 'origen', label: 'Origen' },
     { key: 'destino', label: 'Destino' },
     {
       key: 'monto_sena', label: 'Seña',
-      render: r => r.monto_sena ? formatARS(r.monto_sena) : <span style={{ color: '#CBD5E1' }}>—</span>
+      render: r => r.monto_sena ? formatARS(r.monto_sena) : <span style={{ color: '#52525b' }}>—</span>
     },
     {
       key: 'monto_total', label: 'Total',
       render: r => r.monto_total
         ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.monto_total)}</span>
-        : <span style={{ color: '#CBD5E1' }}>—</span>
+        : <span style={{ color: '#52525b' }}>—</span>
     },
     { key: 'estado', label: 'Estado', render: r => <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} /> },
     {
@@ -155,19 +155,19 @@ export default function Viajes() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Ingresos esperados</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Ingresos esperados</div>
           <div className="text-xl font-bold" style={{ color: '#D97706' }}>{formatARS(totalEsperado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#64748B' }}>Pendientes + Confirmados</div>
+          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>Pendientes + Confirmados</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Confirmados</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Confirmados</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalConfirmado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#64748B' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
+          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Realizados</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Realizados</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalRealizado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#64748B' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
+          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
         </div>
       </div>
 
@@ -181,9 +181,9 @@ export default function Viajes() {
             value={estadoFilter}
             onChange={e => setEstadoFilter(e.target.value)}
             className="px-3 py-2 rounded-lg text-sm transition-colors"
-            style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.6)', color: '#374151', cursor: 'pointer', borderRadius: '10px' }}
-            onFocus={e => { e.target.style.borderColor = 'rgba(61,143,209,0.6)' }}
-            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.6)' }}
+            style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+            onFocus={e => { e.target.style.borderColor = '#38bdf8' }}
+            onBlur={e => { e.target.style.borderColor = '' }}
           >
             <option value="">Todos los estados</option>
             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}

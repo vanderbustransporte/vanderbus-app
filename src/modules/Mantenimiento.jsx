@@ -76,7 +76,7 @@ export default function Mantenimiento() {
     { key: 'km', label: 'KM', render: r => r.km ? `${Number(r.km).toLocaleString('es-AR')}` : '—' },
     {
       key: 'estado', label: 'Estado', render: r => {
-        const s = ESTADO_STYLES[r.estado] || { bg: '#F8FAFC', color: '#64748B' }
+        const s = ESTADO_STYLES[r.estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
         return (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
             {r.estado}
@@ -123,16 +123,16 @@ export default function Mantenimiento() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Gasto del mes</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Gasto del mes</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Pendientes</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Pendientes</div>
           <div className="text-xl font-bold" style={{ color: '#D97706' }}>{list.filter(r => r.estado === 'Pendiente').length}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total registros</div>
-          <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{list.length}</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total registros</div>
+          <div className="text-xl font-bold" style={{ color: '#f1f5f9' }}>{list.length}</div>
         </div>
       </div>
 
@@ -144,9 +144,9 @@ export default function Mantenimiento() {
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
             className="px-3 py-2 rounded-lg text-sm transition-colors"
-            style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.6)', color: '#374151', cursor: 'pointer', borderRadius: '10px' }}
-            onFocus={e => { e.target.style.borderColor = 'rgba(61,143,209,0.6)' }}
-            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.6)' }}
+            style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+            onFocus={e => { e.target.style.borderColor = '#38bdf8' }}
+            onBlur={e => { e.target.style.borderColor = '' }}
           >
             <option value="">Todos los estados</option>
             <option>Realizado</option>

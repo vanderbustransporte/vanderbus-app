@@ -60,7 +60,7 @@ export default function Nomina() {
 
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'empleado', label: 'Empleado', render: r => <span className="font-semibold" style={{ color: '#1A202C' }}>{r.empleado}</span> },
+    { key: 'empleado', label: 'Empleado', render: r => <span className="font-semibold" style={{ color: '#f1f5f9' }}>{r.empleado}</span> },
     { key: 'concepto', label: 'Concepto' },
     { key: 'periodo', label: 'Período', render: r => r.periodo || '—' },
     { key: 'importe', label: 'Importe', render: r => <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.importe)}</span> },
@@ -105,12 +105,12 @@ export default function Nomina() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Pagado este mes</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Pagado este mes</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Empleados</div>
-          <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{empleados.length}</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Empleados</div>
+          <div className="text-xl font-bold" style={{ color: '#f1f5f9' }}>{empleados.length}</div>
         </div>
       </div>
 

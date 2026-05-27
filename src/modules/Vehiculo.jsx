@@ -13,8 +13,8 @@ const emptyVehiculo = {
 function ExpiryBadge({ label, date }) {
   if (!date) return (
     <div className="p-4 glass">
-      <div className="text-xs font-medium mb-1" style={{ color: '#64748B' }}>{label}</div>
-      <div className="text-sm" style={{ color: '#94A3B8' }}>Sin fecha</div>
+      <div className="text-xs font-medium mb-1" style={{ color: '#94a3b8' }}>{label}</div>
+      <div className="text-sm" style={{ color: '#94a3b8' }}>Sin fecha</div>
     </div>
   )
 
@@ -41,7 +41,7 @@ function ExpiryBadge({ label, date }) {
         <Icon size={13} style={{ color: textColor }} />
         <div className="text-xs font-medium" style={{ color: '#64748B' }}>{label}</div>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ color: '#1A202C' }}>{formatDate(date)}</div>
+      <div className="font-semibold text-sm mb-1" style={{ color: '#f1f5f9' }}>{formatDate(date)}</div>
       <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: badgeBg, color: badgeColor }}>
         {expiryLabel(date)}
       </span>
@@ -86,10 +86,10 @@ export default function Vehiculo() {
           <div className="flex gap-2">
             <button
               onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{ border: '1px solid rgba(255,255,255,0.8)', color: '#64748B', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '10px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.7)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.5)' }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', borderRadius: 'var(--radius)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '' }}
             >
               <X size={16} /> Cancelar
             </button>
@@ -126,13 +126,13 @@ export default function Vehiculo() {
             ].map(([lbl, val]) => (
               <div key={lbl}>
                 <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#94A3B8' }}>{lbl}</div>
-                <div className="font-medium text-sm" style={{ color: val ? '#1A202C' : '#CBD5E1' }}>{val || '—'}</div>
+                <div className="font-medium text-sm" style={{ color: val ? '#f1f5f9' : '#52525b' }}>{val || '—'}</div>
               </div>
             ))}
             {v.observaciones && (
-              <div className="col-span-full pt-2 border-t" style={{ borderColor: '#E2E8F0' }}>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#94A3B8' }}>Observaciones</div>
-                <div className="text-sm" style={{ color: '#374151' }}>{v.observaciones}</div>
+              <div className="col-span-full pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#94a3b8' }}>Observaciones</div>
+                <div className="text-sm" style={{ color: '#94a3b8' }}>{v.observaciones}</div>
               </div>
             )}
           </div>

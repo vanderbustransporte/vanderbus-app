@@ -65,7 +65,7 @@ export default function Marketing() {
 
   const cols = [
     { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'titulo', label: 'Campaña', render: r => <span className="font-semibold" style={{ color: '#1A202C' }}>{r.titulo}</span> },
+    { key: 'titulo', label: 'Campaña', render: r => <span className="font-semibold" style={{ color: '#f1f5f9' }}>{r.titulo}</span> },
     { key: 'tipo', label: 'Canal' },
     { key: 'presupuesto', label: 'Presupuesto', render: r => r.presupuesto ? formatARS(r.presupuesto) : '—' },
     {
@@ -74,7 +74,7 @@ export default function Marketing() {
     },
     {
       key: 'estado', label: 'Estado', render: r => {
-        const s = ESTADO_STYLES[r.estado] || { bg: '#F8FAFC', color: '#64748B' }
+        const s = ESTADO_STYLES[r.estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
         return (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
             {r.estado}
@@ -89,7 +89,7 @@ export default function Marketing() {
             onClick={() => openEdit(r)}
             className="p-1.5 rounded-lg transition-colors"
             style={{ color: '#64748B' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F0F4F8' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
             onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <Edit2 size={14} />
@@ -133,16 +133,16 @@ export default function Marketing() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total invertido</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total invertido</div>
           <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalInvertido)}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Campañas activas</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Campañas activas</div>
           <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{list.filter(r => r.estado === 'Activo').length}</div>
         </div>
         <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#64748B' }}>Total campañas</div>
-          <div className="text-xl font-bold" style={{ color: '#1A202C' }}>{list.length}</div>
+          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total campañas</div>
+          <div className="text-xl font-bold" style={{ color: '#f1f5f9' }}>{list.length}</div>
         </div>
       </div>
 
