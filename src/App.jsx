@@ -106,7 +106,7 @@ export default function App() {
           {page === 'viajes'        && <Viajes />}
           {page === 'marketing'     && <Marketing />}
           {page === 'seguimiento'   && <SeguimientoGPS />}
-          {page === 'oportunidades'  && <Oportunidades />}
+          {page === 'oportunidades' && <Oportunidades />}
         </main>
       </div>
     </div>

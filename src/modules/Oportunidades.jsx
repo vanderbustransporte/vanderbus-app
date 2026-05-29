@@ -165,21 +165,33 @@ export default function Oportunidades() {
 
   useEffect(() => {
     const hoy = new Date().toISOString().slice(0, 10)
-    supabase
-      .from('oportunidades')
-      .select('*')
-      .gte('created_at', `${hoy}T00:00:00`)
-      .lte('created_at', `${hoy}T23:59:59`)
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setList(data.sort((a, b) => {
-            if (a.estado === 'nueva' && b.estado !== 'nueva') return -1
-            if (b.estado === 'nueva' && a.estado !== 'nueva') return 1
-            return new Date(b.created_at) - new Date(a.created_at)
-          }))
-        }
-        setLoading(false)
-      })
+
+    const fetchList = () => {
+      supabase
+        .from('oportunidades')
+        .select('*')
+        .gte('created_at', `${hoy}T00:00:00`)
+        .lte('created_at', `${hoy}T23:59:59`)
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setList(data.sort((a, b) => {
+              if (a.estado === 'nueva' && b.estado !== 'nueva') return -1
+              if (b.estado === 'nueva' && a.estado !== 'nueva') return 1
+              return new Date(b.created_at) - new Date(a.created_at)
+            }))
+          }
+          setLoading(false)
+        })
+    }
+
+    fetchList()
+
+    const channel = supabase
+      .channel('oportunidades-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oportunidades' }, fetchList)
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   }, [])
 
   useEffect(() => () => _toastTimers.current.forEach(clearTimeout), [])

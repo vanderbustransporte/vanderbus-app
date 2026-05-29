@@ -1,4 +1,5 @@
 export function tiempoRelativo(isoString) {
+  if (!isoString) return ''
   const diff = Date.now() - new Date(isoString).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1)  return 'ahora'
