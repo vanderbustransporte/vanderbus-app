@@ -8,8 +8,11 @@ import Nomina from './modules/Nomina'
 import Finanzas from './modules/Finanzas'
 import Marketing from './modules/Marketing'
 import Viajes from './modules/Viajes'
+import SeguimientoGPS from './modules/SeguimientoGPS'
 import BackupBar from './modules/Backup'
 import { useStore } from './store/useStore'
+import Oportunidades from './modules/Oportunidades'
+import { supabase } from './lib/supabase'
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
@@ -17,6 +20,7 @@ export default function App() {
 
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
+  const [nuevasCount, setNuevasCount] = useState(0)
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -24,12 +28,33 @@ export default function App() {
     window.electronAPI.onUpdateDownloaded(() => setUpdateDownloaded(true))
   }, [])
 
+  useEffect(() => {
+    supabase
+      .from('oportunidades')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'nueva')
+      .then(({ count }) => setNuevasCount(count ?? 0))
+
+    const channel = supabase
+      .channel('oportunidades-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oportunidades' }, () => {
+        supabase
+          .from('oportunidades')
+          .select('id', { count: 'exact', head: true })
+          .eq('estado', 'nueva')
+          .then(({ count }) => setNuevasCount(count ?? 0))
+      })
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [])
+
   const handleInstall = () => window.electronAPI?.installUpdate()
 
   return (
     <div className="min-h-screen" style={{ WebkitAppRegion: 'drag' }}>
       <div style={{ WebkitAppRegion: 'no-drag' }}>
-        <TopNav active={page} onNav={p => setPage(p)} rightContent={<BackupBar />} />
+        <TopNav active={page} onNav={p => setPage(p)} rightContent={<BackupBar />} badgeCounts={{ oportunidades: nuevasCount }} />
       </div>
 
       <div className="pt-12 min-h-screen flex flex-col" style={{ WebkitAppRegion: 'no-drag' }}>
@@ -82,6 +107,8 @@ export default function App() {
           {page === 'finanzas'      && <Finanzas />}
           {page === 'viajes'        && <Viajes />}
           {page === 'marketing'     && <Marketing />}
+          {page === 'seguimiento'   && <SeguimientoGPS />}
+          {page === 'oportunidades'  && <Oportunidades />}
         </main>
       </div>
     </div>
