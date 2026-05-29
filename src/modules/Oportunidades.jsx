@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Target, ExternalLink, CheckCircle, MinusCircle, MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { tiempoRelativo } from '../utils/tiempoRelativo'
@@ -130,8 +130,6 @@ function OportunidadCard({ oportunidad, onContactar, onSkip, index }) {
   )
 }
 
-let _toastId = 0
-
 function ToastContainer({ toasts }) {
   if (!toasts.length) return null
   return (
@@ -155,11 +153,14 @@ export default function Oportunidades() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro]   = useState('Todas')
   const [toasts, setToasts]   = useState([])
+  const _toastId = useRef(0)
+  const _toastTimers = useRef([])
 
   const addToast = useCallback((message, icon) => {
-    const id = ++_toastId
+    const id = ++_toastId.current
     setToasts(prev => [...prev, { id, message, icon }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+    const timer = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+    _toastTimers.current.push(timer)
   }, [])
 
   useEffect(() => {
@@ -181,15 +182,21 @@ export default function Oportunidades() {
       })
   }, [])
 
+  useEffect(() => () => _toastTimers.current.forEach(clearTimeout), [])
+
   const cambiarEstado = useCallback(async (id, nuevoEstado) => {
+    const prevEstado = list.find(o => o.id === id)?.estado
     setList(prev => prev.map(o =>
       o.id === id ? { ...o, estado: nuevoEstado, updated_at: new Date().toISOString() } : o
     ))
-    await supabase
+    const { error } = await supabase
       .from('oportunidades')
       .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
       .eq('id', id)
-  }, [])
+    if (error) {
+      setList(prev => prev.map(o => o.id === id ? { ...o, estado: prevEstado } : o))
+    }
+  }, [list])
 
   const handleContactar = useCallback((id) => {
     cambiarEstado(id, 'contactada')
@@ -219,12 +226,12 @@ export default function Oportunidades() {
     total:       list.length,
   }), [list])
 
-  const STATS_ITEMS = [
-    { label: 'Nuevas',      value: stats.nuevas,      color: ACCENT        },
-    { label: 'Contactadas', value: stats.contactadas,  color: 'var(--positive)' },
-    { label: 'Descartadas', value: stats.descartadas,  color: '#64748b'     },
-    { label: 'Total',       value: stats.total,        color: 'var(--text-1)' },
-  ]
+  const STATS_ITEMS = useMemo(() => [
+    { label: 'Nuevas',      value: stats.nuevas,      color: ACCENT             },
+    { label: 'Contactadas', value: stats.contactadas,  color: 'var(--positive)'  },
+    { label: 'Descartadas', value: stats.descartadas,  color: '#64748b'          },
+    { label: 'Total',       value: stats.total,        color: 'var(--text-1)'    },
+  ], [stats])
 
   return (
     <div className="max-w-5xl mx-auto">
