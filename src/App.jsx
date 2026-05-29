@@ -29,21 +29,19 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    supabase
-      .from('oportunidades')
-      .select('id', { count: 'exact', head: true })
-      .eq('estado', 'nueva')
-      .then(({ count }) => setNuevasCount(count ?? 0))
+    const fetchCount = () => {
+      supabase
+        .from('oportunidades')
+        .select('id', { count: 'exact', head: true })
+        .eq('estado', 'nueva')
+        .then(({ count, error }) => { if (!error) setNuevasCount(count ?? 0) })
+    }
+
+    fetchCount()
 
     const channel = supabase
       .channel('oportunidades-badge')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'oportunidades' }, () => {
-        supabase
-          .from('oportunidades')
-          .select('id', { count: 'exact', head: true })
-          .eq('estado', 'nueva')
-          .then(({ count }) => setNuevasCount(count ?? 0))
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oportunidades' }, fetchCount)
       .subscribe()
 
     return () => supabase.removeChannel(channel)
