@@ -1,18 +1,20 @@
 import React, { useState } from 'react'
-import { LayoutDashboard, Truck, Fuel, Wrench, DollarSign, TrendingUp, Megaphone, Menu, X, MapPin } from 'lucide-react'
+import { LayoutDashboard, Truck, Fuel, Wrench, DollarSign, TrendingUp, Megaphone, Menu, X, MapPin, Navigation, Target } from 'lucide-react'
 
 const navItems = [
-  { id: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard },
-  { id: 'vehiculo',     label: 'Vehículo',       icon: Truck           },
-  { id: 'combustible',  label: 'Combustible',    icon: Fuel            },
-  { id: 'mantenimiento',label: 'Mantenimiento',  icon: Wrench          },
-  { id: 'nomina',       label: 'Nómina',         icon: DollarSign      },
-  { id: 'finanzas',     label: 'Finanzas',       icon: TrendingUp      },
-  { id: 'viajes',       label: 'Viajes',         icon: MapPin          },
-  { id: 'marketing',    label: 'Marketing',      icon: Megaphone       },
+  { id: 'dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
+  { id: 'vehiculo',      label: 'Vehículo',        icon: Truck           },
+  { id: 'combustible',   label: 'Combustible',     icon: Fuel            },
+  { id: 'mantenimiento', label: 'Mantenimiento',   icon: Wrench          },
+  { id: 'nomina',        label: 'Nómina',          icon: DollarSign      },
+  { id: 'finanzas',      label: 'Finanzas',        icon: TrendingUp      },
+  { id: 'viajes',        label: 'Viajes',          icon: MapPin          },
+  { id: 'marketing',     label: 'Marketing',       icon: Megaphone       },
+  { id: 'seguimiento',   label: 'GPS',             icon: Navigation      },
+  { id: 'oportunidades', label: 'Oportunidades',   icon: Target          },
 ]
 
-export default function TopNav({ active, onNav, rightContent }) {
+export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -63,6 +65,23 @@ export default function TopNav({ active, onNav, rightContent }) {
                 >
                   <Icon size={13} />
                   {label}
+                  {badgeCounts[id] > 0 && (
+                    <span style={{
+                      background: 'var(--accent)',
+                      color: '#09090b',
+                      borderRadius: 9999,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '0 5px',
+                      lineHeight: '16px',
+                      minWidth: 16,
+                      textAlign: 'center',
+                      display: 'inline-block',
+                      marginLeft: 2,
+                    }}>
+                      {badgeCounts[id]}
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -122,6 +141,23 @@ export default function TopNav({ active, onNav, rightContent }) {
                 >
                   <Icon size={16} />
                   {label}
+                  {badgeCounts[id] > 0 && (
+                    <span style={{
+                      background: 'var(--accent)',
+                      color: '#09090b',
+                      borderRadius: 9999,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '0 5px',
+                      lineHeight: '16px',
+                      minWidth: 16,
+                      textAlign: 'center',
+                      display: 'inline-block',
+                      marginLeft: 'auto',
+                    }}>
+                      {badgeCounts[id]}
+                    </span>
+                  )}
                 </button>
               )
             })}
