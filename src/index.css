@@ -1,9 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
 
 @theme {
-  --font-sans:     'Geist', system-ui, sans-serif;
+  --font-sans:     'Plus Jakarta Sans', 'Geist', system-ui, sans-serif;
   --font-mono:     'Geist Mono', ui-monospace, monospace;
+  --font-ui:       'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-num:      'Space Mono', 'Geist Mono', ui-monospace, monospace;
   --color-accent:   #38bdf8;
   --color-positive: #34d399;
   --color-danger:   #f87171;
@@ -115,6 +118,15 @@ button:active { transform: scale(0.97); }
   animation: modal-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
+/* ── Toast entry (slide from left) ──────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-110%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-in {
+  animation: toast-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
 /* ── Dashboard stagger (Emil: translateY, never scale(0)) ─ */
 @keyframes db-up {
   to { opacity: 1; transform: translateY(0); }
@@ -161,7 +173,139 @@ button:active { transform: scale(0.97); }
   button          { transition: none; }
   button:active   { transform: none; }
   .modal-panel    { animation: none; }
+  .toast-in       { animation: none; }
   .surface-hover  { transition: none; }
   .surface-hover:hover { transform: none; }
   .db-in { opacity: 1; transform: none; animation: none; }
+}
+
+/* ── Module h1: gradient white + Plus Jakarta Sans ─────── */
+.mod-h1 {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.68) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Module subtitle ───────────────────────────────────── */
+.mod-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.32);
+  margin-top: 5px;
+  letter-spacing: 0.025em;
+}
+
+/* ── db-panel: glass surface for all modules ───────────── */
+.db-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ── db-panel-h: hover lift variant ───────────────────── */
+.db-panel-h {
+  transition:
+    border-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform    180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .db-panel-h:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+  }
+}
+
+/* ── num: Space Mono for key metrics ──────────────────── */
+.num {
+  font-family: 'Space Mono', 'Geist Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── glass-btn-primary: standard module action button ──── */
+.glass-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition:
+    background   150ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow   150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .glass-btn-primary:hover {
+    background: rgba(56, 189, 248, 0.20);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 18px rgba(56, 189, 248, 0.18);
+  }
+}
+
+/* ── Reduced motion additions ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .db-panel-h { transition: none; }
+  .db-panel-h:hover { transform: none; }
+  .glass-btn-primary { transition: none; }
+}
+
+/* ── Leaflet: overrides tema oscuro ────────────────────── */
+.leaflet-popup-content-wrapper {
+  background: #131c2e;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  color: #f1f5f9;
+}
+.leaflet-popup-tip {
+  background: #131c2e;
+}
+.leaflet-popup-content {
+  margin: 14px 16px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 1.4;
+}
+.leaflet-popup-close-button {
+  color: #64748b !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+}
+.leaflet-popup-close-button:hover {
+  color: #94a3b8 !important;
+}
+.leaflet-container {
+  background: #0f172a;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.leaflet-control-zoom a {
+  background: #131c2e !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  color: #94a3b8 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #1a2540 !important;
+  color: #f1f5f9 !important;
+}
+.leaflet-control-attribution {
+  background: rgba(9, 9, 11, 0.65) !important;
+  color: #475569 !important;
+  font-size: 10px;
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a {
+  color: #64748b !important;
 }
