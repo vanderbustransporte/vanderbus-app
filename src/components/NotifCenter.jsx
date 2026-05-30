@@ -1,5 +1,5 @@
 // src/components/NotifCenter.jsx
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TIPO_CONFIG } from '../utils/tipoNotif'
@@ -76,8 +76,9 @@ export default function NotifCenter({ unreadCount, onNav }) {
   const [closing, setClosing] = useState(false)
   const [notifs,  setNotifs]  = useState([])
   const [loading, setLoading] = useState(false)
-  const panelRef = useRef(null)
-  const btnRef   = useRef(null)
+  const panelRef      = useRef(null)
+  const btnRef        = useRef(null)
+  const closeTimerRef = useRef(null)
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchNotifs = useCallback(async () => {
@@ -97,8 +98,13 @@ export default function NotifCenter({ unreadCount, onNav }) {
   }, [fetchNotifs])
 
   const closePanel = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     setClosing(true)
-    setTimeout(() => { setOpen(false); setClosing(false) }, 150)
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false)
+      setClosing(false)
+      closeTimerRef.current = null
+    }, 150)
   }, [])
 
   const togglePanel = useCallback(() => {
@@ -129,6 +135,9 @@ export default function NotifCenter({ unreadCount, onNav }) {
     return () => supabase.removeChannel(channel)
   }, [open, fetchNotifs])
 
+  // ── Cleanup closePanel timer on unmount ────────────────────────────────────
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }, [])
+
   // ── Acciones ───────────────────────────────────────────────────────────────
   const markRead = useCallback(async (notif) => {
     if (!notif.leida) {
@@ -147,7 +156,7 @@ export default function NotifCenter({ unreadCount, onNav }) {
   }, [])
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const grupos = agrupar(notifs)
+  const grupos = useMemo(() => agrupar(notifs), [notifs])
 
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
