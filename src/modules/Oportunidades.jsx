@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Target, ExternalLink, CheckCircle, MinusCircle, MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { tiempoRelativo } from '../utils/tiempoRelativo'
+import { useToast } from '../context/ToastContext'
 
 const ACCENT = '#38bdf8'
 
@@ -130,38 +131,12 @@ function OportunidadCard({ oportunidad, onContactar, onSkip, index }) {
   )
 }
 
-function ToastContainer({ toasts }) {
-  if (!toasts.length) return null
-  return (
-    <div style={{ position: 'fixed', bottom: 16, left: 16, zIndex: 50, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
-      {toasts.map(t => (
-        <div
-          key={t.id}
-          className="surface toast-in"
-          style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, minWidth: 240 }}
-        >
-          {t.icon}
-          <span style={{ color: 'var(--text-1)' }}>{t.message}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export default function Oportunidades() {
   const [list, setList]       = useState([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro]   = useState('Todas')
-  const [toasts, setToasts]   = useState([])
-  const _toastId = useRef(0)
-  const _toastTimers = useRef([])
-
-  const addToast = useCallback((message, icon) => {
-    const id = ++_toastId.current
-    setToasts(prev => [...prev, { id, message, icon }])
-    const timer = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
-    _toastTimers.current.push(timer)
-  }, [])
+  const { addToast } = useToast()
 
   useEffect(() => {
     const hoy = new Date().toISOString().slice(0, 10)
@@ -194,8 +169,6 @@ export default function Oportunidades() {
     return () => supabase.removeChannel(channel)
   }, [])
 
-  useEffect(() => () => _toastTimers.current.forEach(clearTimeout), [])
-
   const cambiarEstado = useCallback(async (id, nuevoEstado) => {
     const prevEstado = list.find(o => o.id === id)?.estado
     setList(prev => prev.map(o =>
@@ -212,18 +185,12 @@ export default function Oportunidades() {
 
   const handleContactar = useCallback((id) => {
     cambiarEstado(id, 'contactada')
-    addToast(
-      'Oportunidad marcada como contactada',
-      <CheckCircle size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
-    )
+    addToast({ message: 'Oportunidad marcada como contactada', Icon: CheckCircle, color: 'var(--positive)' })
   }, [cambiarEstado, addToast])
 
   const handleSkip = useCallback((id) => {
     cambiarEstado(id, 'descartada')
-    addToast(
-      'Oportunidad descartada',
-      <MinusCircle size={15} style={{ color: '#64748b', flexShrink: 0 }} />
-    )
+    addToast({ message: 'Oportunidad descartada', Icon: MinusCircle, color: '#64748b' })
   }, [cambiarEstado, addToast])
 
   const filtered = useMemo(() => {
@@ -322,7 +289,6 @@ export default function Oportunidades() {
         </div>
       )}
 
-      <ToastContainer toasts={toasts} />
     </div>
   )
 }
