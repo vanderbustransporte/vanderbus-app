@@ -13,6 +13,9 @@ import BackupBar from './modules/Backup'
 import { useStore } from './store/useStore'
 import Oportunidades from './modules/Oportunidades'
 import { supabase } from './lib/supabase'
+import NotifCenter from './components/NotifCenter'
+import { useToast } from './context/ToastContext'
+import { TIPO_CONFIG } from './utils/tipoNotif'
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
@@ -21,6 +24,8 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updateDownloaded, setUpdateDownloaded] = useState(false)
   const [nuevasCount, setNuevasCount] = useState(0)
+  const [notifCount, setNotifCount] = useState(0)
+  const { addToast } = useToast()
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -47,12 +52,53 @@ export default function App() {
     return () => supabase.removeChannel(channel)
   }, [])
 
+  useEffect(() => {
+    const fetchNotifCount = () => {
+      supabase
+        .from('notificaciones')
+        .select('id', { count: 'exact', head: true })
+        .eq('leida', false)
+        .then(({ count }) => { setNotifCount(count ?? 0) })
+    }
+
+    fetchNotifCount()
+
+    const channel = supabase
+      .channel('notificaciones-badge')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'notificaciones' },
+        (payload) => {
+          fetchNotifCount()
+          if (payload.eventType === 'INSERT') {
+            const n = payload.new
+            if (n.prioridad === 'normal' || n.prioridad === 'alta') {
+              const cfg = TIPO_CONFIG[n.tipo] ?? TIPO_CONFIG.sistema
+              addToast({ message: n.titulo, Icon: cfg.Icon, color: cfg.color })
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [addToast])
+
   const handleInstall = () => window.electronAPI?.installUpdate()
 
   return (
     <div className="min-h-screen" style={{ WebkitAppRegion: 'drag' }}>
       <div style={{ WebkitAppRegion: 'no-drag' }}>
-        <TopNav active={page} onNav={p => setPage(p)} rightContent={<BackupBar />} badgeCounts={{ oportunidades: nuevasCount }} />
+        <TopNav
+          active={page}
+          onNav={p => setPage(p)}
+          rightContent={
+            <>
+              <NotifCenter unreadCount={notifCount} onNav={p => setPage(p)} />
+              <BackupBar />
+            </>
+          }
+          badgeCounts={{ oportunidades: nuevasCount }}
+        />
       </div>
 
       <div className="pt-12 min-h-screen flex flex-col" style={{ WebkitAppRegion: 'no-drag' }}>
