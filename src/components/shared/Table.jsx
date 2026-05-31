@@ -37,7 +37,7 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
               <tr
                 key={row.id || i}
                 style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms ease-out' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.04)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}
               >
                 {columns.map(c => (
@@ -65,8 +65,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
                 disabled={disabled}
                 className="p-1.5 disabled:opacity-30"
                 style={{ border: '1px solid var(--border)', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-sm)', color: 'var(--text-2)', transition: 'background 150ms ease-out' }}
-                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(56,189,248,0.06)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#27272a' }}
+                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'var(--accent-glow)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-overlay)' }}
               >
                 {label}
               </button>

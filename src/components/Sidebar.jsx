@@ -57,10 +57,10 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
                     WebkitAppRegion: 'no-drag',
                     background: isActive ? 'var(--accent-dim)' : 'transparent',
                     color: isActive ? 'var(--accent)' : 'var(--text-2)',
-                    border: isActive ? '1px solid rgba(56,189,248,0.12)' : '1px solid transparent',
+                    border: isActive ? '1px solid var(--accent-dim)' : '1px solid transparent',
                     transition: 'background 150ms ease-out, color 150ms ease-out',
                   }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-1)' } }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' } }}
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-2)' } }}
                 >
                   <Icon size={13} />
@@ -68,7 +68,7 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
                   {badgeCounts[id] > 0 && (
                     <span style={{
                       background: 'var(--accent)',
-                      color: '#09090b',
+                      color: 'var(--badge-text)',
                       borderRadius: 9999,
                       fontSize: 10,
                       fontWeight: 700,
@@ -111,7 +111,7 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
               onClick={() => setMobileOpen(o => !o)}
               className="md:hidden p-1.5 rounded-md"
               style={{ color: 'var(--text-2)', WebkitAppRegion: 'no-drag' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '' }}
             >
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -144,7 +144,7 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
                   {badgeCounts[id] > 0 && (
                     <span style={{
                       background: 'var(--accent)',
-                      color: '#09090b',
+                      color: 'var(--badge-text)',
                       borderRadius: 9999,
                       fontSize: 10,
                       fontWeight: 700,

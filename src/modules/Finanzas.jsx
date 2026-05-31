@@ -1,46 +1,53 @@
 import React, { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
+import { toISO, fechaMes } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnCancel } from '../components/shared/Field'
 import { TrendingUp, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { useChartTheme } from '../utils/chartTheme'
+
+const ACCENT   = '#34D399'
+const C_ING    = '#34D399'
+const C_GAS    = '#F87171'
 
 const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Flete', 'Alquiler de vehículo', 'Otro ingreso']
-const CATEGORIAS_GASTO = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
+const CATEGORIAS_GASTO   = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
 
-const emptyIngreso = () => ({ id: genId(), tipo: 'ingreso', fecha: todayISO(), descripcion: '', categoria: 'Servicio de transporte', importe: '', cliente: '', comprobante: '', notas: '' })
-const emptyGasto = () => ({ id: genId(), tipo: 'gasto', fecha: todayISO(), descripcion: '', categoria: 'Combustible', importe: '', proveedor: '', comprobante: '', notas: '' })
+const emptyIngreso = () => ({ id: genId(), tipo: 'ingreso', fecha: todayISO(), descripcion: '', categoria: 'Servicio de transporte', importe: '', cliente: '',    comprobante: '', notas: '' })
+const emptyGasto   = () => ({ id: genId(), tipo: 'gasto',   fecha: todayISO(), descripcion: '', categoria: 'Combustible',            importe: '', proveedor: '', comprobante: '', notas: '' })
 
 function MovimientoModal({ onClose, onSave, tipo }) {
-  const { data } = useStore()
-  const contactos = data.contactos || []
-  const clientes = contactos.filter(c => c.tipo === 'Cliente').map(c => c.nombre)
+  const { data }    = useStore()
+  const contactos   = data.contactos || []
+  const clientes    = contactos.filter(c => c.tipo === 'Cliente').map(c => c.nombre)
   const proveedores = contactos.filter(c => c.tipo === 'Proveedor').map(c => c.nombre)
 
-  const [form, setForm] = useState(tipo === 'ingreso' ? emptyIngreso() : emptyGasto())
+  const [form, setForm]     = useState(tipo === 'ingreso' ? emptyIngreso() : emptyGasto())
   const [errors, setErrors] = useState({})
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const validate = () => {
     const e = {}
-    if (!form.fecha) e.fecha = 'Requerido'
-    if (!form.descripcion) e.descripcion = 'Requerido'
-    if (!form.importe || isNaN(form.importe)) e.importe = 'Requerido'
+    if (!form.fecha)                          e.fecha       = 'Requerido'
+    if (!form.descripcion)                    e.descripcion = 'Requerido'
+    if (!form.importe || isNaN(form.importe)) e.importe     = 'Requerido'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const categorias = tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO
-  const isIngreso = tipo === 'ingreso'
+  const isIngreso  = tipo === 'ingreso'
+  const btnColor   = isIngreso ? C_ING : C_GAS
 
   return (
     <Modal title={isIngreso ? 'Nuevo ingreso' : 'Nuevo gasto'} onClose={onClose}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Fecha" required>
           <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-          {errors.fecha && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.fecha}</p>}
+          {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}
         </Field>
         <Field label="Categoría">
           <Select value={form.categoria} onChange={e => set('categoria', e.target.value)}>
@@ -54,22 +61,22 @@ function MovimientoModal({ onClose, onSave, tipo }) {
               onChange={e => set('descripcion', e.target.value)}
               placeholder={isIngreso ? 'Ej: Flete Rosario-CABA' : 'Ej: Reparación frenos'}
             />
-            {errors.descripcion && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.descripcion}</p>}
+            {errors.descripcion && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.descripcion}</p>}
           </Field>
         </div>
         <Field label="Importe ($)" required>
           <Input type="number" step="0.01" value={form.importe} onChange={e => set('importe', e.target.value)} placeholder="0.00" />
-          {errors.importe && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.importe}</p>}
+          {errors.importe && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.importe}</p>}
         </Field>
         <Field label={isIngreso ? 'Cliente' : 'Proveedor'}>
           {isIngreso ? (
             <>
-              <Input value={form.cliente} onChange={e => set('cliente', e.target.value)} list="clientes-list" />
+              <Input value={form.cliente}    onChange={e => set('cliente', e.target.value)}    list="clientes-list" />
               <datalist id="clientes-list">{clientes.map(c => <option key={c} value={c} />)}</datalist>
             </>
           ) : (
             <>
-              <Input value={form.proveedor} onChange={e => set('proveedor', e.target.value)} list="proveedores-list" />
+              <Input value={form.proveedor}  onChange={e => set('proveedor', e.target.value)}  list="proveedores-list" />
               <datalist id="proveedores-list">{proveedores.map(c => <option key={c} value={c} />)}</datalist>
             </>
           )}
@@ -86,9 +93,9 @@ function MovimientoModal({ onClose, onSave, tipo }) {
       <div className="flex justify-end gap-3 mt-6">
         <BtnCancel onClick={onClose} />
         <button
+          className="glass-btn-primary"
+          style={{ background: `${btnColor}18`, boxShadow: `0 4px 15px ${btnColor}28`, color: btnColor, borderColor: `${btnColor}28` }}
           onClick={() => { if (validate()) onSave(form) }}
-          className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: isIngreso ? 'rgba(22,163,74,0.85)' : 'rgba(220,38,38,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: isIngreso ? '0 4px 15px rgba(22,163,74,0.3)' : '0 4px 15px rgba(220,38,38,0.3)', borderRadius: '10px' }}
         >
           Guardar {isIngreso ? 'ingreso' : 'gasto'}
         </button>
@@ -99,11 +106,23 @@ function MovimientoModal({ onClose, onSave, tipo }) {
 
 export default function Finanzas() {
   const { data, update } = useStore()
-  const ingresos = data.ingresos || []
-  const gastos = data.gastos || []
+  const ct = useChartTheme()
+  const ingresos      = (data.ingresos || []).filter(r => r.descripcion || r.importe)
+  const gastosPropios = (data.gastos   || []).filter(r => r.descripcion || r.importe)
+  const gastos        = [
+    ...gastosPropios,
+    ...(data.marketing || [])
+      .filter(r => parseFloat(r.gastado) > 0 && r.titulo)
+      .map(r => ({
+        id: r.id, tipo: 'gasto', _marketing: true,
+        fecha: r.fecha, descripcion: r.titulo,
+        categoria: 'Marketing', importe: r.gastado,
+        proveedor: r.tipo, comprobante: '', notas: r.notas || '',
+      })),
+  ]
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState('todos')
-  const [modal, setModal] = useState(null)
+  const [tab, setTab]       = useState('todos')
+  const [modal, setModal]   = useState(null)
 
   const all = useMemo(() =>
     [...ingresos.map(r => ({ ...r, tipo: 'ingreso' })), ...gastos.map(r => ({ ...r, tipo: 'gasto' }))]
@@ -117,21 +136,23 @@ export default function Finanzas() {
       .filter(r => !q || r.descripcion?.toLowerCase().includes(q) || r.categoria?.toLowerCase().includes(q))
   }, [all, search, tab])
 
-  const mesActual = new Date().toISOString().slice(0, 7)
-  const totalIngresosMes = ingresos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-  const totalGastosMes = gastos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-  const balance = totalIngresosMes - totalGastosMes
+  const mesActual         = new Date().toISOString().slice(0, 7)
+  const totalIngresosMes  = ingresos.filter(r => fechaMes(r.fecha) === mesActual).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
+  const totalGastosMes    = gastos.filter(r => fechaMes(r.fecha) === mesActual).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
+  const balance           = totalIngresosMes - totalGastosMes
 
-  const handleSave = (form) => {
-    if (form.tipo === 'ingreso') update('ingresos', [form, ...ingresos])
-    else update('gastos', [form, ...gastos])
+  const handleSave = form => {
+    const normalized = { ...form, fecha: toISO(form.fecha) }
+    if (normalized.tipo === 'ingreso') update('ingresos', [normalized, ...ingresos])
+    else update('gastos', [normalized, ...gastosPropios])
     setModal(null)
   }
 
   const handleDelete = r => {
+    if (r._marketing || r.viaje_id) return
     if (!confirm('¿Eliminar este movimiento?')) return
     if (r.tipo === 'ingreso') update('ingresos', ingresos.filter(x => x.id !== r.id))
-    else update('gastos', gastos.filter(x => x.id !== r.id))
+    else update('gastos', gastosPropios.filter(x => x.id !== r.id))
   }
 
   const cols = [
@@ -140,32 +161,30 @@ export default function Finanzas() {
       key: 'tipo', label: 'Tipo', render: r => (
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full"
-          style={
-            r.tipo === 'ingreso'
-              ? { background: 'rgba(34,197,94,0.12)', color: '#16A34A' }
-              : { background: 'rgba(239,68,68,0.1)', color: '#DC2626' }
-          }
+          style={r.tipo === 'ingreso'
+            ? { background: 'rgba(52,211,153,0.12)', color: C_ING }
+            : { background: 'rgba(248,113,113,0.12)', color: C_GAS }}
         >
           {r.tipo === 'ingreso' ? '▲ Ingreso' : '▼ Gasto'}
         </span>
       )
     },
-    { key: 'categoria', label: 'Categoría' },
+    { key: 'categoria',   label: 'Categoría' },
     { key: 'descripcion', label: 'Descripción', render: r => <span className="max-w-xs truncate block">{r.descripcion}</span> },
     {
       key: 'importe', label: 'Importe', render: r => (
-        <span className="font-bold" style={{ color: r.tipo === 'ingreso' ? '#16A34A' : '#DC2626' }}>
+        <span className="num font-bold" style={{ color: r.tipo === 'ingreso' ? C_ING : C_GAS }}>
           {r.tipo === 'ingreso' ? '+' : '−'}{formatARS(r.importe)}
         </span>
       )
     },
     {
-      key: 'acciones', label: '', render: r => (
+      key: 'acciones', label: '', render: r => (r._marketing || r.viaje_id) ? null : (
         <button
           onClick={() => handleDelete(r)}
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: '#EF4444' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          className="p-1.5 rounded-lg"
+          style={{ color: '#F87171' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '' }}
         >
           <Trash2 size={14} />
@@ -176,73 +195,76 @@ export default function Finanzas() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <TrendingUp size={20} style={{ color: '#3D8FD1' }} />
+
+      {/* ── Header ── */}
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <TrendingUp size={18} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Finanzas</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Ingresos y gastos</p>
+            <h1 className="mod-h1">Finanzas</h1>
+            <p className="mod-sub">Ingresos y gastos del período</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
+            className="glass-btn-primary"
+            style={{ background: `${C_ING}18`, boxShadow: `0 4px 15px ${C_ING}22`, borderColor: `${C_ING}28` }}
             onClick={() => setModal('ingreso')}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'rgba(22,163,74,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(22,163,74,0.3)', borderRadius: '10px' }}
           >
-            <ArrowUpCircle size={16} /> Ingreso
+            <ArrowUpCircle size={15} /> Ingreso
           </button>
           <button
+            className="glass-btn-primary"
+            style={{ background: `${C_GAS}18`, boxShadow: `0 4px 15px ${C_GAS}22`, borderColor: `${C_GAS}28` }}
             onClick={() => setModal('gasto')}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'rgba(220,38,38,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(220,38,38,0.3)', borderRadius: '10px' }}
           >
-            <ArrowDownCircle size={16} /> Gasto
+            <ArrowDownCircle size={15} /> Gasto
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Ingresos del mes</div>
-          <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalIngresosMes)}</div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+        <div className="surface surface-hover db-in db-d1" style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: C_ING, opacity: 0.75 }} />
+          <p className="db-slabel" style={{ marginBottom: 8 }}>Ingresos del mes</p>
+          <div className="num" style={{ fontSize: 19, fontWeight: 700, color: C_ING }}>{formatARS(totalIngresosMes)}</div>
         </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Gastos del mes</div>
-          <div className="text-xl font-bold" style={{ color: '#DC2626' }}>{formatARS(totalGastosMes)}</div>
+        <div className="surface surface-hover db-in db-d2" style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: C_GAS, opacity: 0.75 }} />
+          <p className="db-slabel" style={{ marginBottom: 8 }}>Gastos del mes</p>
+          <div className="num" style={{ fontSize: 19, fontWeight: 700, color: C_GAS }}>{formatARS(totalGastosMes)}</div>
         </div>
         <div
-          className="p-4 glass"
+          className="surface surface-hover db-in db-d3"
           style={{
-            background: balance >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.10)',
-            border: balance >= 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)',
+            padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden',
+            borderColor: balance >= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)',
+            background:  balance >= 0 ? 'rgba(52,211,153,0.04)'  : 'rgba(248,113,113,0.04)',
           }}
         >
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Balance neto</div>
-          <div className="text-xl font-bold" style={{ color: balance >= 0 ? '#16A34A' : '#DC2626' }}>{formatARS(balance)}</div>
+          <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: balance >= 0 ? C_ING : C_GAS, opacity: 0.75 }} />
+          <p className="db-slabel" style={{ marginBottom: 8 }}>Balance neto</p>
+          <div className="num" style={{ fontSize: 19, fontWeight: 700, color: balance >= 0 ? C_ING : C_GAS }}>{formatARS(balance)}</div>
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="p-5 glass">
-        <div className="flex flex-wrap gap-3 mb-4">
+      {/* ── Tabla ── */}
+      <div className="surface db-in db-d4" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, categoría..." />
-          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--border)' }}>
             {[['todos', 'Todos'], ['ingreso', 'Ingresos'], ['gasto', 'Gastos']].map(([val, lbl]) => (
               <button
                 key={val}
                 onClick={() => setTab(val)}
                 className="px-3 py-2 text-sm font-medium"
-                style={
-                  tab === val
-                    ? { background: 'var(--accent-dim)', color: 'var(--accent)', borderRight: '1px solid var(--border)' }
-                    : { background: 'var(--bg-overlay)', color: 'var(--text-2)', borderRight: '1px solid var(--border)' }
-                }
-                onMouseEnter={e => { if (tab !== val) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--text-1)' } }}
+                style={tab === val
+                  ? { background: 'var(--accent-dim)', color: 'var(--accent)', borderRight: '1px solid var(--border)' }
+                  : { background: 'var(--bg-overlay)', color: 'var(--text-2)', borderRight: '1px solid var(--border)' }}
+                onMouseEnter={e => { if (tab !== val) { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' } }}
                 onMouseLeave={e => { if (tab !== val) { e.currentTarget.style.background = 'var(--bg-overlay)'; e.currentTarget.style.color = 'var(--text-2)' } }}
               >
                 {lbl}

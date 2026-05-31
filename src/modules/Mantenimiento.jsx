@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
+import { toISO, fechaMes } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Wrench, Plus, Trash2 } from 'lucide-react'
+
+const ACCENT = '#FBBF24'
+const MONO   = "'Space Mono', 'Geist Mono', monospace"
 
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
 
@@ -15,25 +19,27 @@ const empty = () => ({
 })
 
 const ESTADO_STYLES = {
-  Realizado: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
-  Pendiente: { bg: 'rgba(217,119,6,0.1)', color: '#D97706' },
-  'En proceso': { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
+  Realizado:    { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' },
+  Pendiente:    { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24' },
+  'En proceso': { bg: 'rgba(56,189,248,0.12)',  color: '#38BDF8' },
 }
 
 export default function Mantenimiento() {
   const { data, update } = useStore()
-  const list = data.mantenimiento || []
-  const [search, setSearch] = useState('')
+  const list = (data.mantenimiento || []).filter(r =>
+    r.descripcion || r.categoria || r.costo
+  )
+  const [search, setSearch]           = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState(empty())
-  const [errors, setErrors] = useState({})
+  const [modal, setModal]             = useState(false)
+  const [form, setForm]               = useState(empty())
+  const [errors, setErrors]           = useState({})
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const validate = () => {
     const e = {}
-    if (!form.fecha) e.fecha = 'Requerido'
+    if (!form.fecha)       e.fecha       = 'Requerido'
     if (!form.descripcion) e.descripcion = 'Requerido'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -41,7 +47,7 @@ export default function Mantenimiento() {
 
   const handleSave = () => {
     if (!validate()) return
-    update('mantenimiento', [{ ...form }, ...list])
+    update('mantenimiento', [{ ...form, fecha: toISO(form.fecha), proximo_fecha: toISO(form.proximo_fecha) }, ...list])
     setModal(false)
     setForm(empty())
   }
@@ -60,20 +66,20 @@ export default function Mantenimiento() {
 
   const totalMes = useMemo(() => {
     const mes = new Date().toISOString().slice(0, 7)
-    return list.filter(r => r.fecha?.startsWith(mes)).reduce((s, r) => s + (parseFloat(r.costo) || 0), 0)
+    return list.filter(r => fechaMes(r.fecha) === mes).reduce((s, r) => s + (parseFloat(r.costo) || 0), 0)
   }, [list])
 
   const cols = [
-    { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'categoria', label: 'Categoría' },
-    { key: 'descripcion', label: 'Descripción', render: r => <span className="max-w-xs truncate block">{r.descripcion}</span> },
-    { key: 'taller', label: 'Taller', render: r => r.taller || '—' },
+    { key: 'fecha',       label: 'Fecha',       render: r => formatDate(r.fecha) },
+    { key: 'categoria',   label: 'Categoría' },
+    { key: 'descripcion', label: 'Descripción',  render: r => <span className="max-w-xs truncate block">{r.descripcion}</span> },
+    { key: 'taller',      label: 'Taller',       render: r => r.taller || <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
       key: 'costo', label: 'Costo', render: r => r.costo
-        ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.costo)}</span>
-        : '—'
+        ? <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.costo)}</span>
+        : <span style={{ color: 'var(--text-3)' }}>—</span>
     },
-    { key: 'km', label: 'KM', render: r => r.km ? `${Number(r.km).toLocaleString('es-AR')}` : '—' },
+    { key: 'km',    label: 'KM',    render: r => r.km ? <span className="num">{Number(r.km).toLocaleString('es-AR')}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
       key: 'estado', label: 'Estado', render: r => {
         const s = ESTADO_STYLES[r.estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
@@ -88,9 +94,9 @@ export default function Mantenimiento() {
       key: 'acciones', label: '', render: r => (
         <button
           onClick={() => handleDelete(r.id)}
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: '#EF4444' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          className="p-1.5 rounded-lg"
+          style={{ color: 'var(--danger)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '' }}
         >
           <Trash2 size={14} />
@@ -101,51 +107,56 @@ export default function Mantenimiento() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <Wrench size={20} style={{ color: '#3D8FD1' }} />
+
+      {/* ── Header ── */}
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Wrench size={18} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Mantenimiento</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Historial de reparaciones y servicios</p>
+            <h1 className="mod-h1">Mantenimiento</h1>
+            <p className="mod-sub">Historial de reparaciones y servicios</p>
           </div>
         </div>
         <button
+          className="glass-btn-primary"
+          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
-          <Plus size={16} /> Nuevo registro
+          <Plus size={15} /> Nuevo registro
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Gasto del mes</div>
-          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalMes)}</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Pendientes</div>
-          <div className="text-xl font-bold" style={{ color: '#D97706' }}>{list.filter(r => r.estado === 'Pendiente').length}</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total registros</div>
-          <div className="text-xl font-bold" style={{ color: '#f1f5f9' }}>{list.length}</div>
-        </div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+        {[
+          { label: 'Gasto del mes',    value: formatARS(totalMes),                          color: ACCENT },
+          { label: 'Pendientes',       value: list.filter(r => r.estado === 'Pendiente').length, color: 'var(--danger)' },
+          { label: 'Total registros',  value: list.length,                                  color: 'var(--text-1)' },
+        ].map((s, i) => (
+          <div
+            key={s.label}
+            className={`surface surface-hover db-in db-d${i + 1}`}
+            style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: s.color, opacity: 0.75 }} />
+            <p className="db-slabel" style={{ marginBottom: 8 }}>{s.label}</p>
+            <div className="num" style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Table card */}
-      <div className="p-5 glass">
-        <div className="flex flex-wrap gap-3 mb-4">
+      {/* ── Tabla ── */}
+      <div className="surface db-in db-d4" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar descripción, taller..." />
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm transition-colors"
+            className="px-3 py-2 rounded-lg text-sm"
             style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
-            onFocus={e => { e.target.style.borderColor = '#38bdf8' }}
+            onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
             onBlur={e => { e.target.style.borderColor = '' }}
           >
             <option value="">Todos los estados</option>
@@ -162,7 +173,7 @@ export default function Mantenimiento() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-              {errors.fecha && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.fecha}</p>}
+              {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}
             </Field>
             <Field label="Categoría">
               <Select value={form.categoria} onChange={e => set('categoria', e.target.value)}>
@@ -172,7 +183,7 @@ export default function Mantenimiento() {
             <div className="col-span-2">
               <Field label="Descripción" required>
                 <Input value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Ej: Cambio de aceite 10W40 + filtro" />
-                {errors.descripcion && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.descripcion}</p>}
+                {errors.descripcion && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.descripcion}</p>}
               </Field>
             </div>
             <Field label="Taller / Mecánico">

@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore'
 import { formatARS, formatDate, monthName } from '../utils/format'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { TrendingUp, TrendingDown, Fuel, Wrench, DollarSign, Truck, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { useChartTheme } from '../utils/chartTheme'
 
 const CHART_COLORS = ['#22D3EE', '#34D399', '#A78BFA', '#F87171', '#FBBF24', '#60A5FA']
 const MONO = "'Geist Mono', monospace"
@@ -42,13 +43,13 @@ function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }) {
           <Icon size={16} style={{ color }} />
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)', marginBottom: 4 }}>
             {label}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', fontFamily: MONO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', fontFamily: MONO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {value}
           </div>
-          {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{sub}</div>}
+          {sub && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 3 }}>{sub}</div>}
         </div>
       </div>
     </div>
@@ -60,29 +61,13 @@ function QuickBtn({ icon: Icon, label, color, onClick }) {
     <button
       onClick={onClick}
       className="flex items-center gap-2 text-sm font-semibold"
-      style={{ padding: '10px 18px', borderRadius: 'var(--radius)', background: `${color}18`, border: '1px solid rgba(255,255,255,0.07)', color: '#f1f5f9', cursor: 'pointer' }}
+      style={{ padding: '10px 18px', borderRadius: 'var(--radius)', background: `${color}18`, border: '1px solid rgba(255,255,255,0.07)', color: 'var(--text-1)', cursor: 'pointer' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
     >
       <Icon size={14} style={{ color }} />
       <span>{label}</span>
     </button>
-  )
-}
-
-const DarkTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ background: '#27272a', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '10px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
-      <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 7, marginTop: 0 }}>
-        {label}
-      </p>
-      {payload.map(p => (
-        <p key={p.name} style={{ color: p.color, fontSize: 12, fontWeight: 700, fontFamily: MONO, margin: '3px 0 0' }}>
-          {p.name}: {formatARS(p.value)}
-        </p>
-      ))}
-    </div>
   )
 }
 
@@ -162,15 +147,17 @@ export default function Dashboard({ onNav }) {
 
   const fechaLarga = now.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
+  const ct = useChartTheme()
+
   return (
     <div className="max-w-6xl mx-auto">
 
       {/* ── Encabezado ── */}
       <div className="db-in db-d0" style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.1, margin: 0, color: '#f1f5f9' }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.1, margin: 0, color: 'var(--text-1)' }}>
           Panel de control
         </h1>
-        <p style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
+        <p style={{ fontSize: 11, color: 'var(--text-2)', textTransform: 'capitalize', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
           {fechaLarga}
         </p>
       </div>
@@ -184,7 +171,7 @@ export default function Dashboard({ onNav }) {
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--positive-dim)', border: '1px solid rgba(52,211,153,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ArrowUpCircle size={13} style={{ color: '#34D399' }} />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
               Ingresos del mes
             </span>
           </div>
@@ -200,7 +187,7 @@ export default function Dashboard({ onNav }) {
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--danger-dim)', border: '1px solid rgba(248,113,113,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ArrowDownCircle size={13} style={{ color: '#F87171' }} />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
               Gastos del mes
             </span>
           </div>
@@ -230,7 +217,7 @@ export default function Dashboard({ onNav }) {
                 ? <TrendingUp   size={13} style={{ color: '#34D399' }} />
                 : <TrendingDown size={13} style={{ color: '#F87171' }} />}
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
               Balance neto
             </span>
           </div>
@@ -252,16 +239,16 @@ export default function Dashboard({ onNav }) {
               <BarChart data={barData} barCategoryGap="32%" barGap={3}>
                 <XAxis
                   dataKey="mes"
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }}
                   axisLine={false} tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }}
                   axisLine={false} tickLine={false}
                   tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
                 />
-                <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 11, fontWeight: 600 }} />
+                <Tooltip {...ct.tooltip} cursor={{ fill: ct.cursorFill }} />
+                <Legend wrapperStyle={{ color: ct.tickColor, fontSize: 11, fontWeight: 600 }} />
                 <Bar dataKey="Ingresos" fill="#34D399" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Gastos"   fill="#F87171" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -282,10 +269,9 @@ export default function Dashboard({ onNav }) {
                 </Pie>
                 <Tooltip
                   formatter={v => formatARS(v)}
-                  contentStyle={{ background: '#27272a', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, color: '#f1f5f9', fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}
-                  labelStyle={{ color: '#94a3b8', fontSize: 10 }}
+                  {...ct.tooltip}
                 />
-                <Legend iconType="circle" iconSize={7} wrapperStyle={{ color: '#94a3b8', fontSize: 11 }} />
+                <Legend iconType="circle" iconSize={7} wrapperStyle={{ color: ct.tickColor, fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

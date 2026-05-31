@@ -46,6 +46,59 @@
   /* Shape — one system, applied everywhere */
   --radius:    8px;
   --radius-sm: 6px;
+
+  /* ── Theme-aware inline-style tokens ──────────────────── */
+  --hover-tint:     rgba(255, 255, 255, 0.04);
+  --hover-tint-md:  rgba(255, 255, 255, 0.06);
+  --chart-grid:     rgba(255, 255, 255, 0.06);
+  --chart-tick:     #94a3b8;
+  --tooltip-bg:     #27272a;
+  --tooltip-border: rgba(255, 255, 255, 0.13);
+  --tooltip-shadow: 0 8px 32px rgba(0, 0, 0, 0.60);
+  --modal-backdrop: rgba(0, 0, 0, 0.65);
+  --modal-shadow:   0 24px 64px rgba(0, 0, 0, 0.70);
+  --panel-shadow:   0 8px 32px rgba(0, 0, 0, 0.50);
+  --badge-text:     #09090b;
+  --scrollbar-hover: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Light mode overrides ──────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:     #f7f8fa;
+  --bg-surface:  #ffffff;
+  --bg-elevated: #f0f4f8;
+  --bg-overlay:  #e2e8f0;
+
+  --border:    rgba(0, 0, 0, 0.08);
+  --border-hi: rgba(0, 0, 0, 0.14);
+
+  --text-1: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+
+  --accent:      #0284c7;
+  --accent-dim:  rgba(2, 132, 199, 0.10);
+  --accent-glow: rgba(2, 132, 199, 0.05);
+
+  --positive:     #059669;
+  --positive-dim: rgba(5, 150, 105, 0.10);
+  --danger:       #dc2626;
+  --danger-dim:   rgba(220, 38, 38, 0.10);
+  --warning:      #b45309;
+  --warning-dim:  rgba(180, 83, 9, 0.10);
+
+  --hover-tint:     rgba(0, 0, 0, 0.04);
+  --hover-tint-md:  rgba(0, 0, 0, 0.07);
+  --chart-grid:     rgba(0, 0, 0, 0.06);
+  --chart-tick:     #64748b;
+  --tooltip-bg:     #ffffff;
+  --tooltip-border: rgba(0, 0, 0, 0.10);
+  --tooltip-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --modal-backdrop: rgba(0, 0, 0, 0.40);
+  --modal-shadow:   0 24px 64px rgba(0, 0, 0, 0.15);
+  --panel-shadow:   0 8px 32px rgba(0, 0, 0, 0.12);
+  --badge-text:     #ffffff;
+  --scrollbar-hover: rgba(0, 0, 0, 0.22);
 }
 
 /* ── Reset & base ─────────────────────────────────────── */
@@ -69,7 +122,18 @@ body {
 ::-webkit-scrollbar          { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track    { background: transparent; }
 ::-webkit-scrollbar-thumb    { background: var(--border-hi); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); border-radius: 3px; }
+
+/* ── Theme transition — only active during the 250ms switch ─ */
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 200ms ease,
+    color            200ms ease,
+    border-color     200ms ease,
+    box-shadow       200ms ease !important;
+}
 
 /* ── Form elements ─────────────────────────────────────── */
 input, select, textarea { outline: none; }
@@ -223,6 +287,12 @@ button:active { transform: scale(0.97); }
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+[data-theme="light"] .mod-h1 {
+  background: linear-gradient(135deg, #0f172a 0%, rgba(15, 23, 42, 0.70) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ── Module subtitle ───────────────────────────────────── */
 .mod-sub {
@@ -230,6 +300,9 @@ button:active { transform: scale(0.97); }
   color: rgba(255, 255, 255, 0.32);
   margin-top: 5px;
   letter-spacing: 0.025em;
+}
+[data-theme="light"] .mod-sub {
+  color: var(--text-3);
 }
 
 /* ── db-panel: glass surface for all modules ───────────── */
@@ -279,11 +352,22 @@ button:active { transform: scale(0.97); }
     border-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow   150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
+[data-theme="light"] .glass-btn-primary {
+  background: rgba(2, 132, 199, 0.10);
+  border-color: rgba(2, 132, 199, 0.22);
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
 @media (hover: hover) and (pointer: fine) {
   .glass-btn-primary:hover {
     background: rgba(56, 189, 248, 0.20);
     border-color: rgba(255, 255, 255, 0.22);
     box-shadow: 0 4px 18px rgba(56, 189, 248, 0.18);
+  }
+  [data-theme="light"] .glass-btn-primary:hover {
+    background: rgba(2, 132, 199, 0.16);
+    border-color: rgba(2, 132, 199, 0.32);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.15);
   }
 }
 
@@ -340,3 +424,30 @@ button:active { transform: scale(0.97); }
 .leaflet-control-attribution a {
   color: #64748b !important;
 }
+
+/* ── Leaflet: overrides tema claro ────────────────────── */
+[data-theme="light"] .leaflet-popup-content-wrapper {
+  background: #ffffff;
+  border: 1px solid rgba(2, 132, 199, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  color: #0f172a;
+}
+[data-theme="light"] .leaflet-popup-tip { background: #ffffff; }
+[data-theme="light"] .leaflet-popup-close-button { color: #94a3b8 !important; }
+[data-theme="light"] .leaflet-popup-close-button:hover { color: #475569 !important; }
+[data-theme="light"] .leaflet-container { background: #dce8f0; }
+[data-theme="light"] .leaflet-control-zoom a {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+  color: #475569 !important;
+}
+[data-theme="light"] .leaflet-control-zoom a:hover {
+  background: #f0f4f8 !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .leaflet-control-attribution {
+  background: rgba(248, 250, 252, 0.85) !important;
+  color: #64748b !important;
+  backdrop-filter: blur(4px);
+}
+[data-theme="light"] .leaflet-control-attribution a { color: #475569 !important; }

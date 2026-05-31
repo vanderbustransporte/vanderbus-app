@@ -16,6 +16,7 @@ import { supabase } from './lib/supabase'
 import NotifCenter from './components/NotifCenter'
 import { useToast } from './context/ToastContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
+import ThemeToggle from './components/ThemeToggle'
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
@@ -93,6 +94,7 @@ export default function App() {
           onNav={p => setPage(p)}
           rightContent={
             <>
+              <ThemeToggle />
               <NotifCenter unreadCount={notifCount} onNav={p => setPage(p)} />
               <BackupBar />
             </>
@@ -112,7 +114,7 @@ export default function App() {
               <button
                 onClick={handleInstall}
                 className="ml-4 px-4 py-1.5 rounded-md text-xs font-semibold"
-                style={{ background: 'var(--accent)', color: '#09090b', WebkitAppRegion: 'no-drag' }}
+                style={{ background: 'var(--accent)', color: 'var(--badge-text)', WebkitAppRegion: 'no-drag' }}
               >
                 Reiniciar y actualizar
               </button>

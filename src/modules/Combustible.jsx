@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId, monthName } from '../utils/format'
+import { toISO, fechaMes } from '../utils/fecha'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Fuel, Plus, Trash2 } from 'lucide-react'
@@ -8,31 +9,23 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
+import { useChartTheme } from '../utils/chartTheme'
 
-const CONSUMO_BUENO = 30
+const ACCENT = '#22D3EE'
+const MONO   = "'Space Mono', 'Geist Mono', monospace"
+
+const CONSUMO_BUENO  = 30
 const CONSUMO_NORMAL = 40
-
-const TOOLTIP_STYLE = {
-  contentStyle: {
-    background: '#27272a',
-    border: '1px solid rgba(255,255,255,0.13)',
-    borderRadius: 8,
-    color: '#f1f5f9',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.6)'
-  },
-  labelStyle: { color: '#94a3b8' },
-  itemStyle: { color: '#94a3b8' },
-}
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false } }
   static getDerivedStateFromError() { return { hasError: true } }
   render() {
     if (this.state.hasError) return (
-      <div className="glass p-10 flex flex-col items-center justify-center text-center">
+      <div className="surface p-10 flex flex-col items-center justify-center text-center">
         <Fuel size={32} style={{ color: '#94A3B8' }} className="mb-3" />
-        <p className="font-semibold" style={{ color: '#64748B' }}>Sin registros aún</p>
-        <p className="text-sm mt-1" style={{ color: '#64748B' }}>Recargá la página si el problema persiste.</p>
+        <p className="font-semibold" style={{ color: 'var(--text-2)' }}>Sin registros aún</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-2)' }}>Recargá la página si el problema persiste.</p>
       </div>
     )
     return this.props.children
@@ -45,16 +38,16 @@ const empty = () => ({
 
 function consumoColor(c) {
   if (c == null) return '#94A3B8'
-  if (c <= CONSUMO_BUENO) return '#16A34A'
-  if (c <= CONSUMO_NORMAL) return '#D97706'
-  return '#DC2626'
+  if (c <= CONSUMO_BUENO)  return '#34D399'
+  if (c <= CONSUMO_NORMAL) return '#FBBF24'
+  return '#F87171'
 }
 
 function consumoBg(c) {
   if (c == null) return { bg: 'rgba(255,255,255,0.06)', color: '#94a3b8' }
-  if (c <= CONSUMO_BUENO) return { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' }
-  if (c <= CONSUMO_NORMAL) return { bg: 'rgba(217,119,6,0.1)', color: '#D97706' }
-  return { bg: 'rgba(220,38,38,0.1)', color: '#DC2626' }
+  if (c <= CONSUMO_BUENO)  return { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' }
+  if (c <= CONSUMO_NORMAL) return { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24' }
+  return { bg: 'rgba(248,113,113,0.12)', color: '#F87171' }
 }
 
 function getPrecioLitro(r) {
@@ -66,16 +59,19 @@ function getPrecioLitro(r) {
 
 function Combustible() {
   const { data, update } = useStore()
-  const list = data.combustible || []
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState(empty())
+  const ct = useChartTheme()
+  const list   = (data.combustible || []).filter(r =>
+    r.fecha || r.litros || r.km || r.total || r.importe
+  )
+  const [modal, setModal]   = useState(false)
+  const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const validate = () => {
     const e = {}
-    if (!form.fecha) e.fecha = 'Requerido'
+    if (!form.fecha)                     e.fecha   = 'Requerido'
     if (!form.litros || isNaN(form.litros)) e.litros = 'Requerido'
     if (!form.importe || isNaN(form.importe)) e.importe = 'Requerido'
     setErrors(e)
@@ -84,7 +80,7 @@ function Combustible() {
 
   const handleSave = () => {
     if (!validate()) return
-    update('combustible', [{ ...form }, ...list])
+    update('combustible', [{ ...form, fecha: toISO(form.fecha) }, ...list])
     setModal(false)
     setForm(empty())
   }
@@ -112,25 +108,21 @@ function Combustible() {
       return { ...r, consumo: c > 0 ? c : null }
     }).reverse(), [sortedByKm])
 
-  const totalMes = list.reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-  const litrosMes = list.reduce((s, r) => s + (parseFloat(r.litros) || 0), 0)
-
-  const pricedRows = list.filter(r => parseFloat(r.importe) > 0 && parseFloat(r.litros) > 0)
+  const totalMes    = list.reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
+  const litrosMes   = list.reduce((s, r) => s + (parseFloat(r.litros)  || 0), 0)
+  const pricedRows  = list.filter(r => parseFloat(r.importe) > 0 && parseFloat(r.litros) > 0)
   const precioPromedio = pricedRows.length > 0
-    ? pricedRows.reduce((s, r) => s + (getPrecioLitro(r) || 0), 0) / pricedRows.length
-    : 0
-
-  const consumoValidos = withConsumo.filter(r => r.consumo != null)
-  const consumoPromedio = consumoValidos.length > 0
-    ? consumoValidos.reduce((s, r) => s + r.consumo, 0) / consumoValidos.length
-    : null
+    ? pricedRows.reduce((s, r) => s + (getPrecioLitro(r) || 0), 0) / pricedRows.length : 0
+  const consumoValidos   = withConsumo.filter(r => r.consumo != null)
+  const consumoPromedio  = consumoValidos.length > 0
+    ? consumoValidos.reduce((s, r) => s + r.consumo, 0) / consumoValidos.length : null
 
   const barData = useMemo(() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+      const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const importe = list.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
+      const importe = list.filter(r => fechaMes(r.fecha) === key).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
       return { mes: monthName(d.getMonth()), importe }
     })
   }, [list])
@@ -143,95 +135,95 @@ function Combustible() {
     [list])
 
   const stats = [
-    { label: 'Gasto total', value: formatARS(totalMes), color: '#3D8FD1' },
-    { label: 'Litros total', value: `${litrosMes.toFixed(1)} L`, color: '#16A34A' },
-    { label: 'Precio prom./L', value: formatARS(precioPromedio), color: '#D97706' },
-    {
-      label: 'Consumo prom.',
-      value: consumoPromedio != null ? `${consumoPromedio.toFixed(1)} L/100km` : '—',
-      color: consumoPromedio != null ? consumoColor(consumoPromedio) : '#94A3B8',
-    },
+    { label: 'Gasto total',     value: formatARS(totalMes),                                                            color: ACCENT },
+    { label: 'Litros total',    value: `${litrosMes.toFixed(1)} L`,                                                    color: '#34D399' },
+    { label: 'Precio prom./L',  value: formatARS(precioPromedio),                                                      color: '#FBBF24' },
+    { label: 'Consumo prom.',   value: consumoPromedio != null ? `${consumoPromedio.toFixed(1)} L/100km` : '—',        color: consumoPromedio != null ? consumoColor(consumoPromedio) : '#94A3B8' },
   ]
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <Fuel size={20} style={{ color: '#3D8FD1' }} />
+
+      {/* ── Header ── */}
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Fuel size={18} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Combustible</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Historial de cargas</p>
+            <h1 className="mod-h1">Combustible</h1>
+            <p className="mod-sub">Historial de cargas y análisis de consumo</p>
           </div>
         </div>
         <button
+          className="glass-btn-primary"
+          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
-          <Plus size={16} /> Nueva carga
+          <Plus size={15} /> Nueva carga
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {stats.map(s => (
-          <div key={s.label} className="p-4 glass">
-            <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>{s.label}</div>
-            <div className="text-lg font-bold" style={{ color: s.color }}>{s.value}</div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ marginBottom: 16 }}>
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            className={`surface surface-hover db-in db-d${i + 1}`}
+            style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: s.color, opacity: 0.75 }} />
+            <p className="db-slabel" style={{ marginBottom: 8 }}>{s.label}</p>
+            <div className="num" style={{ fontSize: 15, fontWeight: 700, color: s.color }}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="p-5 glass">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Gasto mensual — últimos 6 meses</h2>
+      {/* ── Charts ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: 16 }}>
+        <div className="surface db-in db-d5" style={{ padding: 20 }}>
+          <p className="db-slabel">Gasto mensual · últimos 6 meses</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-              <XAxis dataKey="mes" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
-              <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), 'Gasto']} />
-              <Bar dataKey="importe" fill="#3D8FD1" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={ct.gridColor} vertical={false} />
+              <XAxis dataKey="mes" tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
+              <Tooltip {...ct.tooltip} formatter={v => [formatARS(v), 'Gasto']} />
+              <Bar dataKey="importe" fill={ACCENT} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="p-5 glass">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Evolución del precio por litro</h2>
+        <div className="surface db-in db-d6" style={{ padding: 20 }}>
+          <p className="db-slabel">Evolución del precio por litro</p>
           {lineData.length < 2 ? (
-            <div className="flex items-center justify-center h-[180px] text-sm" style={{ color: '#94a3b8' }}>
-              Cargá al menos 2 registros para ver la evolución
-            </div>
+            <div className="db-empty">Cargá al menos 2 registros para ver la evolución</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="fecha" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
-                <Tooltip {...TOOLTIP_STYLE} formatter={v => [formatARS(v), '$/litro']} />
-                <Line type="monotone" dataKey="precio" stroke="#D97706" strokeWidth={2} dot={{ r: 3, fill: '#D97706', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={ct.gridColor} vertical={false} />
+                <XAxis dataKey="fecha" tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
+                <Tooltip {...ct.tooltip} formatter={v => [formatARS(v), '$/litro']} />
+                <Line type="monotone" dataKey="precio" stroke="#FBBF24" strokeWidth={2} dot={{ r: 3, fill: '#FBBF24', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
       </div>
 
-      {/* History table */}
-      <div className="p-5 glass">
-        <h2 className="text-sm font-semibold mb-4" style={{ color: '#94a3b8' }}>Historial de cargas</h2>
+      {/* ── Historial ── */}
+      <div className="surface db-in db-d7" style={{ padding: 20 }}>
+        <p className="db-slabel">Historial de cargas</p>
         {withConsumo.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: '#94a3b8' }}>Sin registros aún</p>
+          <div className="db-empty">Sin registros aún</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'var(--bg-base)' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-base)' }}>
                   {['Fecha', 'KM', 'Litros', 'Importe', '$/Litro', 'L/100km', ''].map(h => (
-                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: '#94a3b8' }}>
+                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: 'var(--text-2)', fontFamily: MONO }}>
                       {h}
                     </th>
                   ))}
@@ -244,36 +236,36 @@ function Combustible() {
                   return (
                     <tr
                       key={r.id}
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.07)', transition: 'background 150ms ease-out' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.04)' }}
+                      style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms cubic-bezier(0.23,1,0.32,1)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = '' }}
                     >
-                      <td className="py-3 px-3" style={{ color: '#f1f5f9' }}>{formatDate(r.fecha)}</td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
+                      <td className="py-3 px-3" style={{ color: 'var(--text-1)' }}>{formatDate(r.fecha)}</td>
+                      <td className="py-3 px-3 text-right num" style={{ color: 'var(--text-2)', fontSize: 12 }}>
                         {r.km ? Number(r.km).toLocaleString('es-AR') : '—'}
                       </td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
+                      <td className="py-3 px-3 text-right num" style={{ color: 'var(--text-2)', fontSize: 12 }}>
                         {r.litros ? `${parseFloat(r.litros).toFixed(1)} L` : '—'}
                       </td>
-                      <td className="py-3 px-3 text-right font-semibold" style={{ color: '#3D8FD1' }}>
+                      <td className="py-3 px-3 text-right font-semibold num" style={{ color: ACCENT, fontSize: 12 }}>
                         {r.importe ? formatARS(r.importe) : '—'}
                       </td>
-                      <td className="py-3 px-3 text-right" style={{ color: '#94a3b8' }}>
+                      <td className="py-3 px-3 text-right num" style={{ color: 'var(--text-2)', fontSize: 12 }}>
                         {precio && isFinite(precio) ? formatARS(precio) : '—'}
                       </td>
                       <td className="py-3 px-3 text-right">
                         {r.consumo != null ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: bg, color }}>
+                          <span className="text-xs font-semibold num px-2 py-0.5 rounded-full" style={{ background: bg, color }}>
                             {r.consumo.toFixed(1)}
                           </span>
-                        ) : '—'}
+                        ) : <span style={{ color: 'var(--text-3)' }}>—</span>}
                       </td>
                       <td className="py-3 px-3">
                         <button
                           onClick={() => handleDelete(r.id)}
-                          className="p-1.5 rounded-lg transition-colors"
-                          style={{ color: '#EF4444' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                          className="p-1.5 rounded-lg"
+                          style={{ color: '#F87171' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
                           onMouseLeave={e => { e.currentTarget.style.background = '' }}
                         >
                           <Trash2 size={14} />
@@ -288,24 +280,24 @@ function Combustible() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ── */}
       {modal && (
         <Modal title="Nueva carga de combustible" onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-              {errors.fecha && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.fecha}</p>}
+              {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}
             </Field>
             <Field label="KM actual">
               <Input type="number" value={form.km} onChange={e => set('km', e.target.value)} placeholder="Ej: 150000" />
             </Field>
             <Field label="Litros cargados" required>
               <Input type="number" step="0.01" value={form.litros} onChange={e => set('litros', e.target.value)} placeholder="0.00" />
-              {errors.litros && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.litros}</p>}
+              {errors.litros && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.litros}</p>}
             </Field>
             <Field label="Importe ($)" required>
               <Input type="number" step="0.01" value={form.importe} onChange={e => set('importe', e.target.value)} placeholder="0.00" />
-              {errors.importe && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.importe}</p>}
+              {errors.importe && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.importe}</p>}
             </Field>
             <div className="col-span-2">
               <Field label="Tipo de combustible">

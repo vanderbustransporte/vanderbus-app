@@ -77,24 +77,24 @@ export default function Contactos() {
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(74,143,212,0.2)' }}>
-            <Users size={20} style={{ color: '#4A8FD4' }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-dim)' }}>
+            <Users size={20} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>CONTACTOS</h1>
             <p className="text-xs text-gray-500">Clientes, proveedores y más</p>
           </div>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>
+        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent)', color: 'var(--badge-text)' }}>
           <Plus size={16} /> Nuevo contacto
         </button>
       </div>
 
-      <div className="rounded-xl p-5" style={{ background: '#1E1E2E', border: '1px solid #2E2E42' }}>
+      <div className="rounded-xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
         <div className="flex flex-wrap gap-3 mb-4">
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar nombre, empresa..." />
           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-white" style={{ background: '#252535', border: '1px solid #2E2E42' }}>
+            className="px-3 py-2 rounded-lg text-sm text-white" style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)' }}>
             <option value="">Todos los tipos</option>
             {TIPOS.map(t => <option key={t}>{t}</option>)}
           </select>
@@ -138,7 +138,7 @@ export default function Contactos() {
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={() => setModal(false)} className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10">Cancelar</button>
-            <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: '#4A8FD4' }}>Guardar</button>
+            <button onClick={handleSave} className="px-5 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent)', color: 'var(--badge-text)' }}>Guardar</button>
           </div>
         </Modal>
       )}

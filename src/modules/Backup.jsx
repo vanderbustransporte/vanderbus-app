@@ -29,9 +29,9 @@ export default function BackupBar() {
     fontSize: '12px',
     fontWeight: 500,
     cursor: 'pointer',
-    border: '1px solid #E2E8F0',
-    background: '#FFFFFF',
-    color: '#64748B',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-2)',
     transition: 'background 0.15s',
   }
 
@@ -42,8 +42,8 @@ export default function BackupBar() {
           className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg"
           style={
             status.type === 'ok'
-              ? { background: 'rgba(34,197,94,0.1)', color: '#16A34A', border: '1px solid rgba(34,197,94,0.2)' }
-              : { background: 'rgba(239,68,68,0.08)', color: '#DC2626', border: '1px solid rgba(239,68,68,0.2)' }
+              ? { background: 'var(--positive-dim)', color: 'var(--positive)', border: '1px solid var(--positive-dim)' }
+              : { background: 'var(--danger-dim)',   color: 'var(--danger)',   border: '1px solid var(--danger-dim)'   }
           }
         >
           {status.type === 'ok' ? <CheckCircle size={13} /> : <AlertTriangle size={13} />}
@@ -54,8 +54,8 @@ export default function BackupBar() {
         onClick={exportData}
         style={btnBase}
         title="Exportar datos como JSON"
-        onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC' }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
       >
         <Download size={13} /> Exportar
       </button>
@@ -63,8 +63,8 @@ export default function BackupBar() {
         onClick={() => fileRef.current.click()}
         style={btnBase}
         title="Importar datos desde JSON"
-        onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC' }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
       >
         <Upload size={13} /> Importar
       </button>

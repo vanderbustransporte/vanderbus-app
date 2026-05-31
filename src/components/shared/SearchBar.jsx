@@ -16,7 +16,7 @@ export default function SearchBar({ value, onChange, placeholder = 'Buscar...' }
           border: '1px solid var(--border)',
           color: 'var(--text-1)',
         }}
-        onFocus={e => { e.target.style.borderColor = '#38bdf8'; e.target.style.boxShadow = '0 0 0 3px rgba(56,189,248,0.10)' }}
+        onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }}
         onBlur={e => { e.target.style.borderColor = ''; e.target.style.boxShadow = '' }}
       />
     </div>

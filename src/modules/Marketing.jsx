@@ -1,20 +1,22 @@
 import React, { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
+import { toISO } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Megaphone, Plus, Trash2, Edit2 } from 'lucide-react'
 
-const TIPOS = ['Publicidad online', 'Redes sociales', 'Volantes / Impresión', 'Referido', 'Boca a boca', 'WhatsApp', 'Otro']
+const ACCENT = '#F472B6'
+
+const TIPOS   = ['Publicidad online', 'Redes sociales', 'Volantes / Impresión', 'Referido', 'Boca a boca', 'WhatsApp', 'Otro']
 const ESTADOS = ['Activo', 'Finalizado', 'Planificado']
 
-
 const ESTADO_STYLES = {
-  Activo: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
-  Finalizado: { bg: 'rgba(100,116,139,0.1)', color: '#475569' },
-  Planificado: { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
+  Activo:      { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' },
+  Finalizado:  { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8' },
+  Planificado: { bg: 'rgba(56,189,248,0.12)',  color: '#38BDF8' },
 }
 
 const empty = () => ({
@@ -24,10 +26,12 @@ const empty = () => ({
 
 export default function Marketing() {
   const { data, update } = useStore()
-  const list = data.marketing || []
+  const list = (data.marketing || []).filter(r =>
+    r.nombre || r.canal || r.presupuesto
+  )
   const [search, setSearch] = useState('')
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState(empty())
+  const [modal, setModal]   = useState(false)
+  const [form, setForm]     = useState(empty())
   const [editId, setEditId] = useState(null)
   const [errors, setErrors] = useState({})
 
@@ -40,17 +44,18 @@ export default function Marketing() {
     return Object.keys(e).length === 0
   }
 
-  const openNew = () => { setForm(empty()); setEditId(null); setErrors({}); setModal(true) }
-  const openEdit = r => { setForm({ ...r }); setEditId(r.id); setErrors({}); setModal(true) }
+  const openNew  = ()  => { setForm(empty());   setEditId(null);  setErrors({}); setModal(true) }
+  const openEdit = r   => { setForm({ ...r });  setEditId(r.id);  setErrors({}); setModal(true) }
 
-  const handleSave = () => {
+  const handleSave   = ()  => {
     if (!validate()) return
-    if (editId) update('marketing', list.map(r => r.id === editId ? form : r))
-    else update('marketing', [{ ...form }, ...list])
+    const normalized = { ...form, fecha: toISO(form.fecha) }
+    if (editId) update('marketing', list.map(r => r.id === editId ? normalized : r))
+    else        update('marketing', [normalized, ...list])
     setModal(false)
   }
 
-  const handleDelete = id => {
+  const handleDelete = id  => {
     if (confirm('¿Eliminar esta campaña?')) update('marketing', list.filter(r => r.id !== id))
   }
 
@@ -64,13 +69,13 @@ export default function Marketing() {
   const totalInvertido = list.reduce((s, r) => s + (parseFloat(r.gastado) || 0), 0)
 
   const cols = [
-    { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'titulo', label: 'Campaña', render: r => <span className="font-semibold" style={{ color: '#f1f5f9' }}>{r.titulo}</span> },
-    { key: 'tipo', label: 'Canal' },
-    { key: 'presupuesto', label: 'Presupuesto', render: r => r.presupuesto ? formatARS(r.presupuesto) : '—' },
+    { key: 'fecha',       label: 'Fecha',       render: r => formatDate(r.fecha) },
+    { key: 'titulo',      label: 'Campaña',     render: r => <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{r.titulo}</span> },
+    { key: 'tipo',        label: 'Canal' },
+    { key: 'presupuesto', label: 'Presupuesto', render: r => r.presupuesto ? <span className="num">{formatARS(r.presupuesto)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
       key: 'gastado', label: 'Gastado',
-      render: r => r.gastado ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.gastado)}</span> : '—'
+      render: r => r.gastado ? <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.gastado)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span>
     },
     {
       key: 'estado', label: 'Estado', render: r => {
@@ -87,18 +92,18 @@ export default function Marketing() {
         <div className="flex gap-1">
           <button
             onClick={() => openEdit(r)}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ color: '#64748B' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--text-2)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => handleDelete(r.id)}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ color: '#EF4444' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--danger)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
             onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <Trash2 size={14} />
@@ -110,45 +115,49 @@ export default function Marketing() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <Megaphone size={20} style={{ color: '#3D8FD1' }} />
+
+      {/* ── Header ── */}
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Megaphone size={18} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Marketing</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Campañas y acciones comerciales</p>
+            <h1 className="mod-h1">Marketing</h1>
+            <p className="mod-sub">Campañas y acciones comerciales</p>
           </div>
         </div>
         <button
+          className="glass-btn-primary"
+          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
-          <Plus size={16} /> Nueva campaña
+          <Plus size={15} /> Nueva campaña
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total invertido</div>
-          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalInvertido)}</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Campañas activas</div>
-          <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{list.filter(r => r.estado === 'Activo').length}</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Total campañas</div>
-          <div className="text-xl font-bold" style={{ color: '#f1f5f9' }}>{list.length}</div>
-        </div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+        {[
+          { label: 'Total invertido',   value: formatARS(totalInvertido),                          color: ACCENT },
+          { label: 'Campañas activas',  value: list.filter(r => r.estado === 'Activo').length,     color: '#34D399' },
+          { label: 'Total campañas',    value: list.length,                                        color: 'var(--text-1)' },
+        ].map((s, i) => (
+          <div
+            key={s.label}
+            className={`surface surface-hover db-in db-d${i + 1}`}
+            style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: s.color === 'var(--text-1)' ? 'var(--chart-tick)' : s.color, opacity: 0.75 }} />
+            <p className="db-slabel" style={{ marginBottom: 8 }}>{s.label}</p>
+            <div className="num" style={{ fontSize: 19, fontWeight: 700, color: s.color }}>{s.value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Table */}
-      <div className="p-5 glass">
-        <div className="mb-4">
+      {/* ── Tabla ── */}
+      <div className="surface db-in db-d4" style={{ padding: 20 }}>
+        <div style={{ marginBottom: 16 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar campaña, canal..." />
         </div>
         <Table columns={cols} data={filtered} emptyText="Sin campañas registradas" />
@@ -160,7 +169,7 @@ export default function Marketing() {
             <div className="col-span-2">
               <Field label="Título de la campaña" required>
                 <Input value={form.titulo} onChange={e => set('titulo', e.target.value)} placeholder="Ej: Promoción invierno 2026" />
-                {errors.titulo && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.titulo}</p>}
+                {errors.titulo && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.titulo}</p>}
               </Field>
             </div>
             <Field label="Fecha">
@@ -175,7 +184,7 @@ export default function Marketing() {
               <Input type="number" step="0.01" value={form.presupuesto} onChange={e => set('presupuesto', e.target.value)} placeholder="0.00" />
             </Field>
             <Field label="Gastado ($)">
-              <Input type="number" step="0.01" value={form.gastado} onChange={e => set('gastado', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="0.01" value={form.gastado}     onChange={e => set('gastado', e.target.value)}     placeholder="0.00" />
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={e => set('estado', e.target.value)}>

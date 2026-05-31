@@ -6,7 +6,7 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+      style={{ background: 'var(--modal-backdrop)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
     >
       <div
         className={`w-full ${sizes[size]} modal-panel`}
@@ -14,7 +14,7 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
           background: 'var(--bg-elevated)',
           border: '1px solid var(--border-hi)',
           borderRadius: 12,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+          boxShadow: 'var(--modal-shadow)',
         }}
       >
         <div
@@ -26,7 +26,7 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
             onClick={onClose}
             className="p-1.5 rounded-md transition-colors"
             style={{ color: 'var(--text-2)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
             onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <X size={16} />

@@ -21,7 +21,7 @@ function NotifRow({ notif, onAction }) {
         textAlign: 'left',
         transition: 'background 120ms ease-out',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
       onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
     >
       <Icon size={14} style={{ color: cfg.color, flexShrink: 0, marginTop: 2 }} />
@@ -174,7 +174,7 @@ export default function NotifCenter({ unreadCount, onNav }) {
         }}
         onMouseEnter={e => {
           e.currentTarget.style.color = 'var(--text-1)'
-          e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+          e.currentTarget.style.background = 'var(--hover-tint)'
         }}
         onMouseLeave={e => {
           e.currentTarget.style.color = 'var(--text-2)'
@@ -186,7 +186,7 @@ export default function NotifCenter({ unreadCount, onNav }) {
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -1, right: -1,
-            background: 'var(--accent)', color: '#09090b',
+            background: 'var(--accent)', color: 'var(--badge-text)',
             borderRadius: 9999, fontSize: 9, fontWeight: 700,
             padding: '0 4px', lineHeight: '14px',
             minWidth: 14, textAlign: 'center', display: 'inline-block',
@@ -209,7 +209,7 @@ export default function NotifCenter({ unreadCount, onNav }) {
             borderRadius: 'var(--radius)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: 'var(--panel-shadow)',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden', zIndex: 50,
           }}

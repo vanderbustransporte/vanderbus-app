@@ -1,20 +1,23 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
+import { toISO } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { MapPin, Plus, Trash2 } from 'lucide-react'
 
-const TIPOS = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
+const ACCENT = '#34D399'
+
+const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
 
 const ESTADO_STYLES = {
-  Pendiente: { bg: 'rgba(217,119,6,0.1)', color: '#D97706' },
-  Confirmado: { bg: 'rgba(61,143,209,0.1)', color: '#3D8FD1' },
-  Realizado: { bg: 'rgba(34,197,94,0.1)', color: '#16A34A' },
-  Cancelado: { bg: 'rgba(239,68,68,0.1)', color: '#DC2626' },
+  Pendiente:  { bg: 'rgba(251,191,36,0.12)',   color: '#FBBF24' },
+  Confirmado: { bg: 'rgba(56,189,248,0.12)',   color: '#38BDF8' },
+  Realizado:  { bg: 'rgba(52,211,153,0.12)',   color: '#34D399' },
+  Cancelado:  { bg: 'rgba(248,113,113,0.12)',  color: '#F87171' },
 }
 
 const empty = () => ({
@@ -29,99 +32,116 @@ function EstadoBadge({ estado, id, onChange }) {
       value={estado}
       onChange={e => onChange(id, e.target.value)}
       style={{
-        background: s.bg,
-        color: s.color,
-        border: 'none',
-        outline: 'none',
-        borderRadius: '9999px',
-        padding: '3px 10px',
-        fontSize: '11px',
-        fontWeight: '700',
-        cursor: 'pointer',
+        background: s.bg, color: s.color, border: 'none', outline: 'none',
+        borderRadius: '9999px', padding: '3px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
       }}
     >
       {ESTADOS.map(e => (
-        <option key={e} value={e} style={{ background: '#FFFFFF', color: '#1A202C' }}>{e}</option>
+        <option key={e} value={e} style={{ background: 'var(--bg-elevated)', color: 'var(--text-1)' }}>{e}</option>
       ))}
     </select>
   )
 }
 
 export default function Viajes() {
-  const { data, update } = useStore()
-  const list = data.viajes || []
-  const [search, setSearch] = useState('')
+  const { data, update, loading } = useStore()
+  const list = (data.viajes || []).filter(r =>
+    r.cliente || r.destino || r.origen
+  )
+  const [search, setSearch]           = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState(empty())
-  const [errors, setErrors] = useState({})
+  const [modal, setModal]             = useState(false)
+  const [form, setForm]               = useState(empty())
+  const [errors, setErrors]           = useState({})
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const validate = () => {
     const e = {}
-    if (!form.cliente.trim()) e.cliente = 'Requerido'
-    if (!form.origen.trim()) e.origen = 'Requerido'
-    if (!form.destino.trim()) e.destino = 'Requerido'
+    if (!form.cliente.trim()) e.cliente  = 'Requerido'
+    if (!form.origen.trim())  e.origen   = 'Requerido'
+    if (!form.destino.trim()) e.destino  = 'Requerido'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
-  const openNew = () => { setForm(empty()); setErrors({}); setModal(true) }
+  const openNew    = () => { setForm(empty()); setErrors({}); setModal(true) }
+  const handleSave = () => { if (!validate()) return; update('viajes', [{ ...form, fecha: toISO(form.fecha) }, ...list]); setModal(false) }
+  const handleDelete = id => { if (confirm('¿Eliminar este viaje?')) update('viajes', list.filter(r => r.id !== id)) }
 
-  const handleSave = () => {
-    if (!validate()) return
-    update('viajes', [{ ...form }, ...list])
-    setModal(false)
+  const handleEstado = (id, nuevoEstado) => {
+    const viaje = list.find(r => r.id === id)
+    const ingresos = data.ingresos || []
+    if (nuevoEstado === 'Realizado' && viaje?.monto_total) {
+      if (!ingresos.some(i => i.viaje_id === id)) {
+        update('ingresos', [{
+          id: genId(), tipo: 'ingreso', viaje_id: id,
+          fecha: toISO(viaje.fecha),
+          descripcion: `Viaje: ${viaje.cliente} — ${viaje.origen} → ${viaje.destino}`,
+          categoria: 'Servicio de transporte',
+          importe: viaje.monto_total, cliente: viaje.cliente,
+          comprobante: '', notas: '',
+        }, ...ingresos])
+      }
+    } else if (viaje?.estado === 'Realizado' && nuevoEstado !== 'Realizado') {
+      const filtrados = ingresos.filter(i => i.viaje_id !== id)
+      if (filtrados.length !== ingresos.length) update('ingresos', filtrados)
+    }
+    update('viajes', list.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r))
   }
 
-  const handleDelete = id => {
-    if (confirm('¿Eliminar este viaje?')) update('viajes', list.filter(r => r.id !== id))
-  }
-
-  const handleEstado = (id, estado) => {
-    update('viajes', list.map(r => r.id === id ? { ...r, estado } : r))
-  }
+  useEffect(() => {
+    if (loading) return
+    const ingresos = data.ingresos || []
+    const existingViajeIds = new Set(ingresos.filter(i => i.viaje_id).map(i => i.viaje_id))
+    const faltantes = (data.viajes || []).filter(
+      r => r.estado === 'Realizado' && r.monto_total && (r.cliente || r.destino || r.origen) && !existingViajeIds.has(r.id)
+    )
+    if (!faltantes.length) return
+    update('ingresos', [
+      ...faltantes.map(v => ({
+        id: genId(), tipo: 'ingreso', viaje_id: v.id,
+        fecha: toISO(v.fecha),
+        descripcion: `Viaje: ${v.cliente} — ${v.origen} → ${v.destino}`,
+        categoria: 'Servicio de transporte',
+        importe: v.monto_total, cliente: v.cliente,
+        comprobante: '', notas: '',
+      })),
+      ...ingresos,
+    ])
+  }, [loading, data.viajes, data.ingresos])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return list
       .filter(r => {
-        const matchQ = !q || r.cliente?.toLowerCase().includes(q) || r.tipo?.toLowerCase().includes(q) || r.estado?.toLowerCase().includes(q)
+        const matchQ      = !q || r.cliente?.toLowerCase().includes(q) || r.tipo?.toLowerCase().includes(q) || r.estado?.toLowerCase().includes(q)
         const matchEstado = !estadoFilter || r.estado === estadoFilter
         return matchQ && matchEstado
       })
       .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   }, [list, search, estadoFilter])
 
-  const totalEsperado = list.filter(r => r.estado === 'Pendiente' || r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
+  const totalEsperado  = list.filter(r => r.estado === 'Pendiente' || r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
   const totalConfirmado = list.filter(r => r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
-  const totalRealizado = list.filter(r => r.estado === 'Realizado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
+  const totalRealizado  = list.filter(r => r.estado === 'Realizado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
 
   const cols = [
-    { key: 'fecha', label: 'Fecha', render: r => formatDate(r.fecha) },
-    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: '#f1f5f9' }}>{r.cliente}</span> },
-    { key: 'tipo', label: 'Tipo' },
-    { key: 'origen', label: 'Origen' },
+    { key: 'fecha',   label: 'Fecha',   render: r => formatDate(r.fecha) },
+    { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{r.cliente}</span> },
+    { key: 'tipo',    label: 'Tipo' },
+    { key: 'origen',  label: 'Origen' },
     { key: 'destino', label: 'Destino' },
-    {
-      key: 'monto_sena', label: 'Seña',
-      render: r => r.monto_sena ? formatARS(r.monto_sena) : <span style={{ color: '#52525b' }}>—</span>
-    },
-    {
-      key: 'monto_total', label: 'Total',
-      render: r => r.monto_total
-        ? <span className="font-semibold" style={{ color: '#3D8FD1' }}>{formatARS(r.monto_total)}</span>
-        : <span style={{ color: '#52525b' }}>—</span>
-    },
-    { key: 'estado', label: 'Estado', render: r => <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} /> },
+    { key: 'monto_sena',  label: 'Seña',  render: r => r.monto_sena  ? <span className="num">{formatARS(r.monto_sena)}</span>  : <span style={{ color: 'var(--text-3)' }}>—</span> },
+    { key: 'monto_total', label: 'Total', render: r => r.monto_total ? <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.monto_total)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
+    { key: 'estado',  label: 'Estado',  render: r => <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} /> },
     {
       key: 'acciones', label: '', render: r => (
         <button
           onClick={() => handleDelete(r.id)}
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: '#EF4444' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+          className="p-1.5 rounded-lg"
+          style={{ color: '#F87171' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.10)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '' }}
         >
           <Trash2 size={14} />
@@ -132,57 +152,59 @@ export default function Viajes() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <MapPin size={20} style={{ color: '#3D8FD1' }} />
+
+      {/* ── Header ── */}
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <MapPin size={18} style={{ color: ACCENT }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Viajes</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Gestión de viajes y traslados</p>
+            <h1 className="mod-h1">Viajes</h1>
+            <p className="mod-sub">Gestión de viajes y traslados</p>
           </div>
         </div>
         <button
+          className="glass-btn-primary"
+          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
         >
-          <Plus size={16} /> Nuevo viaje
+          <Plus size={15} /> Nuevo viaje
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Ingresos esperados</div>
-          <div className="text-xl font-bold" style={{ color: '#D97706' }}>{formatARS(totalEsperado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>Pendientes + Confirmados</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Confirmados</div>
-          <div className="text-xl font-bold" style={{ color: '#3D8FD1' }}>{formatARS(totalConfirmado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>{list.filter(r => r.estado === 'Confirmado').length} viajes</div>
-        </div>
-        <div className="p-4 glass">
-          <div className="text-xs font-medium mb-1.5" style={{ color: '#94a3b8' }}>Realizados</div>
-          <div className="text-xl font-bold" style={{ color: '#16A34A' }}>{formatARS(totalRealizado)}</div>
-          <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>{list.filter(r => r.estado === 'Realizado').length} viajes</div>
-        </div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+        {[
+          { label: 'Ingresos esperados',  value: formatARS(totalEsperado),   color: '#FBBF24', sub: 'Pendientes + Confirmados' },
+          { label: 'Confirmados',         value: formatARS(totalConfirmado), color: '#38BDF8', sub: `${list.filter(r => r.estado === 'Confirmado').length} viajes` },
+          { label: 'Realizados',          value: formatARS(totalRealizado),  color: ACCENT,    sub: `${list.filter(r => r.estado === 'Realizado').length} viajes` },
+        ].map((s, i) => (
+          <div
+            key={s.label}
+            className={`surface surface-hover db-in db-d${i + 1}`}
+            style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: s.color, opacity: 0.75 }} />
+            <p className="db-slabel" style={{ marginBottom: 8 }}>{s.label}</p>
+            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 4 }}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Table */}
-      <div className="p-5 glass">
-        <div className="flex gap-3 mb-4">
-          <div className="flex-1">
+      {/* ── Tabla ── */}
+      <div className="surface db-in db-d4" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: 1 }}>
             <SearchBar value={search} onChange={setSearch} placeholder="Buscar por cliente, tipo, estado..." />
           </div>
           <select
             value={estadoFilter}
             onChange={e => setEstadoFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm transition-colors"
+            className="px-3 py-2 rounded-lg text-sm"
             style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
-            onFocus={e => { e.target.style.borderColor = '#38bdf8' }}
+            onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
             onBlur={e => { e.target.style.borderColor = '' }}
           >
             <option value="">Todos los estados</option>
@@ -192,7 +214,7 @@ export default function Viajes() {
         <Table columns={cols} data={filtered} emptyText="Sin viajes registrados" />
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ── */}
       {modal && (
         <Modal title="Nuevo viaje" onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
@@ -206,7 +228,7 @@ export default function Viajes() {
             </Field>
             <Field label="Cliente" required>
               <Input value={form.cliente} onChange={e => set('cliente', e.target.value)} placeholder="Nombre del cliente o grupo" />
-              {errors.cliente && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.cliente}</p>}
+              {errors.cliente && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.cliente}</p>}
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={e => set('estado', e.target.value)}>
@@ -215,14 +237,14 @@ export default function Viajes() {
             </Field>
             <Field label="Origen" required>
               <Input value={form.origen} onChange={e => set('origen', e.target.value)} placeholder="Ciudad / Punto de salida" />
-              {errors.origen && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.origen}</p>}
+              {errors.origen && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.origen}</p>}
             </Field>
             <Field label="Destino" required>
               <Input value={form.destino} onChange={e => set('destino', e.target.value)} placeholder="Ciudad / Punto de llegada" />
-              {errors.destino && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{errors.destino}</p>}
+              {errors.destino && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.destino}</p>}
             </Field>
             <Field label="Monto seña ($)">
-              <Input type="number" step="0.01" min="0" value={form.monto_sena} onChange={e => set('monto_sena', e.target.value)} placeholder="0.00" />
+              <Input type="number" step="0.01" min="0" value={form.monto_sena}  onChange={e => set('monto_sena', e.target.value)}  placeholder="0.00" />
             </Field>
             <Field label="Monto total ($)">
               <Input type="number" step="0.01" min="0" value={form.monto_total} onChange={e => set('monto_total', e.target.value)} placeholder="0.00" />
