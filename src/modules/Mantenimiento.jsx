@@ -7,6 +7,7 @@ import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Wrench, Plus, Trash2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ACCENT = '#FBBF24'
 const MONO   = "'Space Mono', 'Geist Mono', monospace"
@@ -15,7 +16,8 @@ const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), categoria: 'Revisión general', descripcion: '',
-  taller: '', costo: '', km: '', proximo_km: '', proximo_fecha: '', estado: 'Realizado', notas: ''
+  taller: '', costo: '', km: '', proximo_km: '', proximo_fecha: '', estado: 'Realizado', notas: '',
+  vehiculo_id: '',
 })
 
 const ESTADO_STYLES = {
@@ -34,6 +36,9 @@ export default function Mantenimiento() {
   const [modal, setModal]             = useState(false)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
+
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('mantenimiento')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -91,7 +96,7 @@ export default function Mantenimiento() {
       }
     },
     {
-      key: 'acciones', label: '', render: r => (
+      key: 'acciones', label: '', render: r => editable ? (
         <button
           onClick={() => handleDelete(r.id)}
           className="p-1.5 rounded-lg"
@@ -101,7 +106,7 @@ export default function Mantenimiento() {
         >
           <Trash2 size={14} />
         </button>
-      )
+      ) : null
     }
   ]
 
@@ -119,13 +124,15 @@ export default function Mantenimiento() {
             <p className="mod-sub">Historial de reparaciones y servicios</p>
           </div>
         </div>
-        <button
-          className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-          onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-        >
-          <Plus size={15} /> Nuevo registro
-        </button>
+        {editable && (
+          <button
+            className="glass-btn-primary"
+            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
+            onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+          >
+            <Plus size={15} /> Nuevo registro
+          </button>
+        )}
       </div>
 
       {/* ── Stats ── */}
@@ -171,6 +178,14 @@ export default function Mantenimiento() {
       {modal && (
         <Modal title="Nuevo mantenimiento / arreglo" onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
+            <Field label="Vehículo">
+              <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
+                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                ))}
+              </Select>
+            </Field>
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
               {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}

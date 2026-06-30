@@ -7,6 +7,7 @@ import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Users, Plus, Trash2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ACCENT = '#A78BFA'
 
@@ -26,6 +27,9 @@ export default function Nomina() {
   const [modal, setModal]   = useState(false)
   const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
+
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('nomina')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -71,7 +75,7 @@ export default function Nomina() {
     { key: 'importe',  label: 'Importe',  render: r => <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.importe)}</span> },
     { key: 'metodo',   label: 'Método',   render: r => r.metodo || <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
-      key: 'acciones', label: '', render: r => (
+      key: 'acciones', label: '', render: r => editable ? (
         <button
           onClick={() => handleDelete(r.id)}
           className="p-1.5 rounded-lg"
@@ -81,7 +85,7 @@ export default function Nomina() {
         >
           <Trash2 size={14} />
         </button>
-      )
+      ) : null
     }
   ]
 
@@ -99,13 +103,15 @@ export default function Nomina() {
             <p className="mod-sub">Pagos de sueldos y haberes</p>
           </div>
         </div>
-        <button
-          className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-          onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-        >
-          <Plus size={15} /> Registrar pago
-        </button>
+        {editable && (
+          <button
+            className="glass-btn-primary"
+            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
+            onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+          >
+            <Plus size={15} /> Registrar pago
+          </button>
+        )}
       </div>
 
       {/* ── Stats ── */}

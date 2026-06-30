@@ -241,12 +241,12 @@ button:active { transform: scale(0.97); }
 
 /* ── Dashboard section label ───────────────────────────── */
 .db-slabel {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.06em;
   color: var(--text-2);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   font-family: 'Geist Mono', monospace;
 }
 

@@ -7,6 +7,7 @@ import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnCancel } from '../components/shared/Field'
 import { TrendingUp, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import { useChartTheme } from '../utils/chartTheme'
 
 const ACCENT   = '#34D399'
@@ -106,6 +107,8 @@ function MovimientoModal({ onClose, onSave, tipo }) {
 
 export default function Finanzas() {
   const { data, update } = useStore()
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('finanzas')
   const ct = useChartTheme()
   const ingresos      = (data.ingresos || []).filter(r => r.descripcion || r.importe)
   const gastosPropios = (data.gastos   || []).filter(r => r.descripcion || r.importe)
@@ -179,7 +182,7 @@ export default function Finanzas() {
       )
     },
     {
-      key: 'acciones', label: '', render: r => (r._marketing || r.viaje_id) ? null : (
+      key: 'acciones', label: '', render: r => (editable && !r._marketing && !r.viaje_id) ? (
         <button
           onClick={() => handleDelete(r)}
           className="p-1.5 rounded-lg"
@@ -189,7 +192,7 @@ export default function Finanzas() {
         >
           <Trash2 size={14} />
         </button>
-      )
+      ) : null
     }
   ]
 
@@ -207,22 +210,24 @@ export default function Finanzas() {
             <p className="mod-sub">Ingresos y gastos del período</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="glass-btn-primary"
-            style={{ background: `${C_ING}18`, boxShadow: `0 4px 15px ${C_ING}22`, borderColor: `${C_ING}28` }}
-            onClick={() => setModal('ingreso')}
-          >
-            <ArrowUpCircle size={15} /> Ingreso
-          </button>
-          <button
-            className="glass-btn-primary"
-            style={{ background: `${C_GAS}18`, boxShadow: `0 4px 15px ${C_GAS}22`, borderColor: `${C_GAS}28` }}
-            onClick={() => setModal('gasto')}
-          >
-            <ArrowDownCircle size={15} /> Gasto
-          </button>
-        </div>
+        {editable && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="glass-btn-primary"
+              style={{ background: `${C_ING}18`, boxShadow: `0 4px 15px ${C_ING}22`, borderColor: `${C_ING}28` }}
+              onClick={() => setModal('ingreso')}
+            >
+              <ArrowUpCircle size={15} /> Ingreso
+            </button>
+            <button
+              className="glass-btn-primary"
+              style={{ background: `${C_GAS}18`, boxShadow: `0 4px 15px ${C_GAS}22`, borderColor: `${C_GAS}28` }}
+              onClick={() => setModal('gasto')}
+            >
+              <ArrowDownCircle size={15} /> Gasto
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Stats ── */}

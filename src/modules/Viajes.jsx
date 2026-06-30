@@ -7,6 +7,7 @@ import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { MapPin, Plus, Trash2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ACCENT = '#34D399'
 
@@ -23,6 +24,7 @@ const ESTADO_STYLES = {
 const empty = () => ({
   id: genId(), fecha: todayISO(), cliente: '', tipo: 'Excursión',
   origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
+  vehiculo_id: '',
 })
 
 function EstadoBadge({ estado, id, onChange }) {
@@ -53,6 +55,9 @@ export default function Viajes() {
   const [modal, setModal]             = useState(false)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
+
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('viajes')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -134,9 +139,12 @@ export default function Viajes() {
     { key: 'destino', label: 'Destino' },
     { key: 'monto_sena',  label: 'Seña',  render: r => r.monto_sena  ? <span className="num">{formatARS(r.monto_sena)}</span>  : <span style={{ color: 'var(--text-3)' }}>—</span> },
     { key: 'monto_total', label: 'Total', render: r => r.monto_total ? <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.monto_total)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
-    { key: 'estado',  label: 'Estado',  render: r => <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} /> },
+    { key: 'estado', label: 'Estado', render: r => editable
+        ? <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} />
+        : <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: ESTADO_STYLES[r.estado]?.bg || 'rgba(255,255,255,0.08)', color: ESTADO_STYLES[r.estado]?.color || '#94a3b8' }}>{r.estado}</span>
+    },
     {
-      key: 'acciones', label: '', render: r => (
+      key: 'acciones', label: '', render: r => editable ? (
         <button
           onClick={() => handleDelete(r.id)}
           className="p-1.5 rounded-lg"
@@ -146,7 +154,7 @@ export default function Viajes() {
         >
           <Trash2 size={14} />
         </button>
-      )
+      ) : null
     },
   ]
 
@@ -164,13 +172,15 @@ export default function Viajes() {
             <p className="mod-sub">Gestión de viajes y traslados</p>
           </div>
         </div>
-        <button
-          className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-          onClick={openNew}
-        >
-          <Plus size={15} /> Nuevo viaje
-        </button>
+        {editable && (
+          <button
+            className="glass-btn-primary"
+            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
+            onClick={openNew}
+          >
+            <Plus size={15} /> Nuevo viaje
+          </button>
+        )}
       </div>
 
       {/* ── Stats ── */}
@@ -218,6 +228,14 @@ export default function Viajes() {
       {modal && (
         <Modal title="Nuevo viaje" onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
+            <Field label="Vehículo">
+              <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
+                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                ))}
+              </Select>
+            </Field>
             <Field label="Fecha">
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
             </Field>

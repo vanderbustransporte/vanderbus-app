@@ -15,8 +15,8 @@ function TrendBadge({ actual, anterior }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '3px 10px', borderRadius: 999,
-      fontSize: 11, fontWeight: 700, marginTop: 10,
+      padding: '4px 11px', borderRadius: 999,
+      fontSize: 12, fontWeight: 700, marginTop: 12,
       fontFamily: MONO, letterSpacing: '-0.01em',
       background: up ? 'var(--positive-dim)' : 'var(--danger-dim)',
       color: up ? 'var(--positive)' : 'var(--danger)',
@@ -31,27 +31,19 @@ function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }) {
   return (
     <div
       className={`surface surface-hover db-in db-d${delay}`}
-      style={{ position: 'relative', overflow: 'hidden', padding: '20px 20px 20px 24px' }}
+      style={{ position: 'relative', overflow: 'hidden', padding: '22px 22px 20px 26px' }}
     >
       <div style={{ position: 'absolute', top: 14, bottom: 14, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: color, opacity: 0.7 }} />
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
-        <div style={{
-          width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-          background: `${color}18`, border: `1px solid ${color}28`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={16} style={{ color }} />
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)', marginBottom: 4 }}>
-            {label}
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', fontFamily: MONO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {value}
-          </div>
-          {sub && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 3 }}>{sub}</div>}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Icon size={15} style={{ color }} />
+        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
+          {label}
+        </span>
       </div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-1)', fontFamily: MONO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 5 }}>{sub}</div>}
     </div>
   )
 }
@@ -61,11 +53,11 @@ function QuickBtn({ icon: Icon, label, color, onClick }) {
     <button
       onClick={onClick}
       className="flex items-center gap-2 text-sm font-semibold"
-      style={{ padding: '10px 18px', borderRadius: 'var(--radius)', background: `${color}18`, border: '1px solid rgba(255,255,255,0.07)', color: 'var(--text-1)', cursor: 'pointer' }}
+      style={{ padding: '11px 20px', borderRadius: 'var(--radius)', background: `${color}18`, border: '1px solid rgba(255,255,255,0.07)', color: 'var(--text-1)', cursor: 'pointer' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
     >
-      <Icon size={14} style={{ color }} />
+      <Icon size={15} style={{ color }} />
       <span>{label}</span>
     </button>
   )
@@ -150,105 +142,86 @@ export default function Dashboard({ onNav }) {
   const ct = useChartTheme()
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-[1680px] mx-auto w-full">
 
-      {/* ── Encabezado ── */}
+      {/* Encabezado */}
       <div className="db-in db-d0" style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.1, margin: 0, color: 'var(--text-1)' }}>
+        <h1 className="mod-h1" style={{ fontSize: 36 }}>
           Panel de control
         </h1>
-        <p style={{ fontSize: 11, color: 'var(--text-2)', textTransform: 'capitalize', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', textTransform: 'capitalize', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
           {fechaLarga}
         </p>
       </div>
 
-      {/* ── Resumen financiero ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+      {/* Resumen financiero: un solo panel, tres secciones */}
+      <div className="surface db-in db-d1" style={{ marginBottom: 20, padding: 0, overflow: 'hidden' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3">
 
-        {/* Ingresos */}
-        <div className="surface surface-hover db-in db-d1" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--positive-dim)', border: '1px solid rgba(52,211,153,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ArrowUpCircle size={13} style={{ color: '#34D399' }} />
+          <div style={{ padding: '26px 30px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <ArrowUpCircle size={16} style={{ color: '#34D399' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
+                Ingresos del mes
+              </span>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
-              Ingresos del mes
-            </span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: 'var(--positive)', fontFamily: MONO }}>
-            {formatARS(totalIngresosMes)}
-          </div>
-          <TrendBadge actual={totalIngresosMes} anterior={totalIngresosMesPasado} />
-        </div>
-
-        {/* Gastos */}
-        <div className="surface surface-hover db-in db-d2" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--danger-dim)', border: '1px solid rgba(248,113,113,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ArrowDownCircle size={13} style={{ color: '#F87171' }} />
+            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--positive)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+              {formatARS(totalIngresosMes)}
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
-              Gastos del mes
-            </span>
+            <TrendBadge actual={totalIngresosMes} anterior={totalIngresosMesPasado} />
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: 'var(--danger)', fontFamily: MONO }}>
-            {formatARS(totalGastosMes)}
-          </div>
-          <TrendBadge actual={totalGastosMes} anterior={totalGastosMesPasado} />
-        </div>
 
-        {/* Balance */}
-        <div
-          className="surface surface-hover db-in db-d3"
-          style={{
-            padding: 24,
-            borderColor: balance >= 0 ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)',
-            background:  balance >= 0 ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: balance >= 0 ? 'var(--positive-dim)' : 'var(--danger-dim)',
-              border: `1px solid ${balance >= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+          <div className="border-t sm:border-t-0 sm:border-l" style={{ padding: '26px 30px', borderColor: 'var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <ArrowDownCircle size={16} style={{ color: '#F87171' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
+                Gastos del mes
+              </span>
+            </div>
+            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--danger)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+              {formatARS(totalGastosMes)}
+            </div>
+            <TrendBadge actual={totalGastosMes} anterior={totalGastosMesPasado} />
+          </div>
+
+          <div className="border-t sm:border-t-0 sm:border-l" style={{ padding: '26px 30px', borderColor: 'var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               {balance >= 0
-                ? <TrendingUp   size={13} style={{ color: '#34D399' }} />
-                : <TrendingDown size={13} style={{ color: '#F87171' }} />}
+                ? <TrendingUp size={16} style={{ color: '#34D399' }} />
+                : <TrendingDown size={16} style={{ color: '#F87171' }} />}
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
+                Balance neto
+              </span>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-2)' }}>
-              Balance neto
-            </span>
+            <div style={{ fontSize: 'clamp(30px, 3.6vw, 44px)', fontWeight: 800, lineHeight: 1, color: balance >= 0 ? 'var(--positive)' : 'var(--danger)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+              {formatARS(balance)}
+            </div>
+            <TrendBadge actual={balance} anterior={balancePasado} />
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: balance >= 0 ? 'var(--positive)' : 'var(--danger)', fontFamily: MONO }}>
-            {formatARS(balance)}
-          </div>
-          <TrendBadge actual={balance} anterior={balancePasado} />
+
         </div>
       </div>
 
-      {/* ── Gráficos ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
+      {/* Graficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5" style={{ marginBottom: 20 }}>
 
-        {/* Bar chart */}
-        <div className="lg:col-span-2 surface db-in db-d4" style={{ padding: 24 }}>
+        <div className="lg:col-span-2 surface db-in db-d4" style={{ padding: 26 }}>
           <p className="db-slabel">Ingresos vs Gastos · últimos 6 meses</p>
           {barData.some(d => d.Ingresos > 0 || d.Gastos > 0) ? (
-            <ResponsiveContainer width="100%" height={210}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={barData} barCategoryGap="32%" barGap={3}>
                 <XAxis
                   dataKey="mes"
-                  tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 12, fontFamily: MONO }}
                   axisLine={false} tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }}
                   axisLine={false} tickLine={false}
                   tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip {...ct.tooltip} cursor={{ fill: ct.cursorFill }} />
-                <Legend wrapperStyle={{ color: ct.tickColor, fontSize: 11, fontWeight: 600 }} />
+                <Legend wrapperStyle={{ color: ct.tickColor, fontSize: 12, fontWeight: 600 }} />
                 <Bar dataKey="Ingresos" fill="#34D399" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Gastos"   fill="#F87171" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -258,11 +231,10 @@ export default function Dashboard({ onNav }) {
           )}
         </div>
 
-        {/* Pie chart */}
-        <div className="surface db-in db-d5" style={{ padding: 24 }}>
+        <div className="surface db-in db-d5" style={{ padding: 26 }}>
           <p className="db-slabel">Distribución de gastos</p>
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={210}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
                   {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -271,7 +243,7 @@ export default function Dashboard({ onNav }) {
                   formatter={v => formatARS(v)}
                   {...ct.tooltip}
                 />
-                <Legend iconType="circle" iconSize={7} wrapperStyle={{ color: ct.tickColor, fontSize: 11 }} />
+                <Legend iconType="circle" iconSize={7} wrapperStyle={{ color: ct.tickColor, fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -280,8 +252,8 @@ export default function Dashboard({ onNav }) {
         </div>
       </div>
 
-      {/* ── Stat cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginBottom: 16 }}>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: 20 }}>
         <StatCard
           icon={TrendingUp} label="Último servicio" color="#34D399" delay={5}
           value={ultimoServicio ? formatARS(ultimoServicio.importe) : 'Sin registros'}
@@ -306,10 +278,10 @@ export default function Dashboard({ onNav }) {
         />
       </div>
 
-      {/* ── Acceso rápido ── */}
-      <div className="surface db-in db-d8" style={{ padding: '22px 24px' }}>
+      {/* Acceso rapido */}
+      <div className="surface db-in db-d8" style={{ padding: '24px 28px' }}>
         <p className="db-slabel">Acceso rápido</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           <QuickBtn icon={ArrowUpCircle}   label="Nuevo ingreso"  color="#34D399" onClick={() => onNav('finanzas')}      />
           <QuickBtn icon={ArrowDownCircle} label="Nuevo gasto"    color="#F87171" onClick={() => onNav('finanzas')}      />
           <QuickBtn icon={Fuel}            label="Nueva carga"    color="#22D3EE" onClick={() => onNav('combustible')}   />

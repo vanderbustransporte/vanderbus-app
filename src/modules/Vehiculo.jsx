@@ -1,148 +1,182 @@
 import React, { useState } from 'react'
 import { useStore } from '../store/useStore'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
-import { formatDate, expiryBg, expiryLabel } from '../utils/format'
-import { Truck, Edit2, Save, X, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { formatDate, expiryLabel } from '../utils/format'
+import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+
+const ACCENT = '#60A5FA'
 
 const emptyVehiculo = {
-  marca: '', modelo: '', anio: '', patente: '', motor: '', chasis: '',
+  alias: '', marca: '', modelo: '', anio: '', patente: '', motor: '', chasis: '',
   kilometraje: '', combustible: 'Gasoil', vtv: '', seguro: '',
-  aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: ''
+  aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: '', activo: true
+}
+
+// Estado de un vencimiento (color + texto)
+function vencStatus(date) {
+  if (!date) return null
+  const diff = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24))
+  if (diff < 0)  return { color: '#F87171', Icon: AlertTriangle }
+  if (diff <= 30) return { color: '#FBBF24', Icon: Clock }
+  return { color: '#34D399', Icon: CheckCircle }
 }
 
 function ExpiryBadge({ label, date }) {
-  if (!date) return (
-    <div className="p-4 glass">
-      <div className="text-xs font-medium mb-1" style={{ color: '#94a3b8' }}>{label}</div>
-      <div className="text-sm" style={{ color: '#94a3b8' }}>Sin fecha</div>
+  const st = vencStatus(date)
+  if (!st) return (
+    <div className="db-in db-d1" style={{ padding: 16, borderRadius: 'var(--radius)', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+      <div className="db-slabel" style={{ marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Sin fecha</div>
     </div>
   )
-
-  // Determine status from expiry
-  const today = new Date()
-  const exp = new Date(date)
-  const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24))
-
-  let bg, borderColor, textColor, badgeBg, badgeColor, Icon
-  if (diffDays < 0) {
-    bg = 'rgba(239,68,68,0.05)'; borderColor = 'rgba(239,68,68,0.3)'; textColor = '#DC2626'
-    badgeBg = 'rgba(239,68,68,0.1)'; badgeColor = '#DC2626'; Icon = AlertTriangle
-  } else if (diffDays <= 30) {
-    bg = 'rgba(217,119,6,0.05)'; borderColor = 'rgba(217,119,6,0.3)'; textColor = '#D97706'
-    badgeBg = 'rgba(217,119,6,0.1)'; badgeColor = '#D97706'; Icon = Clock
-  } else {
-    bg = 'rgba(34,197,94,0.05)'; borderColor = 'rgba(34,197,94,0.3)'; textColor = '#16A34A'
-    badgeBg = 'rgba(34,197,94,0.1)'; badgeColor = '#16A34A'; Icon = CheckCircle
-  }
-
+  const { color, Icon } = st
   return (
-    <div className="p-4 rounded-xl" style={{ background: bg, border: `1px solid ${borderColor}`, borderRadius: '12px' }}>
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon size={13} style={{ color: textColor }} />
-        <div className="text-xs font-medium" style={{ color: '#64748B' }}>{label}</div>
+    <div className="db-in db-d1" style={{ padding: 16, borderRadius: 'var(--radius)', background: 'var(--bg-elevated)', border: `1px solid ${color}4D` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <Icon size={13} style={{ color }} />
+        <div className="db-slabel" style={{ marginBottom: 0 }}>{label}</div>
       </div>
-      <div className="font-semibold text-sm mb-1" style={{ color: '#f1f5f9' }}>{formatDate(date)}</div>
-      <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: badgeBg, color: badgeColor }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)', marginBottom: 6 }}>{formatDate(date)}</div>
+      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${color}1F`, color }}>
         {expiryLabel(date)}
       </span>
     </div>
   )
 }
 
-export default function Vehiculo() {
-  const { data, update } = useStore()
-  const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState(data.vehiculo || emptyVehiculo)
-
-  const handleEdit = () => { setForm(data.vehiculo || emptyVehiculo); setEditing(true) }
-  const handleCancel = () => setEditing(false)
-  const handleSave = () => { update('vehiculo', form); setEditing(false) }
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  const v = data.vehiculo || emptyVehiculo
-
+// Tarjeta de un vehiculo en la grilla de flota
+function VehiculoCard({ v, onEdit, onArchive, editable }) {
+  const chips = [['VTV', v.vtv], ['Seguro', v.seguro], ['Habil.', v.habilitacion]]
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(61,143,209,0.2)' }}>
-            <Truck size={20} style={{ color: '#3D8FD1' }} />
+    <div className="surface db-in db-d2" style={{ padding: 18, borderRadius: 'var(--radius)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Truck size={16} style={{ color: ACCENT }} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {v.alias || v.patente || 'Sin nombre'}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF', fontFamily: "'Inter', sans-serif" }}>Vehículo</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Ficha técnica y documentación</p>
+          <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+            {[v.marca, v.modelo, v.anio].filter(Boolean).join(' ') || '—'}
           </div>
         </div>
-        {!editing ? (
-          <button
-            onClick={handleEdit}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
-          >
-            <Edit2 size={16} /> Editar
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', borderRadius: 'var(--radius)' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '' }}
-            >
-              <X size={16} /> Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'rgba(61,143,209,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 15px rgba(61,143,209,0.3)', borderRadius: '10px' }}
-            >
-              <Save size={16} /> Guardar
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Vencimientos */}
-      {!editing && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          <ExpiryBadge label="VTV" date={v.vtv} />
-          <ExpiryBadge label="Seguro" date={v.seguro} />
-          <ExpiryBadge label="Habilitación Municipal" date={v.habilitacion} />
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {chips.map(([lbl, date]) => {
+          const st = vencStatus(date)
+          return (
+            <span key={lbl} style={{
+              fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 9999,
+              background: st ? `${st.color}1A` : 'var(--bg-elevated)',
+              color: st ? st.color : 'var(--text-3)',
+              border: `1px solid ${st ? st.color + '33' : 'var(--border)'}`
+            }}>
+              {lbl}{st ? '' : ' —'}
+            </span>
+          )
+        })}
+      </div>
+
+      <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+        Patente: <span style={{ color: 'var(--text-1)', fontWeight: 500 }}>{v.patente || '—'}</span>
+        {v.kilometraje ? <> · {Number(v.kilometraje).toLocaleString('es-AR')} km</> : null}
+      </div>
+
+      {editable && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
+          <button
+            onClick={() => onEdit(v)}
+            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--radius)', border: `1px solid ${ACCENT}33`, color: ACCENT, background: `${ACCENT}14`, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <Edit2 size={13} /> Editar
+          </button>
+          <button
+            onClick={() => onArchive(v)}
+            title="Archivar"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 11px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', cursor: 'pointer' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#F87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.3)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <Archive size={13} />
+          </button>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* Data card */}
-      <div className="p-6 glass">
-        {!editing ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5">
-            {[
-              ['Marca', v.marca], ['Modelo', v.modelo], ['Año', v.anio],
-              ['Patente', v.patente], ['N° Motor', v.motor], ['N° Chasis', v.chasis],
-              ['Kilometraje', v.kilometraje ? `${Number(v.kilometraje).toLocaleString('es-AR')} km` : '—'],
-              ['Combustible', v.combustible], ['Capacidad', v.capacidad],
-              ['Aseguradora', v.aseguradora], ['N° Póliza', v.poliza],
-            ].map(([lbl, val]) => (
-              <div key={lbl}>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#94A3B8' }}>{lbl}</div>
-                <div className="font-medium text-sm" style={{ color: val ? '#f1f5f9' : '#52525b' }}>{val || '—'}</div>
-              </div>
-            ))}
-            {v.observaciones && (
-              <div className="col-span-full pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#94a3b8' }}>Observaciones</div>
-                <div className="text-sm" style={{ color: '#94a3b8' }}>{v.observaciones}</div>
-              </div>
-            )}
+export default function Vehiculo() {
+  const { data, update } = useStore()
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('vehiculo')
+  const flota = (data.vehiculos || []).filter(x => x.activo !== false)
+
+  const [editingId, setEditingId] = useState(null)   // null | 'new' | id
+  const [form, setForm] = useState(emptyVehiculo)
+
+  const set = (k, val) => setForm(f => ({ ...f, [k]: val }))
+
+  const handleNew    = () => { setForm({ ...emptyVehiculo, id: crypto.randomUUID() }); setEditingId('new') }
+  const handleEdit   = (v) => { setForm({ ...emptyVehiculo, ...v }); setEditingId(v.id) }
+  const handleCancel = () => setEditingId(null)
+
+  const handleSave = () => {
+    const all = data.vehiculos || []
+    const next = editingId === 'new'
+      ? [...all, { ...form, activo: true }]
+      : all.map(x => x.id === editingId ? { ...form } : x)
+    update('vehiculos', next)
+    setEditingId(null)
+  }
+
+  const handleArchive = (v) => {
+    if (!window.confirm(`¿Archivar ${v.alias || v.patente || 'este vehículo'}? El historial no se borra.`)) return
+    const next = (data.vehiculos || []).map(x => x.id === v.id ? { ...x, activo: false } : x)
+    update('vehiculos', next)
+  }
+
+  // ── Modo formulario (alta o edicion) ──
+  if (editingId) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Truck size={18} style={{ color: ACCENT }} />
+            </div>
+            <div>
+              <h1 className="mod-h1">{editingId === 'new' ? 'Nuevo vehículo' : 'Editar vehículo'}</h1>
+              <p className="mod-sub">Ficha técnica y documentación</p>
+            </div>
           </div>
-        ) : (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleCancel}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+            >
+              <X size={14} /> Cancelar
+            </button>
+            <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleSave}>
+              <Save size={15} /> Guardar
+            </button>
+          </div>
+        </div>
+
+        <div className="surface db-in db-d4" style={{ padding: 24 }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Marca" required><Input value={form.marca} onChange={e => set('marca', e.target.value)} placeholder="Ej: Mercedes-Benz" /></Field>
-            <Field label="Modelo" required><Input value={form.modelo} onChange={e => set('modelo', e.target.value)} placeholder="Ej: Sprinter 515" /></Field>
+            <div className="sm:col-span-2">
+              <Field label="Nombre / Alias (para identificarlo en las listas)" required>
+                <Input value={form.alias} onChange={e => set('alias', e.target.value)} placeholder="Ej: Camión 1, Master Blanca…" />
+              </Field>
+            </div>
+            <Field label="Marca"   required><Input value={form.marca}   onChange={e => set('marca', e.target.value)}   placeholder="Ej: Mercedes-Benz" /></Field>
+            <Field label="Modelo"  required><Input value={form.modelo}  onChange={e => set('modelo', e.target.value)}  placeholder="Ej: Sprinter 515" /></Field>
             <Field label="Año"><Input type="number" value={form.anio} onChange={e => set('anio', e.target.value)} placeholder="Ej: 2018" /></Field>
             <Field label="Patente / Dominio" required><Input value={form.patente} onChange={e => set('patente', e.target.value)} placeholder="Ej: AB 123 CD" /></Field>
-            <Field label="N° Motor"><Input value={form.motor} onChange={e => set('motor', e.target.value)} /></Field>
+            <Field label="N° Motor"><Input value={form.motor}  onChange={e => set('motor', e.target.value)} /></Field>
             <Field label="N° Chasis"><Input value={form.chasis} onChange={e => set('chasis', e.target.value)} /></Field>
             <Field label="Kilometraje actual"><Input type="number" value={form.kilometraje} onChange={e => set('kilometraje', e.target.value)} placeholder="Ej: 145000" /></Field>
             <Field label="Tipo de combustible">
@@ -160,8 +194,48 @@ export default function Vehiculo() {
               <Field label="Observaciones"><Textarea value={form.observaciones} onChange={e => set('observaciones', e.target.value)} /></Field>
             </div>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Modo lista (flota) ──
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Truck size={18} style={{ color: ACCENT }} />
+          </div>
+          <div>
+            <h1 className="mod-h1">Flota</h1>
+            <p className="mod-sub">{flota.length} {flota.length === 1 ? 'vehículo' : 'vehículos'}</p>
+          </div>
+        </div>
+        {editable && (
+          <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleNew}>
+            <Plus size={15} /> Agregar vehículo
+          </button>
         )}
       </div>
+
+      {flota.length === 0 ? (
+        <div className="surface db-in db-d4" style={{ padding: 48, textAlign: 'center', borderRadius: 'var(--radius)' }}>
+          <Truck size={32} style={{ color: 'var(--text-3)', margin: '0 auto 12px' }} />
+          <p style={{ color: 'var(--text-2)', fontSize: 14, marginBottom: 16 }}>Todavía no cargaste ningún vehículo.</p>
+          {editable && (
+            <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleNew}>
+              <Plus size={15} /> Agregar el primero
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {flota.map(v => (
+            <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onArchive={handleArchive} editable={editable} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

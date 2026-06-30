@@ -5,6 +5,7 @@ import { toISO, fechaMes } from '../utils/fecha'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Fuel, Plus, Trash2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -34,6 +35,7 @@ class ErrorBoundary extends React.Component {
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), litros: '', importe: '', km: '', proveedor: '', tipo: 'Gasoil',
+  vehiculo_id: '',
 })
 
 function consumoColor(c) {
@@ -66,6 +68,9 @@ function Combustible() {
   const [modal, setModal]   = useState(false)
   const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
+
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('combustible')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -155,13 +160,15 @@ function Combustible() {
             <p className="mod-sub">Historial de cargas y análisis de consumo</p>
           </div>
         </div>
-        <button
-          className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-          onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-        >
-          <Plus size={15} /> Nueva carga
-        </button>
+        {editable && (
+          <button
+            className="glass-btn-primary"
+            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
+            onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+          >
+            <Plus size={15} /> Nueva carga
+          </button>
+        )}
       </div>
 
       {/* ── Stats ── */}
@@ -261,15 +268,17 @@ function Combustible() {
                         ) : <span style={{ color: 'var(--text-3)' }}>—</span>}
                       </td>
                       <td className="py-3 px-3">
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="p-1.5 rounded-lg"
-                          style={{ color: '#F87171' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {editable && (
+                          <button
+                            onClick={() => handleDelete(r.id)}
+                            className="p-1.5 rounded-lg"
+                            style={{ color: '#F87171' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )
@@ -284,6 +293,14 @@ function Combustible() {
       {modal && (
         <Modal title="Nueva carga de combustible" onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
+            <Field label="Vehículo">
+              <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
+                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                ))}
+              </Select>
+            </Field>
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
               {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}

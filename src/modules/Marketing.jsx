@@ -7,6 +7,7 @@ import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Megaphone, Plus, Trash2, Edit2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const ACCENT = '#F472B6'
 
@@ -34,6 +35,9 @@ export default function Marketing() {
   const [form, setForm]     = useState(empty())
   const [editId, setEditId] = useState(null)
   const [errors, setErrors] = useState({})
+
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('marketing')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -88,7 +92,7 @@ export default function Marketing() {
       }
     },
     {
-      key: 'acciones', label: '', render: r => (
+      key: 'acciones', label: '', render: r => editable ? (
         <div className="flex gap-1">
           <button
             onClick={() => openEdit(r)}
@@ -109,7 +113,7 @@ export default function Marketing() {
             <Trash2 size={14} />
           </button>
         </div>
-      )
+      ) : null
     }
   ]
 
@@ -127,13 +131,15 @@ export default function Marketing() {
             <p className="mod-sub">Campañas y acciones comerciales</p>
           </div>
         </div>
-        <button
-          className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-          onClick={openNew}
-        >
-          <Plus size={15} /> Nueva campaña
-        </button>
+        {editable && (
+          <button
+            className="glass-btn-primary"
+            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
+            onClick={openNew}
+          >
+            <Plus size={15} /> Nueva campaña
+          </button>
+        )}
       </div>
 
       {/* ── Stats ── */}

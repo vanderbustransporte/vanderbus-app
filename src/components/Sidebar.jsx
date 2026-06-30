@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { LayoutDashboard, Truck, Fuel, Wrench, DollarSign, TrendingUp, Megaphone, Menu, X, MapPin, Navigation, Target } from 'lucide-react'
+import { LayoutDashboard, Truck, Fuel, Wrench, DollarSign, TrendingUp, Megaphone, Menu, X, MapPin, Navigation, LogOut, Users } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const navItems = [
   { id: 'dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
@@ -11,11 +12,12 @@ const navItems = [
   { id: 'viajes',        label: 'Viajes',          icon: MapPin          },
   { id: 'marketing',     label: 'Marketing',       icon: Megaphone       },
   { id: 'seguimiento',   label: 'GPS',             icon: Navigation      },
-  { id: 'oportunidades', label: 'Oportunidades',   icon: Target          },
+  { id: 'usuarios',      label: 'Usuarios',         icon: Users           },
 ]
 
 export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { puedeVer, esOwner, signOut } = useAuth()
 
   return (
     <>
@@ -46,7 +48,7 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-0.5 flex-1 overflow-x-auto ml-2">
-            {navItems.map(({ id, label, icon: Icon }) => {
+            {navItems.filter(it => puedeVer(it.id) && (it.id !== 'usuarios' || esOwner)).map(({ id, label, icon: Icon }) => {
               const isActive = active === id
               return (
                 <button
@@ -91,6 +93,18 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
           <div className="ml-auto flex items-center gap-2 flex-shrink-0">
             {rightContent}
 
+            {/* Cerrar sesión */}
+            <button
+              title="Cerrar sesión"
+              onClick={signOut}
+              className="p-1.5 rounded-md"
+              style={{ color: 'var(--text-2)', WebkitAppRegion: 'no-drag' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+            >
+              <LogOut size={14} />
+            </button>
+
             {/* Electron window controls */}
             <div className="flex items-center gap-1.5 ml-1">
               <button
@@ -125,7 +139,7 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
             className="md:hidden border-t py-1"
             style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
           >
-            {navItems.map(({ id, label, icon: Icon }) => {
+            {navItems.filter(it => puedeVer(it.id) && (it.id !== 'usuarios' || esOwner)).map(({ id, label, icon: Icon }) => {
               const isActive = active === id
               return (
                 <button
