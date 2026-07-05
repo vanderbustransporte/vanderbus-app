@@ -373,6 +373,14 @@ button:active { transform: scale(0.97); }
   .glass-btn-primary { transition: none; }
 }
 
+/* ── App shell layout ──────────────────────────────────── */
+.app-topbar { left: 0; }
+.app-main   { margin-left: 0; }
+@media (min-width: 768px) {
+  .app-topbar { left: var(--sb-w, 240px); }
+  .app-main   { margin-left: var(--sb-w, 240px); }
+}
+
 /* ── Leaflet — light default ───────────────────────────── */
 .leaflet-popup-content-wrapper {
   background: #ffffff;

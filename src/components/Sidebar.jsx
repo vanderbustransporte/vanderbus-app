@@ -1,165 +1,172 @@
-import React, { useState } from 'react'
-import { LayoutDashboard, Truck, Fuel, Wrench, DollarSign, TrendingUp, Megaphone, Menu, X, MapPin, Navigation, LogOut, Users } from 'lucide-react'
+import React from 'react'
+import {
+  LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
+  TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const navItems = [
-  { id: 'dashboard',     label: 'Dashboard',      icon: LayoutDashboard },
-  { id: 'vehiculo',      label: 'Vehículo',        icon: Truck           },
-  { id: 'combustible',   label: 'Combustible',     icon: Fuel            },
-  { id: 'mantenimiento', label: 'Mantenimiento',   icon: Wrench          },
-  { id: 'nomina',        label: 'Nómina',          icon: DollarSign      },
-  { id: 'finanzas',      label: 'Finanzas',        icon: TrendingUp      },
-  { id: 'viajes',        label: 'Viajes',          icon: MapPin          },
-  { id: 'marketing',     label: 'Marketing',       icon: Megaphone       },
-  { id: 'seguimiento',   label: 'GPS',             icon: Navigation      },
-  { id: 'usuarios',      label: 'Usuarios',         icon: Users           },
+const GROUPS = [
+  {
+    label: 'Operación',
+    items: [
+      { id: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
+      { id: 'viajes',        label: 'Viajes',        icon: MapPin },
+      { id: 'vehiculo',      label: 'Flota',         icon: Truck },
+      { id: 'combustible',   label: 'Combustible',   icon: Fuel },
+      { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench },
+      { id: 'seguimiento',   label: 'GPS',           icon: Navigation },
+    ],
+  },
+  {
+    label: 'Administración',
+    items: [
+      { id: 'finanzas',  label: 'Finanzas',  icon: TrendingUp },
+      { id: 'nomina',    label: 'Nómina',    icon: DollarSign },
+      { id: 'contactos', label: 'Contactos', icon: Contact },
+    ],
+  },
+  {
+    label: 'Crecimiento',
+    items: [
+      { id: 'marketing', label: 'Marketing', icon: Megaphone },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { id: 'usuarios', label: 'Usuarios', icon: Users,    ownerOnly: true },
+      { id: 'backup',   label: 'Backup',   icon: Database, ownerOnly: true },
+    ],
+  },
 ]
 
-export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { puedeVer, esOwner, signOut } = useAuth()
+export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
+  const { puedeVer, esOwner } = useAuth()
+  const width = collapsed ? 64 : 240
+
+  const visible = (it) => (it.ownerOnly ? esOwner : puedeVer(it.id))
+  const handleNav = (id) => { onNav(id); onCloseMobile?.() }
 
   return (
     <>
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={onCloseMobile} />
       )}
 
-      <header
-        className="fixed top-0 left-0 right-0 z-40 h-12"
-        style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}
+      <aside
+        className={`fixed top-0 left-0 h-full z-50 md:z-40 flex flex-col md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{
+          width,
+          background: 'var(--sb-bg)',
+          borderRight: '1px solid var(--sb-border)',
+          transition: 'width 180ms ease, transform 220ms cubic-bezier(0.23,1,0.32,1)',
+        }}
       >
-        <div className="flex items-center px-4 h-full gap-3">
-          {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Logo / header */}
+        <div
+          className="flex items-center h-14 px-3 shrink-0"
+          style={{ borderBottom: '1px solid var(--sb-border)' }}
+        >
+          <button
+            onClick={collapsed ? onToggleCollapse : undefined}
+            className="flex items-center gap-2 overflow-hidden"
+            style={{ background: 'none', border: 'none', padding: 0, cursor: collapsed ? 'pointer' : 'default' }}
+            title={collapsed ? 'Expandir menú' : undefined}
+          >
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--accent-dim)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(255,255,255,0.12)' }}
             >
-              <Truck size={14} style={{ color: 'var(--accent)' }} />
+              <Truck size={16} style={{ color: 'var(--sb-logo)' }} />
             </div>
-            <span
-              className="font-bold text-sm hidden sm:block"
-              style={{ color: 'var(--text-1)', letterSpacing: '-0.01em' }}
-            >
-              Vanderbus
-            </span>
-          </div>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-0.5 flex-1 overflow-x-auto ml-2">
-            {navItems.filter(it => puedeVer(it.id) && (it.id !== 'usuarios' || esOwner)).map(({ id, label, icon: Icon }) => {
-              const isActive = active === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => onNav(id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap flex-shrink-0"
-                  style={{
-                    background: isActive ? 'var(--accent-dim)' : 'transparent',
-                    color: isActive ? 'var(--accent)' : 'var(--text-2)',
-                    border: isActive ? '1px solid var(--accent-dim)' : '1px solid transparent',
-                    transition: 'background 150ms ease-out, color 150ms ease-out',
-                  }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-2)' } }}
-                >
-                  <Icon size={13} />
-                  {label}
-                  {badgeCounts[id] > 0 && (
-                    <span style={{
-                      background: 'var(--accent)',
-                      color: 'var(--badge-text)',
-                      borderRadius: 9999,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: '0 5px',
-                      lineHeight: '16px',
-                      minWidth: 16,
-                      textAlign: 'center',
-                      display: 'inline-block',
-                      marginLeft: 2,
-                    }}>
-                      {badgeCounts[id]}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </nav>
-
-          {/* Right slot */}
-          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-            {rightContent}
-
-            {/* Cerrar sesión */}
+            {!collapsed && (
+              <span className="font-bold text-sm truncate" style={{ color: 'var(--sb-logo)', letterSpacing: '-0.01em' }}>
+                Vanderbus
+              </span>
+            )}
+          </button>
+          {!collapsed && (
             <button
-              title="Cerrar sesión"
-              onClick={signOut}
-              className="p-1.5 rounded-md"
-              style={{ color: 'var(--text-2)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+              onClick={onToggleCollapse}
+              className="ml-auto hidden md:flex items-center justify-center w-7 h-7 rounded-md shrink-0"
+              style={{ color: 'var(--sb-text)' }}
+              title="Colapsar menú"
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text-active)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--sb-text)' }}
             >
-              <LogOut size={14} />
+              <ChevronLeft size={16} />
             </button>
-
-            <button
-              onClick={() => setMobileOpen(o => !o)}
-              className="md:hidden p-1.5 rounded-md"
-              style={{ color: 'var(--text-2)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '' }}
-            >
-              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Mobile dropdown */}
-        {mobileOpen && (
-          <nav
-            className="md:hidden border-t py-1"
-            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-3">
+          {GROUPS.map(group => {
+            const items = group.items.filter(visible)
+            if (!items.length) return null
+            return (
+              <div key={group.label} className="mb-4">
+                {collapsed ? (
+                  <div className="mx-3 mb-2" style={{ height: 1, background: 'var(--sb-border)' }} />
+                ) : (
+                  <div
+                    className="px-4 mb-1.5"
+                    style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--sb-label)' }}
+                  >
+                    {group.label}
+                  </div>
+                )}
+                <div className="px-2 flex flex-col gap-0.5">
+                  {items.map(({ id, label, icon: Icon }) => {
+                    const isActive = active === id
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => handleNav(id)}
+                        title={collapsed ? label : undefined}
+                        className="relative flex items-center rounded-md"
+                        style={{
+                          gap: 10,
+                          padding: collapsed ? '9px 0' : '8px 10px',
+                          justifyContent: collapsed ? 'center' : 'flex-start',
+                          background: isActive ? 'var(--sb-active-bg)' : 'transparent',
+                          color: isActive ? 'var(--sb-text-active)' : 'var(--sb-text)',
+                          fontSize: 13,
+                          fontWeight: isActive ? 600 : 500,
+                          transition: 'background 140ms ease, color 140ms ease',
+                        }}
+                        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text-active)' } }}
+                        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sb-text)' } }}
+                      >
+                        {isActive && (
+                          <span style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, borderRadius: '0 3px 3px 0', background: 'var(--sb-bar)' }} />
+                        )}
+                        <Icon size={17} style={{ flexShrink: 0 }} />
+                        {!collapsed && <span className="truncate">{label}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </nav>
+
+        {/* Expand hint when collapsed */}
+        {collapsed && (
+          <button
+            onClick={onToggleCollapse}
+            className="hidden md:flex items-center justify-center h-10 shrink-0"
+            style={{ color: 'var(--sb-text)', borderTop: '1px solid var(--sb-border)' }}
+            title="Expandir menú"
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text-active)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--sb-text)' }}
           >
-            {navItems.filter(it => puedeVer(it.id) && (it.id !== 'usuarios' || esOwner)).map(({ id, label, icon: Icon }) => {
-              const isActive = active === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => { onNav(id); setMobileOpen(false) }}
-                  className="w-full flex items-center gap-3 px-5 py-2.5 text-sm font-medium"
-                  style={{
-                    background: isActive ? 'var(--accent-dim)' : 'transparent',
-                    color: isActive ? 'var(--accent)' : 'var(--text-2)',
-                    borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
-                  }}
-                >
-                  <Icon size={16} />
-                  {label}
-                  {badgeCounts[id] > 0 && (
-                    <span style={{
-                      background: 'var(--accent)',
-                      color: 'var(--badge-text)',
-                      borderRadius: 9999,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: '0 5px',
-                      lineHeight: '16px',
-                      minWidth: 16,
-                      textAlign: 'center',
-                      display: 'inline-block',
-                      marginLeft: 'auto',
-                    }}>
-                      {badgeCounts[id]}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </nav>
+            <ChevronRight size={16} />
+          </button>
         )}
-      </header>
+      </aside>
     </>
   )
 }
