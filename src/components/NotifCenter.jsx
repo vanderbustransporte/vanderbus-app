@@ -170,7 +170,6 @@ export default function NotifCenter({ unreadCount, onNav }) {
           color: 'var(--text-2)', background: 'none', border: '1px solid transparent',
           cursor: 'pointer', padding: '4px 6px', borderRadius: 6,
           transition: 'color 120ms ease-out, background 120ms ease-out',
-          WebkitAppRegion: 'no-drag',
         }}
         onMouseEnter={e => {
           e.currentTarget.style.color = 'var(--text-1)'

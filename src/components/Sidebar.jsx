@@ -56,7 +56,6 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
                   onClick={() => onNav(id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap flex-shrink-0"
                   style={{
-                    WebkitAppRegion: 'no-drag',
                     background: isActive ? 'var(--accent-dim)' : 'transparent',
                     color: isActive ? 'var(--accent)' : 'var(--text-2)',
                     border: isActive ? '1px solid var(--accent-dim)' : '1px solid transparent',
@@ -98,33 +97,17 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
               title="Cerrar sesión"
               onClick={signOut}
               className="p-1.5 rounded-md"
-              style={{ color: 'var(--text-2)', WebkitAppRegion: 'no-drag' }}
+              style={{ color: 'var(--text-2)' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' }}
               onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
             >
               <LogOut size={14} />
             </button>
 
-            {/* Electron window controls */}
-            <div className="flex items-center gap-1.5 ml-1">
-              <button
-                title="Minimizar"
-                onClick={() => window.electronAPI?.minimizeApp()}
-                className="w-3 h-3 rounded-full hover:opacity-75 transition-opacity flex-shrink-0"
-                style={{ background: '#F59E0B', WebkitAppRegion: 'no-drag' }}
-              />
-              <button
-                title="Cerrar"
-                onClick={() => window.electronAPI?.closeApp()}
-                className="w-3 h-3 rounded-full hover:opacity-75 transition-opacity flex-shrink-0"
-                style={{ background: '#EF4444', WebkitAppRegion: 'no-drag' }}
-              />
-            </div>
-
             <button
               onClick={() => setMobileOpen(o => !o)}
               className="md:hidden p-1.5 rounded-md"
-              style={{ color: 'var(--text-2)', WebkitAppRegion: 'no-drag' }}
+              style={{ color: 'var(--text-2)' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
               onMouseLeave={e => { e.currentTarget.style.background = '' }}
             >
@@ -147,7 +130,6 @@ export default function TopNav({ active, onNav, rightContent, badgeCounts = {} }
                   onClick={() => { onNav(id); setMobileOpen(false) }}
                   className="w-full flex items-center gap-3 px-5 py-2.5 text-sm font-medium"
                   style={{
-                    WebkitAppRegion: 'no-drag',
                     background: isActive ? 'var(--accent-dim)' : 'transparent',
                     color: isActive ? 'var(--accent)' : 'var(--text-2)',
                     borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,

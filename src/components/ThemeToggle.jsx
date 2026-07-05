@@ -16,7 +16,6 @@ export default function ThemeToggle() {
         background: 'none', border: '1px solid transparent',
         cursor: 'pointer', color: 'var(--text-2)',
         transition: 'color 120ms ease-out, background 120ms ease-out',
-        WebkitAppRegion: 'no-drag',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.background = 'var(--hover-tint-md)'
