@@ -12,7 +12,7 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
   return (
     <div>
       <div className="overflow-x-auto" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
           <thead>
             <tr style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
               {columns.map(c => (
