@@ -5,8 +5,8 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveCo
 import { TrendingUp, TrendingDown, Fuel, Wrench, DollarSign, Truck, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
 import { useChartTheme } from '../utils/chartTheme'
 
-const CHART_COLORS = ['#22D3EE', '#34D399', '#A78BFA', '#F87171', '#FBBF24', '#60A5FA']
-const MONO = "'Geist', system-ui, sans-serif"
+const numStyle = { fontVariantNumeric: 'tabular-nums' }
+const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 function TrendBadge({ actual, anterior }) {
   if (!anterior) return null
@@ -17,47 +17,48 @@ function TrendBadge({ actual, anterior }) {
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '4px 11px', borderRadius: 999,
       fontSize: 12, fontWeight: 700, marginTop: 12,
-      fontFamily: MONO, letterSpacing: '-0.01em',
+      letterSpacing: '-0.01em', ...numStyle,
       background: up ? 'var(--positive-dim)' : 'var(--danger-dim)',
       color: up ? 'var(--positive)' : 'var(--danger)',
-      border: `1px solid ${up ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)'}`,
+      border: `1px solid ${up ? 'var(--positive-dim)' : 'var(--danger-dim)'}`,
     }}>
       {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
     </span>
   )
 }
 
-function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }) {
+function StatCard({ icon: Icon, label, value, sub, delay = 0 }) {
   return (
     <div
       className={`surface surface-hover db-in db-d${delay}`}
-      style={{ position: 'relative', overflow: 'hidden', padding: '22px 22px 20px 26px' }}
+      style={{ padding: '20px 22px' }}
     >
-      <div style={{ position: 'absolute', top: 14, bottom: 14, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: color, opacity: 0.7 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <Icon size={15} style={{ color }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <span style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon size={16} style={{ color: 'var(--accent)' }} />
+        </span>
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
           {label}
         </span>
       </div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-1)', fontFamily: MONO, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', ...numStyle, ...ellipsis }}>
         {value}
       </div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 5 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
 
-function QuickBtn({ icon: Icon, label, color, onClick }) {
+function QuickBtn({ icon: Icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
       className="flex items-center gap-2 text-sm font-semibold"
-      style={{ padding: '11px 20px', borderRadius: 'var(--radius)', background: `${color}18`, border: '1px solid rgba(255,255,255,0.07)', color: 'var(--text-1)', cursor: 'pointer' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+      style={{ padding: '11px 18px', borderRadius: 'var(--radius)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', transition: 'border-color 150ms, background 150ms' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)'; e.currentTarget.style.background = 'var(--hover-tint)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-overlay)' }}
     >
-      <Icon size={15} style={{ color }} />
+      <Icon size={15} style={{ color: 'var(--accent)' }} />
       <span>{label}</span>
     </button>
   )
@@ -150,7 +151,7 @@ export default function Dashboard({ onNav }) {
         <h1 className="mod-h1" style={{ fontSize: 36 }}>
           Panel de control
         </h1>
-        <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, letterSpacing: '0.03em', ...numStyle }}>
           {fechaLarga}
         </p>
       </div>
@@ -161,12 +162,12 @@ export default function Dashboard({ onNav }) {
 
           <div style={{ padding: '26px 30px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <ArrowUpCircle size={16} style={{ color: '#34D399' }} />
+              <ArrowUpCircle size={16} style={{ color: 'var(--positive)' }} />
               <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
                 Ingresos del mes
               </span>
             </div>
-            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--positive)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--positive)', ...numStyle, letterSpacing: '-0.02em' }}>
               {formatARS(totalIngresosMes)}
             </div>
             <TrendBadge actual={totalIngresosMes} anterior={totalIngresosMesPasado} />
@@ -174,12 +175,12 @@ export default function Dashboard({ onNav }) {
 
           <div className="border-t sm:border-t-0 sm:border-l" style={{ padding: '26px 30px', borderColor: 'var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <ArrowDownCircle size={16} style={{ color: '#F87171' }} />
+              <ArrowDownCircle size={16} style={{ color: 'var(--danger)' }} />
               <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
                 Gastos del mes
               </span>
             </div>
-            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--danger)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 'clamp(26px, 3vw, 38px)', fontWeight: 700, lineHeight: 1, color: 'var(--danger)', ...numStyle, letterSpacing: '-0.02em' }}>
               {formatARS(totalGastosMes)}
             </div>
             <TrendBadge actual={totalGastosMes} anterior={totalGastosMesPasado} />
@@ -188,13 +189,13 @@ export default function Dashboard({ onNav }) {
           <div className="border-t sm:border-t-0 sm:border-l" style={{ padding: '26px 30px', borderColor: 'var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               {balance >= 0
-                ? <TrendingUp size={16} style={{ color: '#34D399' }} />
-                : <TrendingDown size={16} style={{ color: '#F87171' }} />}
+                ? <TrendingUp size={16} style={{ color: 'var(--positive)' }} />
+                : <TrendingDown size={16} style={{ color: 'var(--danger)' }} />}
               <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-2)' }}>
                 Balance neto
               </span>
             </div>
-            <div style={{ fontSize: 'clamp(30px, 3.6vw, 44px)', fontWeight: 800, lineHeight: 1, color: balance >= 0 ? 'var(--positive)' : 'var(--danger)', fontFamily: MONO, letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 'clamp(30px, 3.6vw, 44px)', fontWeight: 800, lineHeight: 1, color: balance >= 0 ? 'var(--positive)' : 'var(--danger)', ...numStyle, letterSpacing: '-0.02em' }}>
               {formatARS(balance)}
             </div>
             <TrendBadge actual={balance} anterior={balancePasado} />
@@ -213,18 +214,18 @@ export default function Dashboard({ onNav }) {
               <BarChart data={barData} barCategoryGap="32%" barGap={3}>
                 <XAxis
                   dataKey="mes"
-                  tick={{ fill: ct.tickColor, fontSize: 12, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 12, ...numStyle }}
                   axisLine={false} tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }}
+                  tick={{ fill: ct.tickColor, fontSize: 11, ...numStyle }}
                   axisLine={false} tickLine={false}
                   tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip {...ct.tooltip} cursor={{ fill: ct.cursorFill }} />
                 <Legend wrapperStyle={{ color: ct.tickColor, fontSize: 12, fontWeight: 600 }} />
-                <Bar dataKey="Ingresos" fill="#34D399" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Gastos"   fill="#F87171" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Ingresos" fill={ct.positive} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Gastos"   fill={ct.danger}   radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -238,7 +239,7 @@ export default function Dashboard({ onNav }) {
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
-                  {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  {pieData.map((_, i) => <Cell key={i} fill={ct.categorical[i % ct.categorical.length]} />)}
                 </Pie>
                 <Tooltip
                   formatter={v => formatARS(v)}
@@ -256,24 +257,24 @@ export default function Dashboard({ onNav }) {
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: 20 }}>
         <StatCard
-          icon={TrendingUp} label="Último servicio" color="#34D399" delay={5}
+          icon={TrendingUp} label="Último servicio" delay={5}
           value={ultimoServicio ? formatARS(ultimoServicio.importe) : 'Sin registros'}
           sub={ultimoServicio ? formatDate(ultimoServicio.fecha) : ''}
         />
         <StatCard
-          icon={Wrench} label="Último mantenimiento" color="#FBBF24" delay={6}
+          icon={Wrench} label="Último mantenimiento" delay={6}
           value={ultimoMant
             ? (ultimoMant.descripcion?.length > 20 ? ultimoMant.descripcion.slice(0, 20) + '…' : ultimoMant.descripcion)
             : 'Sin registros'}
           sub={ultimoMant ? formatDate(ultimoMant.fecha) : ''}
         />
         <StatCard
-          icon={DollarSign} label="Último pago nómina" color="#A78BFA" delay={7}
+          icon={DollarSign} label="Último pago nómina" delay={7}
           value={ultimoNomina ? formatARS(ultimoNomina.importe) : 'Sin registros'}
           sub={ultimoNomina ? ultimoNomina.empleado : ''}
         />
         <StatCard
-          icon={Truck} label="KM del vehículo" color="#22D3EE" delay={8}
+          icon={Truck} label="KM del vehículo" delay={8}
           value={vehiculo.kilometraje ? `${Number(vehiculo.kilometraje).toLocaleString('es-AR')} km` : 'Sin datos'}
           sub={vehiculo.patente || ''}
         />
@@ -283,10 +284,10 @@ export default function Dashboard({ onNav }) {
       <div className="surface db-in db-d8" style={{ padding: '24px 28px' }}>
         <p className="db-slabel">Acceso rápido</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <QuickBtn icon={ArrowUpCircle}   label="Nuevo ingreso"  color="#34D399" onClick={() => onNav('finanzas')}      />
-          <QuickBtn icon={ArrowDownCircle} label="Nuevo gasto"    color="#F87171" onClick={() => onNav('finanzas')}      />
-          <QuickBtn icon={Fuel}            label="Nueva carga"    color="#22D3EE" onClick={() => onNav('combustible')}   />
-          <QuickBtn icon={Wrench}          label="Mantenimiento"  color="#FBBF24" onClick={() => onNav('mantenimiento')} />
+          <QuickBtn icon={ArrowUpCircle}   label="Nuevo ingreso"  onClick={() => onNav('finanzas')}      />
+          <QuickBtn icon={ArrowDownCircle} label="Nuevo gasto"    onClick={() => onNav('finanzas')}      />
+          <QuickBtn icon={Fuel}            label="Nueva carga"    onClick={() => onNav('combustible')}   />
+          <QuickBtn icon={Wrench}          label="Mantenimiento"  onClick={() => onNav('mantenimiento')} />
         </div>
       </div>
     </div>
