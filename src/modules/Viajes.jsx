@@ -9,17 +9,17 @@ import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../compon
 import { MapPin, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const ACCENT = '#34D399'
-
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
 
 const ESTADO_STYLES = {
-  Pendiente:  { bg: 'rgba(251,191,36,0.12)',   color: '#FBBF24' },
-  Confirmado: { bg: 'rgba(56,189,248,0.12)',   color: '#38BDF8' },
-  Realizado:  { bg: 'rgba(52,211,153,0.12)',   color: '#34D399' },
-  Cancelado:  { bg: 'rgba(248,113,113,0.12)',  color: '#F87171' },
+  Pendiente:  { bg: 'var(--warning-dim)',  color: 'var(--warning)'  },
+  Confirmado: { bg: 'var(--accent-dim)',   color: 'var(--accent)'   },
+  Realizado:  { bg: 'var(--positive-dim)', color: 'var(--positive)' },
+  Cancelado:  { bg: 'var(--danger-dim)',   color: 'var(--danger)'   },
 }
+
+const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), cliente: '', tipo: 'Excursión',
@@ -28,7 +28,7 @@ const empty = () => ({
 })
 
 function EstadoBadge({ estado, id, onChange }) {
-  const s = ESTADO_STYLES[estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
+  const s = ESTADO_STYLES[estado] || ESTADO_FALLBACK
   return (
     <select
       value={estado}
@@ -138,18 +138,18 @@ export default function Viajes() {
     { key: 'origen',  label: 'Origen' },
     { key: 'destino', label: 'Destino' },
     { key: 'monto_sena',  label: 'Seña',  render: r => r.monto_sena  ? <span className="num">{formatARS(r.monto_sena)}</span>  : <span style={{ color: 'var(--text-3)' }}>—</span> },
-    { key: 'monto_total', label: 'Total', render: r => r.monto_total ? <span className="num font-semibold" style={{ color: ACCENT }}>{formatARS(r.monto_total)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
+    { key: 'monto_total', label: 'Total', render: r => r.monto_total ? <span className="num font-semibold" style={{ color: 'var(--accent)' }}>{formatARS(r.monto_total)}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
     { key: 'estado', label: 'Estado', render: r => editable
         ? <EstadoBadge estado={r.estado} id={r.id} onChange={handleEstado} />
-        : <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: ESTADO_STYLES[r.estado]?.bg || 'rgba(255,255,255,0.08)', color: ESTADO_STYLES[r.estado]?.color || '#94a3b8' }}>{r.estado}</span>
+        : <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: (ESTADO_STYLES[r.estado] || ESTADO_FALLBACK).bg, color: (ESTADO_STYLES[r.estado] || ESTADO_FALLBACK).color }}>{r.estado}</span>
     },
     {
       key: 'acciones', label: '', render: r => editable ? (
         <button
           onClick={() => handleDelete(r.id)}
           className="p-1.5 rounded-lg"
-          style={{ color: '#F87171' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.10)' }}
+          style={{ color: 'var(--danger)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '' }}
         >
           <Trash2 size={14} />
@@ -164,8 +164,8 @@ export default function Viajes() {
       {/* ── Header ── */}
       <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <MapPin size={18} style={{ color: ACCENT }} />
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <MapPin size={18} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
             <h1 className="mod-h1">Viajes</h1>
@@ -173,11 +173,7 @@ export default function Viajes() {
           </div>
         </div>
         {editable && (
-          <button
-            className="glass-btn-primary"
-            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-            onClick={openNew}
-          >
+          <button className="glass-btn-primary" onClick={openNew}>
             <Plus size={15} /> Nuevo viaje
           </button>
         )}
@@ -186,18 +182,17 @@ export default function Viajes() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
         {[
-          { label: 'Ingresos esperados',  value: formatARS(totalEsperado),   color: '#FBBF24', sub: 'Pendientes + Confirmados' },
-          { label: 'Confirmados',         value: formatARS(totalConfirmado), color: '#38BDF8', sub: `${list.filter(r => r.estado === 'Confirmado').length} viajes` },
-          { label: 'Realizados',          value: formatARS(totalRealizado),  color: ACCENT,    sub: `${list.filter(r => r.estado === 'Realizado').length} viajes` },
+          { label: 'Ingresos esperados',  value: formatARS(totalEsperado),   color: 'var(--warning)',  sub: 'Pendientes + Confirmados' },
+          { label: 'Confirmados',         value: formatARS(totalConfirmado), color: 'var(--accent)',   sub: `${list.filter(r => r.estado === 'Confirmado').length} viajes` },
+          { label: 'Realizados',          value: formatARS(totalRealizado),  color: 'var(--positive)', sub: `${list.filter(r => r.estado === 'Realizado').length} viajes` },
         ].map((s, i) => (
           <div
             key={s.label}
             className={`surface surface-hover db-in db-d${i + 1}`}
-            style={{ padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden' }}
+            style={{ padding: '18px 22px' }}
           >
-            <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: s.color, opacity: 0.75 }} />
             <p className="db-slabel" style={{ marginBottom: 8 }}>{s.label}</p>
-            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div className="nums" style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 4 }}>{s.sub}</div>
           </div>
         ))}
