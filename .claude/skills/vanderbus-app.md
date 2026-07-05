@@ -7,7 +7,9 @@ description: Conocimiento completo sobre la app Vanderbus: arquitectura, stack, 
 
 ## Que es este proyecto
 
-App de escritorio (Electron + React) para gestión de empresas de transporte y fletes. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+App de gestión para empresas de transporte y fletes. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+
+> **Formato real de este repo:** es una **SPA web** (React + Vite) que se abre en el navegador con `npm run dev`. **No hay código, configuración ni dependencias de Electron en este repositorio ni en su historial de git.** La doc previa lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repo (ver Stack).
 
 El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es el colaborador técnico. El repositorio es `vanderbustransporte/vanderbus-app` en GitHub.
 
@@ -15,8 +17,8 @@ El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es e
 
 ## Stack completo
 
-- **Frontend:** React 18 + Vite + Tailwind CSS
-- **Desktop:** Electron (frameless window, auto-updater via electron-updater)
+- **Frontend:** React 19 + Vite + Tailwind CSS 4 — **SPA web** (corre en el navegador)
+- **Desktop:** *no presente en este repo.* `vite.config.js` usa `base: './'` (assets con rutas relativas), lo que sugiere que en algún momento se pensó para empaquetar en un contenedor tipo Electron, pero **no hay wrapper Electron ni `electron-updater` versionado acá** (verificado: nada de Electron en el árbol de archivos ni en el historial de git).
 - **Base de datos:** Supabase (PostgreSQL + Auth + RLS + Realtime + Edge Functions)
 - **Estado global:** Singleton propio en `src/store/useStore.js`
 - **Tipografías:** Plus Jakarta Sans (UI) + Geist Mono (números/datos)
@@ -25,50 +27,50 @@ El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es e
 - **Mapas:** Leaflet + OpenStreetMap (módulo GPS)
 - **Automatizaciones:** n8n local
 
-**IMPORTANTE:** El backend Express que existía en `C:\vanderbus-app\server\` fue JUBILADO. El frontend habla directo a Supabase. No reactivar el Express.
+**IMPORTANTE:** Hubo un backend Express que fue JUBILADO; **no está en este repo** (no hay carpeta `server/` versionada). El frontend habla directo a Supabase. No reintroducir un backend Express.
 
 ---
 
 ## Estructura de carpetas
 
 ```
-C:\vanderbus-app\
-├── vanderbus\              ← TODO el trabajo va acá
-│   ├── src\
-│   │   ├── modules\        ← Un archivo = un módulo completo
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Vehiculo.jsx     (gestión de FLOTA, no un solo vehículo)
-│   │   │   ├── Combustible.jsx
-│   │   │   ├── Mantenimiento.jsx
-│   │   │   ├── Nomina.jsx
-│   │   │   ├── Finanzas.jsx
-│   │   │   ├── Viajes.jsx
-│   │   │   ├── Marketing.jsx
-│   │   │   ├── SeguimientoGPS.jsx
-│   │   │   └── Usuarios.jsx     (solo visible para owner)
-│   │   ├── components\
-│   │   │   ├── Sidebar.jsx      (top nav, menú filtrado por permisos)
-│   │   │   ├── Login.jsx
-│   │   │   ├── NotifCenter.jsx
-│   │   │   ├── ThemeToggle.jsx
-│   │   │   └── shared\Field.jsx (Input, Select, Textarea compartidos)
-│   │   ├── context\
-│   │   │   ├── AuthContext.jsx  ← CRÍTICO: sesión + permisos
-│   │   │   ├── ThemeContext.jsx
-│   │   │   └── ToastContext.jsx
-│   │   ├── store\
-│   │   │   └── useStore.js      ← CRÍTICO: todos los datos de la empresa
-│   │   ├── lib\
-│   │   │   └── supabase.js      ← solo anon key, nunca service_role
-│   │   └── utils\
-│   │       ├── format.js        (formatARS, genId, formatDate, monthName, expiryLabel)
-│   │       ├── fecha.js         (todayISO, normalización de fechas)
-│   │       └── chartTheme.js    (colores/tooltips para Recharts según tema)
-│   ├── src\index.css            ← Design system completo (variables CSS)
-│   └── vite.config.js           (base: './' imprescindible para Electron)
-├── electron\                ← Main process Electron (no tocar salvo para builds)
-└── server\                  ← JUBILADO, ignorar
+vanderbus-app\                 ← raíz del repo (acá está package.json y se corre npm)
+├── index.html
+├── vite.config.js             ← base: './' (assets con rutas relativas)
+├── package.json               ← Vite + React 19 (sin Electron)
+├── src\
+│   ├── main.jsx
+│   ├── App.jsx                ← navegación entre módulos con useState (sin react-router)
+│   ├── modules\               ← Un archivo = un módulo completo
+│   │   ├── Dashboard.jsx
+│   │   ├── Vehiculo.jsx        (gestión de FLOTA, no un solo vehículo)
+│   │   ├── Combustible.jsx
+│   │   ├── Mantenimiento.jsx
+│   │   ├── Nomina.jsx
+│   │   ├── Finanzas.jsx
+│   │   ├── Viajes.jsx
+│   │   ├── Marketing.jsx
+│   │   ├── Contactos.jsx
+│   │   ├── SeguimientoGPS.jsx
+│   │   ├── Usuarios.jsx        (solo visible para owner)
+│   │   ├── Asistente.jsx
+│   │   └── Backup.jsx
+│   ├── components\
+│   │   ├── Sidebar.jsx         (menú filtrado por permisos)
+│   │   ├── Login.jsx
+│   │   ├── NotifCenter.jsx
+│   │   ├── ThemeToggle.jsx
+│   │   ├── ToastContainer.jsx
+│   │   └── shared\            (Field, Modal, SearchBar, Table)
+│   ├── context\              (AuthContext ← CRÍTICO sesión+permisos, ThemeContext, ToastContext)
+│   ├── store\useStore.js     ← CRÍTICO: todos los datos de la empresa
+│   ├── lib\supabase.js       ← solo anon key, nunca service_role
+│   ├── utils\                (format.js, fecha.js, chartTheme.js, crearNotificacion.js, ...)
+│   └── index.css             ← Design system completo (variables CSS)
+└── public\
 ```
+
+> **Nota:** la doc previa dibujaba este repo como una subcarpeta `vanderbus\` dentro de `C:\vanderbus-app\`, con carpetas hermanas `electron\` y `server\`. **Esas carpetas no están en este repositorio ni en su historial de git** — la raíz del repo *es* el frontend. Además quedan restos de la plantilla Vite sin usar (`src/counter.ts`, `src/main.ts`, `src/style.css`) que conviven con la app real y se pueden eliminar.
 
 ---
 
@@ -261,11 +263,11 @@ export default function MiModulo() {
 
 ```bash
 # Levantar en dev (UNA sola terminal)
-cd C:\vanderbus-app\vanderbus
+cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo (donde está package.json)
 npm run dev
 
 # Claude Code
-cd C:\vanderbus-app\vanderbus
+cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo (donde está package.json)
 claude --dangerously-skip-permissions
 
 # Git (usar ruta completa, Git no está en PATH)

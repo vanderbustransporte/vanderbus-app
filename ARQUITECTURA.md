@@ -238,11 +238,11 @@ En orden de prioridad:
 
 ```bash
 # Desarrollo (solo frontend, Express no se usa más)
-cd C:\vanderbus-app\vanderbus
+cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo
 npm run dev
 
 # Claude Code con permisos skip
-cd C:\vanderbus-app\vanderbus
+cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo
 claude --dangerously-skip-permissions
 
 # Git (siempre usar la ruta completa)
