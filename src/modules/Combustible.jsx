@@ -13,7 +13,7 @@ import {
 import { useChartTheme } from '../utils/chartTheme'
 
 const ACCENT = '#22D3EE'
-const MONO   = "'Space Mono', 'Geist Mono', monospace"
+const MONO   = "'Geist', system-ui, sans-serif"
 
 const CONSUMO_BUENO  = 30
 const CONSUMO_NORMAL = 40

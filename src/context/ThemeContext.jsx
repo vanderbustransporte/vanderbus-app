@@ -4,12 +4,12 @@ const ThemeCtx = createContext(null)
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() =>
-    localStorage.getItem('vanderbus_theme') || 'dark'
+    localStorage.getItem('vanderbus_theme') || 'light'
   )
   const timerRef = useRef(null)
 
   useEffect(() => {
-    const attr = theme === 'light' ? 'light' : ''
+    const attr = theme === 'dark' ? 'dark' : ''
     document.documentElement.setAttribute('data-theme', attr)
   }, [theme])
 

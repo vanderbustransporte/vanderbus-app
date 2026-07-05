@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown, Fuel, Wrench, DollarSign, Truck, ArrowUpCircl
 import { useChartTheme } from '../utils/chartTheme'
 
 const CHART_COLORS = ['#22D3EE', '#34D399', '#A78BFA', '#F87171', '#FBBF24', '#60A5FA']
-const MONO = "'Geist Mono', monospace"
+const MONO = "'Geist', system-ui, sans-serif"
 
 function TrendBadge({ actual, anterior }) {
   if (!anterior) return null
@@ -137,7 +137,8 @@ export default function Dashboard({ onNav }) {
   const ultimoNomina = useMemo(() =>
     [...nomina].sort((a, b) => b.fecha?.localeCompare(a.fecha))[0], [nomina])
 
-  const fechaLarga = now.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const fechaLargaRaw = now.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', '')
+  const fechaLarga = fechaLargaRaw.charAt(0).toUpperCase() + fechaLargaRaw.slice(1)
 
   const ct = useChartTheme()
 
@@ -149,7 +150,7 @@ export default function Dashboard({ onNav }) {
         <h1 className="mod-h1" style={{ fontSize: 36 }}>
           Panel de control
         </h1>
-        <p style={{ fontSize: 12, color: 'var(--text-2)', textTransform: 'capitalize', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, letterSpacing: '0.03em', fontFamily: MONO }}>
           {fechaLarga}
         </p>
       </div>

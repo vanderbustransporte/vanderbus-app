@@ -10,7 +10,7 @@ import { Wrench, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const ACCENT = '#FBBF24'
-const MONO   = "'Space Mono', 'Geist Mono', monospace"
+const MONO   = "'Geist', system-ui, sans-serif"
 
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
 

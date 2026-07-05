@@ -262,7 +262,6 @@ export default function NotifCenter({ unreadCount, onNav }) {
                       fontSize: 10, fontWeight: 700,
                       textTransform: 'uppercase', letterSpacing: '0.08em',
                       color: 'var(--text-3)',
-                      fontFamily: "'Geist Mono', monospace",
                     }}>
                       {label}
                     </div>
