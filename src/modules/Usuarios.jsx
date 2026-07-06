@@ -14,6 +14,7 @@ const SECCIONES = [
   { id: 'vehiculo',      label: 'Vehículo' },
   { id: 'nomina',        label: 'Nómina' },
   { id: 'finanzas',      label: 'Finanzas' },
+  { id: 'contactos',     label: 'Contactos' },
   { id: 'marketing',     label: 'Marketing' },
   { id: 'seguimiento',   label: 'Seguimiento GPS' },
 ]
