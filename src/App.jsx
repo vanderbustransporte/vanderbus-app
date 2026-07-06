@@ -20,7 +20,7 @@ import ThemeToggle from './components/ThemeToggle'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
-import { Menu, LogOut, ChevronDown, AlertTriangle } from 'lucide-react'
+import { Menu, LogOut, ChevronDown, AlertTriangle, Lock } from 'lucide-react'
 
 const TITULOS = {
   dashboard:     'Panel de control',
@@ -39,6 +39,22 @@ const TITULOS = {
 }
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
+// Secciones visibles solo para el owner. Mantener en sync con Sidebar (ownerOnly).
+const OWNER_ONLY = ['usuarios', 'configuracion', 'backup']
+
+// ── Panel de acceso denegado ───────────────────────────────────────────────────
+function AccessDenied() {
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="surface db-in db-d0" style={{ padding: 48, textAlign: 'center', borderRadius: 'var(--radius)' }}>
+        <Lock size={30} style={{ color: 'var(--text-3)', margin: '0 auto 12px' }} />
+        <h1 className="mod-h1" style={{ fontSize: 20 }}>Sin acceso</h1>
+        <p className="mod-sub">No tenés permiso para ver esta sección.</p>
+      </div>
+    </div>
+  )
+}
 
 // ── Menú de usuario (avatar + dropdown con cerrar sesión) ──────────────────────
 function UserMenu() {
@@ -128,6 +144,11 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const { error, loading } = useStore()
   const { addToast } = useToast()
+  const { puedeVer, esOwner } = useAuth()
+
+  // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
+  // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
+  const canView = (p) => OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
 
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')
@@ -236,19 +257,23 @@ export default function App() {
             </div>
           )}
 
-          {page === 'dashboard'     && <Dashboard onNav={setPage} />}
-          {page === 'vehiculo'      && <Vehiculo />}
-          {page === 'combustible'   && <Combustible />}
-          {page === 'mantenimiento' && <Mantenimiento />}
-          {page === 'nomina'        && <Nomina />}
-          {page === 'finanzas'      && <Finanzas />}
-          {page === 'viajes'        && <Viajes />}
-          {page === 'marketing'     && <Marketing />}
-          {page === 'seguimiento'   && <SeguimientoGPS />}
-          {page === 'contactos'     && <Contactos />}
-          {page === 'usuarios'      && <Usuarios />}
-          {page === 'configuracion' && <Configuracion />}
-          {page === 'backup'        && <BackupPage />}
+          {!canView(page) ? <AccessDenied /> : (
+            <>
+              {page === 'dashboard'     && <Dashboard onNav={setPage} />}
+              {page === 'vehiculo'      && <Vehiculo />}
+              {page === 'combustible'   && <Combustible />}
+              {page === 'mantenimiento' && <Mantenimiento />}
+              {page === 'nomina'        && <Nomina />}
+              {page === 'finanzas'      && <Finanzas />}
+              {page === 'viajes'        && <Viajes />}
+              {page === 'marketing'     && <Marketing />}
+              {page === 'seguimiento'   && <SeguimientoGPS />}
+              {page === 'contactos'     && <Contactos />}
+              {page === 'usuarios'      && <Usuarios />}
+              {page === 'configuracion' && <Configuracion />}
+              {page === 'backup'        && <BackupPage />}
+            </>
+          )}
         </div>
       </main>
     </div>
