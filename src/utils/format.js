@@ -30,7 +30,14 @@ export function daysDiff(dateStr) {
   if (!dateStr) return null
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const target = new Date(dateStr)
+  // Parsear YYYY-MM-DD como fecha LOCAL, no UTC. `new Date('2026-07-06')` se
+  // interpreta como medianoche UTC → en Argentina (UTC-3) cae en el dia anterior,
+  // corriendo todos los vencimientos un dia. Construyendo la fecha con sus
+  // componentes se evita el corrimiento.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  const target = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(dateStr)
   target.setHours(0, 0, 0, 0)
   return Math.round((target - today) / 86400000)
 }
