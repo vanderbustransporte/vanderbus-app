@@ -15,7 +15,9 @@ const GROUPS = [
       { id: 'vehiculo',      label: 'Flota',         icon: Truck },
       { id: 'combustible',   label: 'Combustible',   icon: Fuel },
       { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench },
-      { id: 'seguimiento',   label: 'GPS',           icon: Navigation },
+      // GPS oculto hasta migrar ubicaciones_gps (falta organization_id + RLS:
+      // hoy filtra cross-tenant). El modulo y su ruta en App.jsx siguen vivos.
+      // { id: 'seguimiento',   label: 'GPS',           icon: Navigation },
     ],
   },
   {
