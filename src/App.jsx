@@ -10,6 +10,7 @@ import Marketing from './modules/Marketing'
 import Viajes from './modules/Viajes'
 import SeguimientoGPS from './modules/SeguimientoGPS'
 import Usuarios from './modules/Usuarios'
+import Configuracion from './modules/Configuracion'
 import Contactos from './modules/Contactos'
 import BackupBar from './modules/Backup'
 import { useStore } from './store/useStore'
@@ -33,6 +34,7 @@ const TITULOS = {
   contactos:     'Contactos',
   marketing:     'Marketing',
   usuarios:      'Usuarios',
+  configuracion: 'Configuración',
   backup:        'Backup / Datos',
 }
 
@@ -238,6 +240,7 @@ export default function App() {
           {page === 'seguimiento'   && <SeguimientoGPS />}
           {page === 'contactos'     && <Contactos />}
           {page === 'usuarios'      && <Usuarios />}
+          {page === 'configuracion' && <Configuracion />}
           {page === 'backup'        && <BackupPage />}
         </div>
       </main>

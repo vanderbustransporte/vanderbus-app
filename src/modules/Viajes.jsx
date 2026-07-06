@@ -6,8 +6,9 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { MapPin, Plus, Trash2 } from 'lucide-react'
+import { MapPin, Plus, Trash2, Calculator } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { calcularTarifa, tarifasConfiguradas } from '../utils/tarifas'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
@@ -55,6 +56,10 @@ export default function Viajes() {
   const [modal, setModal]             = useState(false)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
+  const [calc, setCalc]               = useState({ horas: '', conPeon: false })
+
+  const orgSettings  = data.orgSettings || {}
+  const mostrarCalc  = tarifasConfiguradas(orgSettings)
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('viajes')
@@ -70,7 +75,18 @@ export default function Viajes() {
     return Object.keys(e).length === 0
   }
 
-  const openNew    = () => { setForm(empty()); setErrors({}); setModal(true) }
+  const openNew    = () => { setForm(empty()); setErrors({}); setCalc({ horas: '', conPeon: false }); setModal(true) }
+
+  // Calculadora de tarifa: autocompleta monto_total y monto_sena desde org_settings
+  const aplicarCalc = (next) => {
+    setCalc(next)
+    const { total, sena } = calcularTarifa(orgSettings, next)
+    setForm(f => ({
+      ...f,
+      monto_total: total ? String(Math.round(total)) : '',
+      monto_sena:  sena  ? String(Math.round(sena))  : '',
+    }))
+  }
   const handleSave = () => { if (!validate()) return; update('viajes', [{ ...form, fecha: toISO(form.fecha) }, ...list]); setModal(false) }
   const handleDelete = id => { if (confirm('¿Eliminar este viaje?')) update('viajes', list.filter(r => r.id !== id)) }
 
@@ -223,6 +239,32 @@ export default function Viajes() {
       {modal && (
         <Modal title="Nuevo viaje" onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
+            {mostrarCalc ? (
+              <div className="col-span-2" style={{ padding: 14, borderRadius: 'var(--radius)', background: 'var(--accent-dim)', border: '1px solid transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Calculator size={14} style={{ color: 'var(--accent)' }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>Calcular por tarifa</span>
+                </div>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <div style={{ width: 120 }}>
+                    <Field label="Horas">
+                      <Input type="number" step="0.5" min="0" value={calc.horas} onChange={e => aplicarCalc({ ...calc, horas: e.target.value })} placeholder="0" />
+                    </Field>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--text-1)', cursor: 'pointer', padding: '9px 0' }}>
+                    <input type="checkbox" checked={calc.conPeon} onChange={e => aplicarCalc({ ...calc, conPeon: e.target.checked })} style={{ accentColor: 'var(--accent)', width: 15, height: 15 }} />
+                    Con peón
+                  </label>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-2)' }}>
+                    Autocompleta total y seña ↓
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="col-span-2" style={{ fontSize: 12, color: 'var(--text-2)' }}>
+                Cargá las tarifas en <strong style={{ color: 'var(--text-1)' }}>Configuración</strong> para calcular el precio automáticamente.
+              </div>
+            )}
             <Field label="Vehículo">
               <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
                 <option value="">— Sin asignar —</option>

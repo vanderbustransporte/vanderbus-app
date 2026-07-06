@@ -2,7 +2,7 @@ import React from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
-  ChevronLeft, ChevronRight,
+  Settings, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -35,8 +35,9 @@ const GROUPS = [
   {
     label: 'Sistema',
     items: [
-      { id: 'usuarios', label: 'Usuarios', icon: Users,    ownerOnly: true },
-      { id: 'backup',   label: 'Backup',   icon: Database, ownerOnly: true },
+      { id: 'configuracion', label: 'Configuración', icon: Settings, ownerOnly: true },
+      { id: 'usuarios',      label: 'Usuarios',      icon: Users,    ownerOnly: true },
+      { id: 'backup',        label: 'Backup',        icon: Database, ownerOnly: true },
     ],
   },
 ]

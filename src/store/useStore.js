@@ -22,6 +22,7 @@ const defaultData = {
   gastos: [],
   marketing: [],
   viajes: [],
+  orgSettings: {},           // configuracion de la empresa (org_settings, fila unica)
 }
 
 let _data = { ...defaultData }
@@ -89,10 +90,18 @@ async function loadFromSupabase() {
       )
     )
 
+    // configuracion de la empresa (fila unica en org_settings)
+    const { data: settings } = await supabase
+      .from('org_settings')
+      .select('*')
+      .eq('organization_id', orgId)
+      .maybeSingle()
+
     _data = {
       vehiculos: flota,
       vehiculo: principal(flota),
-      ...Object.fromEntries(ARRAY_TABLES.map((t, i) => [t, arrays[i]]))
+      ...Object.fromEntries(ARRAY_TABLES.map((t, i) => [t, arrays[i]])),
+      orgSettings: settings || {},
     }
     _error = null
   } catch {
@@ -178,6 +187,22 @@ export function useStore() {
     }
   }, [])
 
+  // Configuracion de la empresa: merge optimista + upsert (fila unica por organization_id)
+  const updateSettings = useCallback(async (patch) => {
+    const orgId = await ensureOrgId()
+    if (!orgId) return { error: new Error('No hay sesion activa') }
+
+    const merged = { ...(_data.orgSettings || {}), ...patch }
+    _data = { ..._data, orgSettings: merged }
+    notify()
+
+    const { error } = await supabase
+      .from('org_settings')
+      .upsert({ ...merged, organization_id: orgId }, { onConflict: 'organization_id' })
+    if (error) console.error('updateSettings', error)
+    return { error }
+  }, [])
+
   const exportData = useCallback(() => {
     const blob = new Blob([JSON.stringify(_data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -234,5 +259,5 @@ export function useStore() {
     })
   }, [])
 
-  return { data: _data, loading: _loading, error: _error, update, exportData, importData }
+  return { data: _data, loading: _loading, error: _error, update, updateSettings, exportData, importData }
 }
