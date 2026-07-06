@@ -27,8 +27,10 @@ const empty = () => ({
 
 export default function Marketing() {
   const { data, update } = useStore()
+  // Descarta filas realmente vacias. El titulo es el campo requerido al guardar;
+  // presupuesto/gastado cubren filas creadas por import/n8n sin titulo.
   const list = (data.marketing || []).filter(r =>
-    r.nombre || r.canal || r.presupuesto
+    r.titulo || r.presupuesto || r.gastado
   )
   const [search, setSearch] = useState('')
   const [modal, setModal]   = useState(false)
