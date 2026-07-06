@@ -30,9 +30,20 @@ let _loading = true
 let _error = null
 let _orgId = null
 let _listeners = []
+let _errorListeners = []
 
 function notify() {
   _listeners.forEach(fn => fn())
+}
+
+// Canal de errores de guardado: la UI (App) se suscribe y muestra un toast.
+function emitSaveError(msg) {
+  _errorListeners.forEach(fn => fn(msg))
+}
+
+export function onStoreError(fn) {
+  _errorListeners.push(fn)
+  return () => { _errorListeners = _errorListeners.filter(f => f !== fn) }
 }
 
 // Vehiculo "principal": el primer vehiculo activo de la flota (para el Dashboard)
@@ -112,10 +123,12 @@ async function loadFromSupabase() {
   }
 }
 
-// Sincroniza un array contra Supabase: detecta altas, bajas y cambios
+// Sincroniza un array contra Supabase: detecta altas, bajas y cambios.
+// Lanza si Supabase rechaza alguna operación (RLS, columna inexistente, red, etc.)
+// para que el llamador pueda revertir la UI optimista y avisar al usuario.
 async function syncArray(table, oldArr, newArr) {
   const orgId = await ensureOrgId()
-  if (!orgId) return
+  if (!orgId) throw new Error('No hay sesión activa')
 
   const oldMap = new Map((oldArr || []).map(r => [r.id, r]))
   const newMap = new Map((newArr || []).map(r => [r.id, r]))
@@ -123,7 +136,8 @@ async function syncArray(table, oldArr, newArr) {
   // bajas
   for (const id of oldMap.keys()) {
     if (!newMap.has(id)) {
-      await supabase.from(table).delete().eq('id', id)
+      const { error } = await supabase.from(table).delete().eq('id', id)
+      if (error) throw error
     }
   }
 
@@ -133,12 +147,14 @@ async function syncArray(table, oldArr, newArr) {
       const fields = { ...row, organization_id: orgId }
       if (!fields.id) fields.id = genId()
       if (!fields.created_at) fields.created_at = localNow()
-      await supabase.from(table).insert(fields)
+      const { error } = await supabase.from(table).insert(fields)
+      if (error) throw error
     } else if (JSON.stringify(oldMap.get(id)) !== JSON.stringify(row)) {
       const fields = { ...row }
       delete fields.created_at
       delete fields.organization_id
-      await supabase.from(table).update(fields).eq('id', id)
+      const { error } = await supabase.from(table).update(fields).eq('id', id)
+      if (error) throw error
     }
   }
 }
@@ -171,11 +187,21 @@ export function useStore() {
   const update = useCallback((key, value) => {
     const prev = _data[key]
 
+    // Si el guardado falla, avisar y re-sincronizar la UI con el estado REAL de
+    // la base (loadFromSupabase no dispara el flash de "Cargando" porque no setea
+    // _loading al inicio). Esto descarta el cambio optimista fallido sin pisar
+    // ediciones concurrentes que sí se hayan guardado.
+    const onError = (err) => {
+      console.error('[save]', key, err)
+      emitSaveError('No se pudieron guardar los cambios. Reintentá.')
+      loadFromSupabase()
+    }
+
     // La flota: ademas de guardar, re-deriva el vehiculo principal
     if (key === 'vehiculos') {
       _data = { ..._data, vehiculos: value, vehiculo: principal(value) }
       notify()
-      syncArray('vehiculos', prev, value).catch(console.error)
+      syncArray('vehiculos', prev, value).catch(onError)
       return
     }
 
@@ -183,7 +209,7 @@ export function useStore() {
     notify()
 
     if (Array.isArray(value)) {
-      syncArray(key, prev, value).catch(console.error)
+      syncArray(key, prev, value).catch(onError)
     }
   }, [])
 
@@ -192,14 +218,20 @@ export function useStore() {
     const orgId = await ensureOrgId()
     if (!orgId) return { error: new Error('No hay sesion activa') }
 
-    const merged = { ...(_data.orgSettings || {}), ...patch }
+    const prev = _data.orgSettings || {}
+    const merged = { ...prev, ...patch }
     _data = { ..._data, orgSettings: merged }
     notify()
 
     const { error } = await supabase
       .from('org_settings')
       .upsert({ ...merged, organization_id: orgId }, { onConflict: 'organization_id' })
-    if (error) console.error('updateSettings', error)
+    if (error) {
+      // Revertir la UI optimista: el dato NO quedó guardado en la base
+      console.error('[save] org_settings', error)
+      _data = { ..._data, orgSettings: prev }
+      notify()
+    }
     return { error }
   }, [])
 

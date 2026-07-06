@@ -13,7 +13,7 @@ import Usuarios from './modules/Usuarios'
 import Configuracion from './modules/Configuracion'
 import Contactos from './modules/Contactos'
 import BackupBar from './modules/Backup'
-import { useStore } from './store/useStore'
+import { useStore, onStoreError } from './store/useStore'
 import { supabase } from './lib/supabase'
 import NotifCenter from './components/NotifCenter'
 import ThemeToggle from './components/ThemeToggle'
@@ -162,6 +162,13 @@ export default function App() {
       .subscribe()
 
     return () => supabase.removeChannel(channel)
+  }, [addToast])
+
+  // Toast cuando un guardado del store falla (RLS, red, columna inexistente, etc.)
+  useEffect(() => {
+    return onStoreError((message) => {
+      addToast({ message, Icon: AlertTriangle, color: 'var(--danger)' })
+    })
   }, [addToast])
 
   const toggleCollapse = () => setCollapsed(c => {
