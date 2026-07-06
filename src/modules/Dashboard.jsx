@@ -86,9 +86,15 @@ export default function Dashboard({ onNav }) {
     ingresos.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0),
     [ingresos, mesPasado])
 
+  // NOTA: el "Gastos del mes" del Dashboard es INTENCIONALMENTE mas amplio que el de
+  // Finanzas. Finanzas solo suma el libro manual (tabla gastos + marketing); el Dashboard
+  // suma TODOS los costos operativos: gastos + combustible + mantenimiento + nomina.
+  // Por eso los dos numeros no coinciden y no deben coincidir.
+  // El monto de combustible se lee de `importe` (el campo que guarda el modulo Combustible),
+  // no de `total`, que era una referencia vieja que hacia que el combustible sumara siempre 0.
   const totalGastosMes = useMemo(() => {
     const gBase = gastos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    const gComb = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.total)   || 0), 0)
+    const gComb = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
     const gMant = mantenimiento.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
     const gNom  = nomina.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
     return gBase + gComb + gMant + gNom
@@ -96,7 +102,7 @@ export default function Dashboard({ onNav }) {
 
   const totalGastosMesPasado = useMemo(() => {
     const gBase = gastos.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    const gComb = combustible.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.total)   || 0), 0)
+    const gComb = combustible.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
     const gMant = mantenimiento.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
     const gNom  = nomina.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
     return gBase + gComb + gMant + gNom
@@ -111,7 +117,7 @@ export default function Dashboard({ onNav }) {
       const key = d.toISOString().slice(0, 7)
       const ing = ingresos.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
       const gas = gastos.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-        + combustible.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.total)   || 0), 0)
+        + combustible.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
         + mantenimiento.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
         + nomina.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
       return { mes: monthName(d.getMonth()), Ingresos: ing, Gastos: gas }
@@ -119,7 +125,7 @@ export default function Dashboard({ onNav }) {
     [ingresos, gastos, combustible, mantenimiento, nomina])
 
   const pieData = useMemo(() => {
-    const combTotal  = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.total)   || 0), 0)
+    const combTotal  = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
     const mantTotal  = mantenimiento.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
     const nomTotal   = nomina.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
     const otrosTotal = gastos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
