@@ -9,7 +9,7 @@ import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../compon
 import { Megaphone, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const ACCENT = '#F472B6'
+const ACCENT = 'var(--accent)'
 
 const TIPOS   = ['Publicidad online', 'Redes sociales', 'Volantes / Impresión', 'Referido', 'Boca a boca', 'WhatsApp', 'Otro']
 const ESTADOS = ['Activo', 'Finalizado', 'Planificado']
@@ -123,7 +123,7 @@ export default function Marketing() {
       {/* ── Header ── */}
       <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Megaphone size={18} style={{ color: ACCENT }} />
           </div>
           <div>
@@ -133,9 +133,7 @@ export default function Marketing() {
         </div>
         {editable && (
           <button
-            className="glass-btn-primary"
-            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-            onClick={openNew}
+            className="glass-btn-primary" onClick={openNew}
           >
             <Plus size={15} /> Nueva campaña
           </button>

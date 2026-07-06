@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Field, Input, Select } from '../components/shared/Field'
 import { useAuth } from '../context/AuthContext'
 
-const ACCENT = '#A78BFA'
+const ACCENT = 'var(--accent)'
 
 const SECCIONES = [
   { id: 'dashboard',     label: 'Dashboard' },
@@ -71,7 +71,7 @@ function UsuarioCard({ u, currentUserId, onEdit }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 9,
-          background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`,
+          background: 'var(--accent-dim)', border: '1px solid transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <Users size={16} style={{ color: ACCENT }} />
@@ -83,9 +83,9 @@ function UsuarioCard({ u, currentUserId, onEdit }) {
           <div style={{ marginTop: 3 }}>
             <span style={{
               fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 9999,
-              background: u.rol === 'owner' ? `${ACCENT}1A` : 'var(--bg-elevated)',
-              color: u.rol === 'owner' ? ACCENT : 'var(--text-2)',
-              border: `1px solid ${u.rol === 'owner' ? ACCENT + '33' : 'var(--border)'}`,
+              background: u.rol === 'owner' ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+              color: u.rol === 'owner' ? 'var(--accent)' : 'var(--text-2)',
+              border: u.rol === 'owner' ? '1px solid transparent' : '1px solid var(--border)',
             }}>
               {u.rol === 'owner' ? 'Owner' : 'Staff'}
             </span>
@@ -112,7 +112,7 @@ function UsuarioCard({ u, currentUserId, onEdit }) {
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '7px 12px', borderRadius: 'var(--radius)',
-            border: `1px solid ${ACCENT}33`, color: ACCENT, background: `${ACCENT}14`,
+            border: '1px solid transparent', color: 'var(--accent)', background: 'var(--accent-dim)',
             fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}
         >
@@ -129,7 +129,7 @@ function FormHeader({ icon: Icon, title, subtitle, onCancel, onSave, saving, sav
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 40, height: 40, borderRadius: 10,
-          background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`,
+          background: 'var(--accent-dim)', border: '1px solid transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <Icon size={18} style={{ color: ACCENT }} />
@@ -153,7 +153,6 @@ function FormHeader({ icon: Icon, title, subtitle, onCancel, onSave, saving, sav
         </button>
         <button
           className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={onSave}
           disabled={saving}
         >
@@ -344,7 +343,7 @@ export default function Usuarios() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
-            background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`,
+            background: 'var(--accent-dim)', border: '1px solid transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <Users size={18} style={{ color: ACCENT }} />
@@ -356,7 +355,6 @@ export default function Usuarios() {
         </div>
         <button
           className="glass-btn-primary"
-          style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
           onClick={handleNuevo}
         >
           <UserPlus size={15} /> Agregar usuario
@@ -371,7 +369,6 @@ export default function Usuarios() {
           <p style={{ color: 'var(--text-2)', fontSize: 14, marginBottom: 16 }}>No hay usuarios cargados.</p>
           <button
             className="glass-btn-primary"
-            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
             onClick={handleNuevo}
           >
             <UserPlus size={15} /> Agregar el primero

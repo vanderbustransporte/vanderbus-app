@@ -10,7 +10,7 @@ import { TrendingUp, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide
 import { useAuth } from '../context/AuthContext'
 import { useChartTheme } from '../utils/chartTheme'
 
-const ACCENT   = '#34D399'
+const ACCENT   = 'var(--accent)'
 const C_ING    = '#34D399'
 const C_GAS    = '#F87171'
 
@@ -202,7 +202,7 @@ export default function Finanzas() {
       {/* ── Header ── */}
       <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <TrendingUp size={18} style={{ color: ACCENT }} />
           </div>
           <div>

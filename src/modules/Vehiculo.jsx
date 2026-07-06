@@ -5,7 +5,7 @@ import { formatDate, expiryLabel } from '../utils/format'
 import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const ACCENT = '#60A5FA'
+const ACCENT = 'var(--accent)'
 
 const emptyVehiculo = {
   alias: '', marca: '', modelo: '', anio: '', patente: '', motor: '', chasis: '',
@@ -51,7 +51,7 @@ function VehiculoCard({ v, onEdit, onArchive, editable }) {
   return (
     <div className="surface db-in db-d2" style={{ padding: 18, borderRadius: 'var(--radius)', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Truck size={16} style={{ color: ACCENT }} />
         </div>
         <div style={{ minWidth: 0 }}>
@@ -89,7 +89,7 @@ function VehiculoCard({ v, onEdit, onArchive, editable }) {
         <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
           <button
             onClick={() => onEdit(v)}
-            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--radius)', border: `1px solid ${ACCENT}33`, color: ACCENT, background: `${ACCENT}14`, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--radius)', border: '1px solid transparent', color: 'var(--accent)', background: 'var(--accent-dim)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             <Edit2 size={13} /> Editar
           </button>
@@ -144,7 +144,7 @@ export default function Vehiculo() {
       <div className="max-w-4xl mx-auto">
         <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Truck size={18} style={{ color: ACCENT }} />
             </div>
             <div>
@@ -159,7 +159,7 @@ export default function Vehiculo() {
             >
               <X size={14} /> Cancelar
             </button>
-            <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleSave}>
+            <button className="glass-btn-primary" onClick={handleSave}>
               <Save size={15} /> Guardar
             </button>
           </div>
@@ -204,7 +204,7 @@ export default function Vehiculo() {
     <div className="max-w-5xl mx-auto">
       <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Truck size={18} style={{ color: ACCENT }} />
           </div>
           <div>
@@ -213,7 +213,7 @@ export default function Vehiculo() {
           </div>
         </div>
         {editable && (
-          <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleNew}>
+          <button className="glass-btn-primary" onClick={handleNew}>
             <Plus size={15} /> Agregar vehículo
           </button>
         )}
@@ -224,7 +224,7 @@ export default function Vehiculo() {
           <Truck size={32} style={{ color: 'var(--text-3)', margin: '0 auto 12px' }} />
           <p style={{ color: 'var(--text-2)', fontSize: 14, marginBottom: 16 }}>Todavía no cargaste ningún vehículo.</p>
           {editable && (
-            <button className="glass-btn-primary" style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }} onClick={handleNew}>
+            <button className="glass-btn-primary" onClick={handleNew}>
               <Plus size={15} /> Agregar el primero
             </button>
           )}

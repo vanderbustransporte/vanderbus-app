@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { useChartTheme } from '../utils/chartTheme'
 
-const ACCENT = '#22D3EE'
+const ACCENT = 'var(--accent)'
 const MONO   = "'Geist', system-ui, sans-serif"
 
 const CONSUMO_BUENO  = 30
@@ -152,7 +152,7 @@ function Combustible() {
       {/* ── Header ── */}
       <div className="db-in db-d0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Fuel size={18} style={{ color: ACCENT }} />
           </div>
           <div>
@@ -162,9 +162,7 @@ function Combustible() {
         </div>
         {editable && (
           <button
-            className="glass-btn-primary"
-            style={{ background: `${ACCENT}18`, boxShadow: `0 4px 15px ${ACCENT}22` }}
-            onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
+            className="glass-btn-primary" onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
           >
             <Plus size={15} /> Nueva carga
           </button>
@@ -196,7 +194,7 @@ function Combustible() {
               <XAxis dataKey="mes" tick={{ fill: ct.tickColor, fontSize: 11, fontFamily: MONO }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={40} />
               <Tooltip {...ct.tooltip} formatter={v => [formatARS(v), 'Gasto']} />
-              <Bar dataKey="importe" fill={ACCENT} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="importe" fill={ct.accent} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
