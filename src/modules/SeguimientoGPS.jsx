@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useReducer, useMemo } from 're
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { detectarViajes } from '../utils/detectarViajes'
 import {
   Navigation, Wifi, WifiOff, Clock, Gauge, Bus,
@@ -469,6 +470,8 @@ function VistaRealtime() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function VistaHistorial() {
+  const { profile } = useAuth()
+  const orgId = profile?.organization_id ?? null
   const hoy = getHoyArgentina()
   const [periodo,     setPeriodo]     = useState('dia')
   const [fechaRef,    setFechaRef]    = useState(hoy)
@@ -533,9 +536,10 @@ function VistaHistorial() {
         const nuevos = todosV.filter(
           v => !existSet.has(`${v.patente}|${new Date(v.inicio).getTime()}`)
         )
-        if (nuevos.length > 0) {
-          await supabase.from('viajes_gps').insert(
+        if (nuevos.length > 0 && orgId) {
+          const { error: insErr } = await supabase.from('viajes_gps').insert(
             nuevos.map(v => ({
+              organization_id: orgId,
               patente:       v.patente,
               chofer:        v.chofer || null,
               inicio:        v.inicio,
@@ -546,6 +550,10 @@ function VistaHistorial() {
               recorrido:     v.recorrido,
             }))
           )
+          if (insErr) {
+            console.error('[viajes_gps] insert', insErr)
+            setErrorMsg('No se pudieron guardar los viajes detectados: ' + insErr.message)
+          }
         }
       }
 
@@ -553,7 +561,7 @@ function VistaHistorial() {
       setCargando(false)
     }
     cargar()
-  }, [periodo, fechaRef])
+  }, [periodo, fechaRef, orgId])
 
   const viajes = useMemo(() => {
     if (!dispFilter) return todosViajes
