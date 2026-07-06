@@ -17,9 +17,9 @@ const emptyVehiculo = {
 function vencStatus(date) {
   if (!date) return null
   const diff = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24))
-  if (diff < 0)  return { color: '#F87171', Icon: AlertTriangle }
-  if (diff <= 30) return { color: '#FBBF24', Icon: Clock }
-  return { color: '#34D399', Icon: CheckCircle }
+  if (diff < 0)  return { color: 'var(--danger)',  dim: 'var(--danger-dim)',  Icon: AlertTriangle }
+  if (diff <= 30) return { color: 'var(--warning)', dim: 'var(--warning-dim)', Icon: Clock }
+  return { color: 'var(--positive)', dim: 'var(--positive-dim)', Icon: CheckCircle }
 }
 
 function ExpiryBadge({ label, date }) {
@@ -30,15 +30,15 @@ function ExpiryBadge({ label, date }) {
       <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Sin fecha</div>
     </div>
   )
-  const { color, Icon } = st
+  const { color, dim, Icon } = st
   return (
-    <div className="db-in db-d1" style={{ padding: 16, borderRadius: 'var(--radius)', background: 'var(--bg-elevated)', border: `1px solid ${color}4D` }}>
+    <div className="db-in db-d1" style={{ padding: 16, borderRadius: 'var(--radius)', background: 'var(--bg-elevated)', border: `1px solid ${dim}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <Icon size={13} style={{ color }} />
         <div className="db-slabel" style={{ marginBottom: 0 }}>{label}</div>
       </div>
       <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)', marginBottom: 6 }}>{formatDate(date)}</div>
-      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${color}1F`, color }}>
+      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: dim, color }}>
         {expiryLabel(date)}
       </span>
     </div>
@@ -70,7 +70,7 @@ function VehiculoCard({ v, onEdit, onArchive, editable }) {
           return (
             <span key={lbl} style={{
               fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 9999,
-              background: st ? `${st.color}1A` : 'var(--bg-elevated)',
+              background: st ? st.dim : 'var(--bg-elevated)',
               color: st ? st.color : 'var(--text-3)',
               border: `1px solid ${st ? st.color + '33' : 'var(--border)'}`
             }}>
@@ -97,7 +97,7 @@ function VehiculoCard({ v, onEdit, onArchive, editable }) {
             onClick={() => onArchive(v)}
             title="Archivar"
             style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 11px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', cursor: 'pointer' }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#F87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.3)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.borderColor = 'var(--border)' }}
           >
             <Archive size={13} />

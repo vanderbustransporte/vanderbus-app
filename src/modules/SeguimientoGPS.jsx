@@ -12,21 +12,27 @@ const SIN_SENAL_MIN = 10  // minutos sin reporte → "sin señal"
 const TZ_AR = 'America/Argentina/Buenos_Aires'
 
 const C = {
-  surface:     'var(--bg-card, #18181b)',
+  surface:     'var(--bg-elevated)',
   overlay:     'var(--bg-overlay)',
-  border:      'rgba(128,128,128,0.12)',
-  borderHi:    'rgba(128,128,128,0.20)',
+  border:      'var(--border)',
+  borderHi:    'var(--border)',
   text1:       'var(--text-1)',
-  text2:       '#94a3b8',
-  text3:       '#64748b',
-  accent:      '#38bdf8',
-  accentDim:   'rgba(56,189,248,0.10)',
-  accentGlow:  'rgba(56,189,248,0.50)',
-  inactive:    '#64748b',
-  inactiveDim: 'rgba(100,116,139,0.12)',
-  danger:      '#f87171',
-  dangerDim:   'rgba(248,113,113,0.10)',
+  text2:       'var(--text-2)',
+  text3:       'var(--text-3)',
+  accent:      'var(--accent)',
+  accentDim:   'var(--accent-dim)',
+  accentGlow:  'rgba(56,189,248,0.50)',   // glow decorativo (box-shadow)
+  inactive:    'var(--text-3)',
+  inactiveDim: 'var(--bg-overlay)',
+  danger:      'var(--danger)',
+  dangerDim:   'var(--danger-dim)',
 }
+
+// Colores fijos del mapa: van en atributos SVG/Leaflet (fill, pathOptions.color)
+// donde var(--*) NO resuelve. El mapa vive sobre tiles, no depende del tema.
+const MAP_ACTIVE   = '#38bdf8'
+const MAP_DANGER   = '#f87171'
+const MAP_INACTIVE = '#64748b'
 
 const TRIP_COLORS = [
   '#38bdf8', '#34d399', '#fbbf24', '#a78bfa',
@@ -39,8 +45,8 @@ const TRIP_COLORS = [
 function crearIcono(estado) {
   const esActivo  = estado === 'activo'
   const sinSenal  = estado === 'sinsenal'
-  const color  = esActivo ? C.accent : sinSenal ? C.danger : C.inactive
-  const bg     = esActivo ? 'rgba(56,189,248,0.16)' : sinSenal ? 'rgba(248,113,113,0.16)' : C.inactiveDim
+  const color  = esActivo ? MAP_ACTIVE : sinSenal ? MAP_DANGER : MAP_INACTIVE
+  const bg     = esActivo ? 'rgba(56,189,248,0.16)' : sinSenal ? 'rgba(248,113,113,0.16)' : 'rgba(100,116,139,0.12)'
   const border = esActivo ? 'rgba(56,189,248,0.55)' : sinSenal ? 'rgba(248,113,113,0.55)' : 'rgba(100,116,139,0.35)'
   const glow   = esActivo ? 'rgba(56,189,248,0.22)' : sinSenal ? 'rgba(248,113,113,0.18)' : 'transparent'
   return L.divIcon({
@@ -220,7 +226,7 @@ function TabSwitch({ tab, onTab }) {
           <button key={id} onClick={() => onTab(id)} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '5px 14px', borderRadius: 7,
-            border: active ? '1px solid rgba(56,189,248,0.20)' : '1px solid transparent',
+            border: active ? '1px solid var(--accent-dim)' : '1px solid transparent',
             background: active ? C.accentDim : 'transparent',
             color: active ? C.accent : C.text2,
             fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none',
@@ -327,7 +333,7 @@ function VistaRealtime() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px',
               borderRadius: 8, fontSize: 12, fontWeight: 600,
-              background: C.dangerDim, border: '1px solid rgba(248,113,113,0.25)', color: C.danger,
+              background: C.dangerDim, border: '1px solid var(--danger-dim)', color: C.danger,
             }}>
               <WifiOff size={12} />{totalSinSenal} sin señal
             </div>
@@ -336,7 +342,7 @@ function VistaRealtime() {
             display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px',
             borderRadius: 8, fontSize: 12, fontWeight: 600,
             background: errorMsg ? C.dangerDim : C.accentDim,
-            border: `1px solid ${errorMsg ? 'rgba(248,113,113,0.25)' : 'rgba(56,189,248,0.20)'}`,
+            border: `1px solid ${errorMsg ? 'var(--danger-dim)' : 'var(--accent-dim)'}`,
             color: errorMsg ? C.danger : C.accent,
           }}>
             {errorMsg ? <><WifiOff size={12} />Error</> : <><Wifi size={12} />Tiempo real</>}
@@ -347,7 +353,7 @@ function VistaRealtime() {
       {errorMsg && (
         <div style={{
           flexShrink: 0, padding: '10px 14px', borderRadius: 8, fontSize: 13,
-          background: C.dangerDim, border: '1px solid rgba(248,113,113,0.20)', color: C.danger,
+          background: C.dangerDim, border: '1px solid var(--danger-dim)', color: C.danger,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <AlertCircle size={14} />{errorMsg}
@@ -380,7 +386,7 @@ function VistaRealtime() {
                   key={`ruta-${disp}`}
                   positions={puntos.map(p => [p.lat, p.lon])}
                   pathOptions={{
-                    color:     C.accent,
+                    color:     MAP_ACTIVE,
                     opacity:   isSel ? 0.85 : 0.28,
                     weight:    isSel ? 4 : 2,
                     dashArray: isSel ? null : '6 5',
@@ -572,7 +578,7 @@ function VistaHistorial() {
             <button key={id} onClick={() => { setPeriodo(id); setViajeIdx(null) }} style={{
               padding: '5px 13px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: periodo === id ? C.accentDim : C.surface,
-              border: `1px solid ${periodo === id ? 'rgba(56,189,248,0.25)' : C.border}`,
+              border: `1px solid ${periodo === id ? 'var(--accent-dim)' : C.border}`,
               color: periodo === id ? C.accent : C.text2,
               outline: 'none', transition: 'background 100ms, color 100ms',
             }}>{label}</button>
@@ -613,7 +619,7 @@ function VistaHistorial() {
       {errorMsg && (
         <div style={{
           flexShrink: 0, padding: '10px 14px', borderRadius: 8, fontSize: 13,
-          background: C.dangerDim, border: '1px solid rgba(248,113,113,0.20)', color: C.danger,
+          background: C.dangerDim, border: '1px solid var(--danger-dim)', color: C.danger,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <AlertCircle size={14} />{errorMsg}
@@ -769,7 +775,7 @@ function VehicleRow({ v, estado, esSel, onClick }) {
   const activo   = estado === 'activo'
   const sinSenal = estado === 'sinsenal'
 
-  const dotColor = activo ? C.accent : sinSenal ? C.danger : '#475569'
+  const dotColor = activo ? C.accent : sinSenal ? C.danger : C.inactive
   const dotGlow  = activo ? `0 0 6px ${C.accentGlow}` : sinSenal ? '0 0 6px rgba(248,113,113,0.45)' : 'none'
   const velColor = activo ? C.accent : sinSenal ? C.danger : C.inactive
   const accentL  = esSel ? C.accent : sinSenal ? C.danger : 'transparent'
@@ -785,7 +791,7 @@ function VehicleRow({ v, estado, esSel, onClick }) {
         padding: '11px 16px 11px 13px',
         borderTop: 'none', borderRight: 'none', borderBottom: `1px solid ${C.border}`,
         borderLeft: `3px solid ${accentL}`,
-        background: esSel ? 'rgba(56,189,248,0.07)' : hover ? 'rgba(128,128,128,0.04)' : 'transparent',
+        background: esSel ? 'var(--accent-dim)' : hover ? 'var(--hover-tint)' : 'transparent',
         cursor: 'pointer', outline: 'none',
         transition: 'background 100ms ease-out',
       }}
@@ -848,8 +854,8 @@ function PopupContent({ v }) {
         <span style={{
           marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
           background: activo
-            ? 'rgba(56,189,248,0.15)'
-            : sinSenal ? 'rgba(248,113,113,0.15)' : 'rgba(100,116,139,0.15)',
+            ? 'var(--accent-dim)'
+            : sinSenal ? 'var(--danger-dim)' : 'var(--bg-overlay)',
           color: mainColor,
         }}>
           {label}
@@ -858,7 +864,7 @@ function PopupContent({ v }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 8 }}>
         {statCells.map(({ label: l, value }) => (
-          <div key={l} style={{ background: 'rgba(128,128,128,0.08)', borderRadius: 6, padding: '6px 8px' }}>
+          <div key={l} style={{ background: 'var(--bg-overlay)', borderRadius: 6, padding: '6px 8px' }}>
             <div style={{ fontSize: 10, color: C.text3, marginBottom: 2 }}>{l}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text1 }}>{value}</div>
           </div>
@@ -884,7 +890,7 @@ function TripRow({ viaje, color, selected, compact, onClick }) {
         padding: compact ? '9px 14px 9px 11px' : '11px 16px 11px 13px',
         borderTop: 'none', borderRight: 'none', borderBottom: `1px solid ${C.border}`,
         borderLeft: `3px solid ${selected ? color : 'transparent'}`,
-        background: selected ? `${color}12` : hover ? 'rgba(128,128,128,0.04)' : 'transparent',
+        background: selected ? `${color}12` : hover ? 'var(--hover-tint)' : 'transparent',
         cursor: 'pointer', outline: 'none',
         transition: 'background 100ms ease-out',
       }}

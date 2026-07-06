@@ -21,9 +21,9 @@ const empty = () => ({
 })
 
 const ESTADO_STYLES = {
-  Realizado:    { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' },
-  Pendiente:    { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24' },
-  'En proceso': { bg: 'rgba(56,189,248,0.12)',  color: '#38BDF8' },
+  Realizado:    { bg: 'var(--positive-dim)', color: 'var(--positive)' },
+  Pendiente:    { bg: 'var(--warning-dim)',  color: 'var(--warning)' },
+  'En proceso': { bg: 'var(--accent-dim)',   color: 'var(--accent)' },
 }
 
 export default function Mantenimiento() {
@@ -87,7 +87,7 @@ export default function Mantenimiento() {
     { key: 'km',    label: 'KM',    render: r => r.km ? <span className="num">{Number(r.km).toLocaleString('es-AR')}</span> : <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
       key: 'estado', label: 'Estado', render: r => {
-        const s = ESTADO_STYLES[r.estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
+        const s = ESTADO_STYLES[r.estado] || { bg: 'var(--bg-overlay)', color: 'var(--text-3)' }
         return (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
             {r.estado}

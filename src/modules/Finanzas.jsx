@@ -11,8 +11,8 @@ import { useAuth } from '../context/AuthContext'
 import { useChartTheme } from '../utils/chartTheme'
 
 const ACCENT   = 'var(--accent)'
-const C_ING    = '#34D399'
-const C_GAS    = '#F87171'
+const C_ING    = 'var(--positive)'
+const C_GAS    = 'var(--danger)'
 
 const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Flete', 'Alquiler de vehículo', 'Otro ingreso']
 const CATEGORIAS_GASTO   = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
@@ -95,7 +95,7 @@ function MovimientoModal({ onClose, onSave, tipo }) {
         <BtnCancel onClick={onClose} />
         <button
           className="glass-btn-primary"
-          style={{ background: `${btnColor}18`, boxShadow: `0 4px 15px ${btnColor}28`, color: btnColor, borderColor: `${btnColor}28` }}
+          style={{ background: isIngreso ? 'var(--positive-dim)' : 'var(--danger-dim)', color: btnColor, borderColor: 'transparent' }}
           onClick={() => { if (validate()) onSave(form) }}
         >
           Guardar {isIngreso ? 'ingreso' : 'gasto'}
@@ -165,8 +165,8 @@ export default function Finanzas() {
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full"
           style={r.tipo === 'ingreso'
-            ? { background: 'rgba(52,211,153,0.12)', color: C_ING }
-            : { background: 'rgba(248,113,113,0.12)', color: C_GAS }}
+            ? { background: 'var(--positive-dim)', color: C_ING }
+            : { background: 'var(--danger-dim)', color: C_GAS }}
         >
           {r.tipo === 'ingreso' ? '▲ Ingreso' : '▼ Gasto'}
         </span>
@@ -186,7 +186,7 @@ export default function Finanzas() {
         <button
           onClick={() => handleDelete(r)}
           className="p-1.5 rounded-lg"
-          style={{ color: '#F87171' }}
+          style={{ color: 'var(--danger)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
           onMouseLeave={e => { e.currentTarget.style.background = '' }}
         >
@@ -214,14 +214,14 @@ export default function Finanzas() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="glass-btn-primary"
-              style={{ background: `${C_ING}18`, boxShadow: `0 4px 15px ${C_ING}22`, borderColor: `${C_ING}28` }}
+              style={{ background: 'var(--positive-dim)', color: 'var(--positive)', borderColor: 'transparent' }}
               onClick={() => setModal('ingreso')}
             >
               <ArrowUpCircle size={15} /> Ingreso
             </button>
             <button
               className="glass-btn-primary"
-              style={{ background: `${C_GAS}18`, boxShadow: `0 4px 15px ${C_GAS}22`, borderColor: `${C_GAS}28` }}
+              style={{ background: 'var(--danger-dim)', color: 'var(--danger)', borderColor: 'transparent' }}
               onClick={() => setModal('gasto')}
             >
               <ArrowDownCircle size={15} /> Gasto
@@ -246,8 +246,7 @@ export default function Finanzas() {
           className="surface surface-hover db-in db-d3"
           style={{
             padding: '18px 20px 18px 24px', position: 'relative', overflow: 'hidden',
-            borderColor: balance >= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)',
-            background:  balance >= 0 ? 'rgba(52,211,153,0.04)'  : 'rgba(248,113,113,0.04)',
+            borderColor: balance >= 0 ? 'var(--positive-dim)' : 'var(--danger-dim)',
           }}
         >
           <div style={{ position: 'absolute', top: 12, bottom: 12, left: 0, width: 3, borderRadius: '0 3px 3px 0', background: balance >= 0 ? C_ING : C_GAS, opacity: 0.75 }} />

@@ -24,7 +24,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) return (
       <div className="surface p-10 flex flex-col items-center justify-center text-center">
-        <Fuel size={32} style={{ color: '#94A3B8' }} className="mb-3" />
+        <Fuel size={32} style={{ color: 'var(--text-3)' }} className="mb-3" />
         <p className="font-semibold" style={{ color: 'var(--text-2)' }}>Sin registros aún</p>
         <p className="text-sm mt-1" style={{ color: 'var(--text-2)' }}>Recargá la página si el problema persiste.</p>
       </div>
@@ -39,17 +39,17 @@ const empty = () => ({
 })
 
 function consumoColor(c) {
-  if (c == null) return '#94A3B8'
-  if (c <= CONSUMO_BUENO)  return '#34D399'
-  if (c <= CONSUMO_NORMAL) return '#FBBF24'
-  return '#F87171'
+  if (c == null) return 'var(--text-3)'
+  if (c <= CONSUMO_BUENO)  return 'var(--positive)'
+  if (c <= CONSUMO_NORMAL) return 'var(--warning)'
+  return 'var(--danger)'
 }
 
 function consumoBg(c) {
-  if (c == null) return { bg: 'rgba(255,255,255,0.06)', color: '#94a3b8' }
-  if (c <= CONSUMO_BUENO)  return { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' }
-  if (c <= CONSUMO_NORMAL) return { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24' }
-  return { bg: 'rgba(248,113,113,0.12)', color: '#F87171' }
+  if (c == null) return { bg: 'var(--bg-overlay)', color: 'var(--text-3)' }
+  if (c <= CONSUMO_BUENO)  return { bg: 'var(--positive-dim)', color: 'var(--positive)' }
+  if (c <= CONSUMO_NORMAL) return { bg: 'var(--warning-dim)',  color: 'var(--warning)' }
+  return { bg: 'var(--danger-dim)', color: 'var(--danger)' }
 }
 
 function getPrecioLitro(r) {
@@ -141,9 +141,9 @@ function Combustible() {
 
   const stats = [
     { label: 'Gasto total',     value: formatARS(totalMes),                                                            color: ACCENT },
-    { label: 'Litros total',    value: `${litrosMes.toFixed(1)} L`,                                                    color: '#34D399' },
-    { label: 'Precio prom./L',  value: formatARS(precioPromedio),                                                      color: '#FBBF24' },
-    { label: 'Consumo prom.',   value: consumoPromedio != null ? `${consumoPromedio.toFixed(1)} L/100km` : '—',        color: consumoPromedio != null ? consumoColor(consumoPromedio) : '#94A3B8' },
+    { label: 'Litros total',    value: `${litrosMes.toFixed(1)} L`,                                                    color: 'var(--positive)' },
+    { label: 'Precio prom./L',  value: formatARS(precioPromedio),                                                      color: 'var(--warning)' },
+    { label: 'Consumo prom.',   value: consumoPromedio != null ? `${consumoPromedio.toFixed(1)} L/100km` : '—',        color: consumoPromedio != null ? consumoColor(consumoPromedio) : 'var(--text-3)' },
   ]
 
   return (
@@ -210,7 +210,7 @@ function Combustible() {
                 <XAxis dataKey="fecha" tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: ct.tickColor, fontSize: 10, fontFamily: MONO }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} width={48} />
                 <Tooltip {...ct.tooltip} formatter={v => [formatARS(v), '$/litro']} />
-                <Line type="monotone" dataKey="precio" stroke="#FBBF24" strokeWidth={2} dot={{ r: 3, fill: '#FBBF24', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="precio" stroke={ct.warning} strokeWidth={2} dot={{ r: 3, fill: ct.warning, strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -270,7 +270,7 @@ function Combustible() {
                           <button
                             onClick={() => handleDelete(r.id)}
                             className="p-1.5 rounded-lg"
-                            style={{ color: '#F87171' }}
+                            style={{ color: 'var(--danger)' }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
                             onMouseLeave={e => { e.currentTarget.style.background = '' }}
                           >

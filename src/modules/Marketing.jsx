@@ -15,9 +15,9 @@ const TIPOS   = ['Publicidad online', 'Redes sociales', 'Volantes / Impresión',
 const ESTADOS = ['Activo', 'Finalizado', 'Planificado']
 
 const ESTADO_STYLES = {
-  Activo:      { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' },
-  Finalizado:  { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8' },
-  Planificado: { bg: 'rgba(56,189,248,0.12)',  color: '#38BDF8' },
+  Activo:      { bg: 'var(--positive-dim)', color: 'var(--positive)' },
+  Finalizado:  { bg: 'var(--bg-overlay)',   color: 'var(--text-3)' },
+  Planificado: { bg: 'var(--accent-dim)',   color: 'var(--accent)' },
 }
 
 const empty = () => ({
@@ -83,7 +83,7 @@ export default function Marketing() {
     },
     {
       key: 'estado', label: 'Estado', render: r => {
-        const s = ESTADO_STYLES[r.estado] || { bg: 'rgba(255,255,255,0.08)', color: '#94a3b8' }
+        const s = ESTADO_STYLES[r.estado] || { bg: 'var(--bg-overlay)', color: 'var(--text-3)' }
         return (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
             {r.estado}
@@ -144,7 +144,7 @@ export default function Marketing() {
       <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 16 }}>
         {[
           { label: 'Total invertido',   value: formatARS(totalInvertido),                          color: ACCENT },
-          { label: 'Campañas activas',  value: list.filter(r => r.estado === 'Activo').length,     color: '#34D399' },
+          { label: 'Campañas activas',  value: list.filter(r => r.estado === 'Activo').length,     color: 'var(--positive)' },
           { label: 'Total campañas',    value: list.length,                                        color: 'var(--text-1)' },
         ].map((s, i) => (
           <div

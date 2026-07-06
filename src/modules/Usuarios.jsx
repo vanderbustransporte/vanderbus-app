@@ -247,7 +247,7 @@ export default function Usuarios() {
         />
 
         {errorMsg && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--danger-dim)', border: '1px solid rgba(248,113,113,0.2)', color: 'var(--danger)' }}>
+          <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-dim)', color: 'var(--danger)' }}>
             {errorMsg}
           </div>
         )}
@@ -311,7 +311,7 @@ export default function Usuarios() {
         />
 
         {errorMsg && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--danger-dim)', border: '1px solid rgba(248,113,113,0.2)', color: 'var(--danger)' }}>
+          <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-dim)', color: 'var(--danger)' }}>
             {errorMsg}
           </div>
         )}
