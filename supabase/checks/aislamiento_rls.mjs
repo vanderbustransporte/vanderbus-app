@@ -156,11 +156,22 @@ async function pasadaOrgB() {
   else if (estado === 'activa') ok(`estado_suscripcion() = 'activa'`)
   else fail(`estado_suscripcion() = '${estado}' (¿org B suspendida?)`)
 
-  // Insert en la propia org (el default organization_id = current_org_id() lo completa).
+  const { data: prof } = await sb.from('profiles').select('organization_id').single()
+  const miOrg = prof?.organization_id
   const marca = `[test-rls ${new Date().toISOString()}]`
+
+  // (a) Insert SIN organization_id → el with check de tenant_isolation debe
+  //     rechazarlo (contactos no tiene default; la app siempre lo manda explícito).
+  const { error: eSinOrg } = await sb
+    .from('contactos')
+    .insert({ id: `rlstest${Date.now().toString(36)}a`, nombre: marca, tipo: 'otro' })
+  if (eSinOrg) ok(`insert sin organization_id: rechazado por RLS (${eSinOrg.code ?? eSinOrg.message})`)
+  else fail('insert sin organization_id: PASÓ — el with check no está exigiendo la org')
+
+  // (b) Insert con la org propia (como hace useStore) → debe pasar; se limpia.
   const { data: ins, error: eIns } = await sb
     .from('contactos')
-    .insert({ id: `rlstest${Date.now().toString(36)}`, nombre: marca, tipo: 'otro' })
+    .insert({ id: `rlstest${Date.now().toString(36)}b`, nombre: marca, tipo: 'otro', organization_id: miOrg })
     .select('id, organization_id')
     .single()
   if (eIns) fail(`insert propio en contactos falló: ${eIns.message}`)
@@ -169,6 +180,18 @@ async function pasadaOrgB() {
     const { error: eDel } = await sb.from('contactos').delete().eq('id', ins.id)
     if (eDel) fail(`limpieza del contacto de prueba falló: ${eDel.message} (borralo a mano: ${ins.id})`)
     else ok('contacto de prueba borrado')
+  }
+
+  // (c) organizations debe ser SOLO-LECTURA para el tenant (migración
+  //     20260710130100): un cliente no puede tocarse el plan ni el estado_sub.
+  const { data: orgRow } = await sb.from('organizations').select('plan').eq('id', miOrg).maybeSingle()
+  const { data: uOrg, error: eUOrg } = await sb
+    .from('organizations').update({ plan: 'rls-probe' }).eq('id', miOrg).select()
+  if (eUOrg || (uOrg?.length ?? 0) === 0) {
+    ok(`update a organizations: denegado (${eUOrg?.code ?? '0 filas afectadas'})`)
+  } else {
+    fail('update a organizations: PASÓ — un tenant puede cambiarse plan/estado_sub')
+    await sb.from('organizations').update({ plan: orgRow?.plan ?? 'trial' }).eq('id', miOrg) // revertir
   }
 
   await sb.auth.signOut()
