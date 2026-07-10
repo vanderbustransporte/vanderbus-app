@@ -112,9 +112,12 @@ viajes_gps          (segmentos detectados) id, organization_id, ...
 
 ```sql
 current_org_id() → uuid
--- devuelve la organization_id del usuario logueado
+-- devuelve la organization_id del usuario logueado, SOLO si su organización
+-- tiene estado_sub = 'activa' (si está suspendida/cancelada devuelve NULL).
 -- se usa en todas las policies: organization_id = current_org_id()
 ```
+
+**Estado de suscripción (migración `20260710130000`):** como `current_org_id()` devuelve NULL para orgs no activas, una empresa suspendida pierde lectura y escritura en todas las tablas a nivel RLS, sin tocar el frontend. El frontend consulta el RPC `estado_suscripcion()` (security definer, solo `authenticated`) en `AuthContext` y muestra `<CuentaSuspendida/>` (`main.jsx`) cuando `estadoSub !== 'activa'`. Reactivar un cliente: `update organizations set estado_sub = 'activa' where id = ...`.
 
 El frontend usa **solo la anon key** (visible en `src/lib/supabase.js`). La service_role NUNCA va en el frontend. La única pieza que usa la service_role es la Edge Function `Crear-Usuario`, que corre en los servidores de Supabase.
 
@@ -254,7 +257,7 @@ export default function MiModulo() {
 
 1. **Tarifas por empresa** — leer de `org_settings` en vez de valores hardcodeados.
 2. **Onboarding self-service** — pantalla de registro para empresas nuevas (función `crear_empresa()` ya existe en SQL).
-3. **SaaS / billing** — planes, límites, Edge Function de validación de suscripción, webhook de pago.
+3. **SaaS / billing** — planes, límites, webhook de pago. (La suspensión por `estado_sub` ya se aplica a nivel RLS; falta lo que la dispara: cobro/webhook.)
 4. **Dominio propio** — `api.vanderbus.app` → Supabase (evita bloqueos de red corporativa).
 5. **Nómina mejorada** — sueldo fijo + extras, resumen día 26, notificación WhatsApp via n8n.
 6. **Ancho uniforme** — todos los módulos a `max-w-[1680px]` (el Dashboard ya lo tiene).
