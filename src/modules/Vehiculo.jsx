@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore } from '../store/useStore'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
+import { faltantesVehiculo } from '../utils/chequeoVencimientos'
 import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -46,10 +47,16 @@ function ExpiryBadge({ label, date }) {
 }
 
 // Tarjeta de un vehiculo en la grilla de flota
-function VehiculoCard({ v, onEdit, onArchive, editable }) {
+function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [] }) {
   const chips = [['VTV', v.vtv], ['Seguro', v.seguro], ['Habil.', v.habilitacion]]
   return (
-    <div className="surface db-in db-d2" style={{ padding: 18, borderRadius: 'var(--radius)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div
+      className="surface db-in db-d2"
+      style={{
+        padding: 18, borderRadius: 'var(--radius)', display: 'flex', flexDirection: 'column', gap: 12,
+        border: faltan.length ? '1px solid var(--warning)' : undefined,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--accent-dim)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Truck size={16} style={{ color: ACCENT }} />
@@ -79,6 +86,24 @@ function VehiculoCard({ v, onEdit, onArchive, editable }) {
           )
         })}
       </div>
+
+      {faltan.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--warning-dim)' }}>
+          <AlertTriangle size={14} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warning)' }}>Faltan datos obligatorios</div>
+            <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>{faltan.join(', ')}</div>
+            {editable && (
+              <button
+                onClick={() => onEdit(v)}
+                style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--radius)', border: '1px solid transparent', color: 'var(--warning)', background: 'var(--warning-dim)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <Edit2 size={11} /> Completar ahora
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
         Patente: <span style={{ color: 'var(--text-1)', fontWeight: 500 }}>{v.patente || '—'}</span>
@@ -232,7 +257,14 @@ export default function Vehiculo() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {flota.map(v => (
-            <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onArchive={handleArchive} editable={editable} />
+            <VehiculoCard
+              key={v.id}
+              v={v}
+              onEdit={handleEdit}
+              onArchive={handleArchive}
+              editable={editable}
+              faltan={faltantesVehiculo(v, data.mantenimiento)}
+            />
           ))}
         </div>
       )}

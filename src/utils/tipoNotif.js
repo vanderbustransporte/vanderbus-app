@@ -1,9 +1,10 @@
 import {
   Target, DollarSign, AlertTriangle, MapPin,
-  Navigation, TrendingUp, Wrench, Settings,
+  Navigation, TrendingUp, Wrench, Settings, ShieldAlert,
 } from 'lucide-react'
 
 export const TIPO_CONFIG = {
+  accion:        { color: '#f87171', Icon: ShieldAlert   },
   oportunidad:   { color: '#38bdf8', Icon: Target        },
   nomina:        { color: '#34d399', Icon: DollarSign    },
   vencimiento:   { color: '#fb923c', Icon: AlertTriangle },

@@ -1,8 +1,9 @@
 // src/components/NotifCenter.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TIPO_CONFIG } from '../utils/tipoNotif'
+import { agruparPorSeveridad } from '../utils/notifGrupos'
 import { tiempoRelativo } from '../utils/tiempoRelativo'
 
 // ─── NotifRow ───────────────────────────────────────────────────────────────
@@ -52,21 +53,6 @@ function NotifRow({ notif, onAction }) {
       </div>
     </button>
   )
-}
-
-// ─── Helpers de agrupación ───────────────────────────────────────────────────
-
-function agrupar(notifs) {
-  const hoy  = new Date(); hoy.setHours(0, 0, 0, 0)
-  const ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1)
-  const grupos = { hoy: [], ayer: [], anteriores: [] }
-  for (const n of notifs) {
-    const d = new Date(n.created_at)
-    if (d >= hoy)  grupos.hoy.push(n)
-    else if (d >= ayer) grupos.ayer.push(n)
-    else           grupos.anteriores.push(n)
-  }
-  return grupos
 }
 
 // ─── NotifCenter ─────────────────────────────────────────────────────────────
@@ -155,8 +141,13 @@ export default function NotifCenter({ unreadCount, onNav }) {
     await supabase.from('notificaciones').update({ leida: true }).eq('leida', false)
   }, [])
 
+  const verTodas = useCallback(() => {
+    onNav('notificaciones')
+    closePanel()
+  }, [onNav, closePanel])
+
   // ── Render ─────────────────────────────────────────────────────────────────
-  const grupos = useMemo(() => agrupar(notifs), [notifs])
+  const grupos = useMemo(() => agruparPorSeveridad(notifs), [notifs])
 
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -254,25 +245,44 @@ export default function NotifCenter({ unreadCount, onNav }) {
                 <span style={{ fontSize: 13 }}>No tenés notificaciones</span>
               </div>
             ) : (
-              [['Hoy', grupos.hoy], ['Ayer', grupos.ayer], ['Anteriores', grupos.anteriores]].map(
-                ([label, items]) => items.length === 0 ? null : (
-                  <div key={label}>
-                    <div style={{
-                      padding: '8px 16px 4px',
-                      fontSize: 10, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.08em',
-                      color: 'var(--text-3)',
-                    }}>
-                      {label}
-                    </div>
-                    {items.map(n => (
-                      <NotifRow key={n.id} notif={n} onAction={markRead} />
-                    ))}
+              grupos.map(g => (
+                <div key={g.key}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px 4px',
+                    fontSize: 10, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    color: 'var(--text-3)',
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+                    {g.label}
+                    <span style={{ color: 'var(--text-3)' }}>· {g.items.length}</span>
                   </div>
-                )
-              )
+                  {g.items.map(n => (
+                    <NotifRow key={n.id} notif={n} onAction={markRead} />
+                  ))}
+                </div>
+              ))
             )}
           </div>
+
+          {/* Footer */}
+          {notifs.length > 0 && (
+            <button
+              onClick={verTodas}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '11px 16px', flexShrink: 0,
+                background: 'none', border: 'none', borderTop: '1px solid var(--border)',
+                color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                transition: 'background 120ms ease-out',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+            >
+              Ver todas las notificaciones <ArrowRight size={13} />
+            </button>
+          )}
         </div>
       )}
     </div>

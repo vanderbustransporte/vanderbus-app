@@ -12,6 +12,7 @@ import SeguimientoGPS from './modules/SeguimientoGPS'
 import Usuarios from './modules/Usuarios'
 import Configuracion from './modules/Configuracion'
 import Contactos from './modules/Contactos'
+import Notificaciones from './modules/Notificaciones'
 import BackupBar from './modules/Backup'
 import { useStore, onStoreError } from './store/useStore'
 import { supabase } from './lib/supabase'
@@ -20,10 +21,12 @@ import ThemeToggle from './components/ThemeToggle'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
+import { useChequeoVencimientos } from './utils/chequeoVencimientos'
 import { Menu, LogOut, ChevronDown, AlertTriangle, Lock } from 'lucide-react'
 
 const TITULOS = {
   dashboard:     'Panel de control',
+  notificaciones: 'Notificaciones',
   viajes:        'Viajes',
   vehiculo:      'Flota',
   combustible:   'Combustible',
@@ -146,9 +149,12 @@ export default function App() {
   const { addToast } = useToast()
   const { puedeVer, esOwner } = useAuth()
 
+  // Genera notificaciones automáticas de vencimientos (VTV, seguro, service...).
+  useChequeoVencimientos()
+
   // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
   // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
-  const canView = (p) => OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
+  const canView = (p) => p === 'notificaciones' ? true : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
 
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')
@@ -207,6 +213,7 @@ export default function App() {
       <Sidebar
         active={page}
         onNav={setPage}
+        unreadCount={notifCount}
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
@@ -260,6 +267,7 @@ export default function App() {
           {!canView(page) ? <AccessDenied /> : (
             <>
               {page === 'dashboard'     && <Dashboard onNav={setPage} />}
+              {page === 'notificaciones' && <Notificaciones onNav={setPage} />}
               {page === 'vehiculo'      && <Vehiculo />}
               {page === 'combustible'   && <Combustible />}
               {page === 'mantenimiento' && <Mantenimiento />}

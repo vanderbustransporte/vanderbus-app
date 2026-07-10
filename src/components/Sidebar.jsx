@@ -2,7 +2,7 @@ import React from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
-  Settings, ChevronLeft, ChevronRight,
+  Settings, ChevronLeft, ChevronRight, Bell,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -11,6 +11,7 @@ const GROUPS = [
     label: 'Operación',
     items: [
       { id: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
+      { id: 'notificaciones', label: 'Notificaciones', icon: Bell, always: true },
       { id: 'viajes',        label: 'Viajes',        icon: MapPin },
       { id: 'vehiculo',      label: 'Flota',         icon: Truck },
       { id: 'combustible',   label: 'Combustible',   icon: Fuel },
@@ -44,11 +45,11 @@ const GROUPS = [
   },
 ]
 
-export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
+export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile, unreadCount = 0 }) {
   const { puedeVer, esOwner } = useAuth()
   const width = collapsed ? 64 : 240
 
-  const visible = (it) => (it.ownerOnly ? esOwner : puedeVer(it.id))
+  const visible = (it) => (it.always ? true : it.ownerOnly ? esOwner : puedeVer(it.id))
   const handleNav = (id) => { onNav(id); onCloseMobile?.() }
 
   return (
@@ -123,6 +124,7 @@ export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mo
                 <div className="px-2 flex flex-col gap-0.5">
                   {items.map(({ id, label, icon: Icon }) => {
                     const isActive = active === id
+                    const badge = id === 'notificaciones' ? unreadCount : 0
                     return (
                       <button
                         key={id}
@@ -147,6 +149,23 @@ export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mo
                         )}
                         <Icon size={17} style={{ flexShrink: 0 }} />
                         {!collapsed && <span className="truncate">{label}</span>}
+                        {badge > 0 && !collapsed && (
+                          <span style={{
+                            marginLeft: 'auto', flexShrink: 0,
+                            background: 'var(--accent)', color: 'var(--badge-text)',
+                            borderRadius: 9999, fontSize: 10, fontWeight: 700,
+                            padding: '0 6px', lineHeight: '16px', minWidth: 16, textAlign: 'center',
+                          }}>
+                            {badge > 99 ? '99+' : badge}
+                          </span>
+                        )}
+                        {badge > 0 && collapsed && (
+                          <span style={{
+                            position: 'absolute', top: 5, right: 12,
+                            width: 7, height: 7, borderRadius: '50%',
+                            background: 'var(--accent)', border: '1px solid var(--sb-bg)',
+                          }} />
+                        )}
                       </button>
                     )
                   })}
