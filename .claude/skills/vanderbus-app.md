@@ -163,7 +163,7 @@ update('vehiculos', data.vehiculos.map(v => v.id === id ? {...v, activo: false} 
 
 ---
 
-## Edge Function
+## Edge Functions
 
 **`Crear-Usuario`** (capitalización exacta, importante)
 
@@ -175,6 +175,20 @@ const { data, error } = await supabase.functions.invoke('Crear-Usuario', {
 ```
 
 Verifica que quien llama sea owner, crea auth.user + profile en la misma empresa.
+
+**`provisionar-empresa`** (código versionado en `supabase/functions/provisionar-empresa/`)
+
+Alta administrada y atómica de un cliente nuevo: crea auth.user del owner +
+`organizations` + `profiles` (owner) + `org_settings` (la parte SQL va en una
+transacción: función `provisionar_empresa()`, migración `20260710130200`, solo
+ejecutable por service_role). Solo puede invocarla un usuario con
+`app_metadata.superadmin = true` (flag que solo se setea con service_role/SQL).
+
+```js
+const { data, error } = await supabase.functions.invoke('provisionar-empresa', {
+  body: { empresa: 'Transportes X', email: 'owner@x.com', nombre: 'Juan' }
+}) // → { organization_id, user_id, email, password? }
+```
 
 ---
 
