@@ -23,7 +23,18 @@ const emptyPermisos = Object.fromEntries(SECCIONES.map(s => [s.id, 'ninguno']))
 
 function genPassword() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  // Se descartan los bytes del último bloque incompleto de 256: tomar el módulo
+  // directo sesgaría la distribución hacia los primeros caracteres del alfabeto.
+  const limite = 256 - (256 % chars.length)
+  const out = []
+  const buf = new Uint8Array(16)
+  while (out.length < 10) {
+    crypto.getRandomValues(buf)
+    for (const b of buf) {
+      if (b < limite && out.length < 10) out.push(chars[b % chars.length])
+    }
+  }
+  return out.join('')
 }
 
 function permisosSummary(permisos) {
