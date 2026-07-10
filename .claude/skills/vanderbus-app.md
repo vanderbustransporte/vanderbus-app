@@ -102,6 +102,8 @@ viajes_gps          (segmentos detectados) id, organization_id, ...
 
 **Nota:** la tabla `vehiculo` (singular, sin 's') es un vestigio de la versión anterior. No usarla para registros nuevos. La tabla activa es `vehiculos`.
 
+**Otras tablas vestigiales en Supabase (sin referencias en el código):** `ubicaciones` (la v1 del tracker GPS, reemplazada por `ubicaciones_gps`), `geofences` (experimento de geocercas, vacía) y `oportunidades` (leads scrapeados; el módulo quedó en spec y nunca se implementó). Las tres se cerraron con RLS + `tenant_isolation` en las migraciones de `supabase/migrations/` (2026-07-10). No reabrirlas ni usarlas sin pasar por RLS.
+
 ---
 
 ## RLS y seguridad
