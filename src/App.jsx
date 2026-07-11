@@ -22,6 +22,7 @@ import ThemeToggle from './components/ThemeToggle'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
+import { PAGE_FEATURE } from './utils/features'
 import { useChequeoVencimientos } from './utils/chequeoVencimientos'
 import { Menu, LogOut, ChevronDown, AlertTriangle, Lock } from 'lucide-react'
 
@@ -149,15 +150,17 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const { error, loading } = useStore()
   const { addToast } = useToast()
-  const { puedeVer, esOwner, esSuperadmin } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin, featureOn } = useAuth()
 
   // Genera notificaciones automáticas de vencimientos (VTV, seguro, service...).
   useChequeoVencimientos()
 
   // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
   // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
-  const canView = (p) =>
-    p === 'notificaciones' ? true : p === 'superadmin' ? esSuperadmin : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
+  const canView = (p) => {
+    if (PAGE_FEATURE[p] && !featureOn(PAGE_FEATURE[p])) return false
+    return p === 'notificaciones' ? true : p === 'superadmin' ? esSuperadmin : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
+  }
 
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')

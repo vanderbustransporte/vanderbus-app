@@ -16,9 +16,10 @@ const GROUPS = [
       { id: 'vehiculo',      label: 'Flota',         icon: Truck },
       { id: 'combustible',   label: 'Combustible',   icon: Fuel },
       { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench },
-      // GPS oculto hasta migrar ubicaciones_gps (falta organization_id + RLS:
-      // hoy filtra cross-tenant). El modulo y su ruta en App.jsx siguen vivos.
-      // { id: 'seguimiento',   label: 'GPS',           icon: Navigation },
+      // Gateado por feature flag (apagado por defecto): reemplaza el
+      // ocultar-por-codigo. ubicaciones_gps ya tiene RLS (migracion 120100);
+      // prenderlo por org desde el panel Empresas cuando el tracker este listo.
+      { id: 'seguimiento',   label: 'GPS',           icon: Navigation, feature: 'seguimiento' },
     ],
   },
   {
@@ -32,7 +33,7 @@ const GROUPS = [
   {
     label: 'Crecimiento',
     items: [
-      { id: 'marketing', label: 'Marketing', icon: Megaphone },
+      { id: 'marketing', label: 'Marketing', icon: Megaphone, feature: 'marketing' },
     ],
   },
   {
@@ -53,11 +54,15 @@ const GROUPS = [
 ]
 
 export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile, unreadCount = 0 }) {
-  const { puedeVer, esOwner, esSuperadmin } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin, featureOn } = useAuth()
   const width = collapsed ? 64 : 240
 
-  const visible = (it) =>
-    it.superadminOnly ? esSuperadmin : it.always ? true : it.ownerOnly ? esOwner : puedeVer(it.id)
+  // Un feature flag apagado oculta el item para toda la org (owner incluido);
+  // recien despues aplican los permisos por usuario.
+  const visible = (it) => {
+    if (it.feature && !featureOn(it.feature)) return false
+    return it.superadminOnly ? esSuperadmin : it.always ? true : it.ownerOnly ? esOwner : puedeVer(it.id)
+  }
   const handleNav = (id) => { onNav(id); onCloseMobile?.() }
 
   return (
