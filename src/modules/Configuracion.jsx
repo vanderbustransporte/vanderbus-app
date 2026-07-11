@@ -5,9 +5,10 @@ import { useToast } from '../context/ToastContext'
 import { Field, Input, BtnPrimary } from '../components/shared/Field'
 import { formatARS } from '../utils/format'
 import { calcularTarifa } from '../utils/tarifas'
-import { Settings, Check } from 'lucide-react'
+import { COLOR_HEX_RE } from '../utils/branding'
+import { Settings, Check, Truck } from 'lucide-react'
 
-const CAMPOS = ['tarifa_sin_peon', 'tarifa_con_peon', 'minimo_horas', 'porcentaje_sena', 'alias_bancario']
+const CAMPOS = ['tarifa_sin_peon', 'tarifa_con_peon', 'minimo_horas', 'porcentaje_sena', 'alias_bancario', 'logo_url', 'color_primario']
 
 // Extrae solo los campos que edita este formulario, con string vacío por defecto
 function pick(s) {
@@ -42,6 +43,10 @@ export default function Configuracion() {
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true) }
 
   const handleSave = async () => {
+    if (form.color_primario.trim() && !COLOR_HEX_RE.test(form.color_primario.trim())) {
+      addToast({ message: 'El color primario debe ser un hex tipo #2563EB', Icon: Settings, color: 'var(--danger)' })
+      return
+    }
     setSaving(true)
     // '' → null: evita mandar cadena vacía a columnas numéricas (Postgres las rechaza)
     const payload = Object.fromEntries(
@@ -108,11 +113,53 @@ export default function Configuracion() {
       </div>
 
       {/* ── Datos de cobro ── */}
-      <div className="surface db-in db-d2" style={{ padding: 24 }}>
+      <div className="surface db-in db-d2" style={{ padding: 24, marginBottom: 16 }}>
         <p className="db-slabel" style={{ marginBottom: 16 }}>Datos de cobro</p>
         <Field label="Alias bancario / CBU">
           <Input value={form.alias_bancario} onChange={e => set('alias_bancario', e.target.value)} placeholder="Ej: vanderbus.mp" />
         </Field>
+      </div>
+
+      {/* ── Marca ── */}
+      <div className="surface db-in db-d3" style={{ padding: 24 }}>
+        <p className="db-slabel" style={{ marginBottom: 16 }}>Marca</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="URL del logo">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {form.logo_url.trim() ? (
+                <img
+                  src={form.logo_url}
+                  alt=""
+                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+                  onError={e => { e.currentTarget.style.opacity = 0.25 }}
+                  onLoad={e => { e.currentTarget.style.opacity = 1 }}
+                />
+              ) : (
+                <div style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Truck size={16} style={{ color: 'var(--text-3)' }} />
+                </div>
+              )}
+              <Input value={form.logo_url} onChange={e => set('logo_url', e.target.value)} placeholder="https://…/logo.png" style={{ flex: 1 }} />
+            </div>
+          </Field>
+          <Field label="Color primario">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="color"
+                value={COLOR_HEX_RE.test(form.color_primario.trim()) ? form.color_primario.trim() : '#2563EB'}
+                onChange={e => set('color_primario', e.target.value)}
+                title="Elegir color"
+                style={{ width: 36, height: 36, padding: 2, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-elevated)', cursor: 'pointer', flexShrink: 0 }}
+              />
+              <Input value={form.color_primario} onChange={e => set('color_primario', e.target.value)} placeholder="#2563EB" style={{ flex: 1 }} />
+            </div>
+          </Field>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+          El logo y el nombre de la empresa aparecen en el menú lateral; el color primario
+          reemplaza el acento de toda la interfaz. Dejá los campos vacíos para volver al
+          aspecto por defecto.
+        </p>
       </div>
     </div>
   )

@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
   Settings, ChevronLeft, ChevronRight, Bell, Building2,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useStore } from '../store/useStore'
 
 const GROUPS = [
   {
@@ -54,8 +55,16 @@ const GROUPS = [
 ]
 
 export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile, unreadCount = 0 }) {
-  const { puedeVer, esOwner, esSuperadmin, featureOn } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin, featureOn, orgNombre } = useAuth()
+  const { data } = useStore()
   const width = collapsed ? 64 : 240
+
+  // Branding: logo y nombre de la empresa (org_settings.logo_url +
+  // organizations.nombre), con fallback al ícono y nombre del producto.
+  const logoUrl = data.orgSettings?.logo_url || ''
+  const [logoRoto, setLogoRoto] = useState(false)
+  useEffect(() => { setLogoRoto(false) }, [logoUrl])
+  const conLogo = logoUrl && !logoRoto
 
   // Un feature flag apagado oculta el item para toda la org (owner incluido);
   // recien despues aplican los permisos por usuario.
@@ -91,15 +100,25 @@ export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mo
             style={{ background: 'none', border: 'none', padding: 0, cursor: collapsed ? 'pointer' : 'default' }}
             title={collapsed ? 'Expandir menú' : undefined}
           >
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(255,255,255,0.12)' }}
-            >
-              <Truck size={16} style={{ color: 'var(--sb-logo)' }} />
-            </div>
+            {conLogo ? (
+              <img
+                src={logoUrl}
+                alt=""
+                onError={() => setLogoRoto(true)}
+                className="w-8 h-8 rounded-lg shrink-0"
+                style={{ objectFit: 'cover', background: 'rgba(255,255,255,0.12)' }}
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
+                <Truck size={16} style={{ color: 'var(--sb-logo)' }} />
+              </div>
+            )}
             {!collapsed && (
               <span className="font-bold text-sm truncate" style={{ color: 'var(--sb-logo)', letterSpacing: '-0.01em' }}>
-                Vanderbus
+                {orgNombre || 'Vanderbus'}
               </span>
             )}
           </button>

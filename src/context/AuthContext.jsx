@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [estadoSub, setEstadoSub] = useState(null)
-  const [features, setFeatures] = useState(null)
+  const [org, setOrg] = useState(null) // { nombre, features } de organizations
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
-      if (!newSession) { setProfile(null); setEstadoSub(null); setFeatures(null); setLoading(false) }
+      if (!newSession) { setProfile(null); setEstadoSub(null); setOrg(null); setLoading(false) }
     })
     return () => sub.subscription.unsubscribe()
   }, [])
@@ -34,16 +34,16 @@ export function AuthProvider({ children }) {
         .eq('id', session.user.id)
         .maybeSingle(),
       supabase.rpc('estado_suscripcion'),
-      // Feature flags de la propia org (RLS solo devuelve la fila propia).
-      supabase.from('organizations').select('features').maybeSingle(),
-    ]).then(([{ data: prof }, { data: estado }, { data: org }]) => {
+      // Nombre y feature flags de la propia org (RLS solo devuelve la fila propia).
+      supabase.from('organizations').select('nombre, features').maybeSingle(),
+    ]).then(([{ data: prof }, { data: estado }, { data: orgRow }]) => {
       if (cancelled) return
       setProfile(prof)
       // Sin RPC (migracion sin aplicar) o sin org: no bloquear desde el
       // frontend — la barrera real es RLS via current_org_id().
       setEstadoSub(estado ?? 'activa')
       // Sin columna (migracion sin aplicar) o sin org: featureOn usa defaults.
-      setFeatures(org?.features ?? null)
+      setOrg(orgRow ?? null)
       setLoading(false)
     })
     return () => { cancelled = true }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
   // Feature flag efectivo de la org (jsonb de organizations + defaults).
   // A diferencia de los permisos, un flag apagado oculta el modulo para
   // TODOS los usuarios de la org, incluido el owner.
-  const featureOn = (id) => featureEfectiva(features, id)
+  const featureOn = (id) => featureEfectiva(org?.features, id)
 
   const signIn  = (email, password) => supabase.auth.signInWithPassword({ email, password })
   const signOut = () => supabase.auth.signOut()
@@ -75,6 +75,7 @@ export function AuthProvider({ children }) {
         session,
         user: session?.user ?? null,
         profile, rol, permisos, esOwner, esSuperadmin, estadoSub,
+        orgNombre: org?.nombre ?? null,
         puedeVer, puedeEditar, featureOn,
         loading, signIn, signOut,
       }}

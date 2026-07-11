@@ -23,6 +23,7 @@ import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
 import { PAGE_FEATURE } from './utils/features'
+import { aplicarColorPrimario } from './utils/branding'
 import { useChequeoVencimientos } from './utils/chequeoVencimientos'
 import { Menu, LogOut, ChevronDown, AlertTriangle, Lock } from 'lucide-react'
 
@@ -148,12 +149,24 @@ function BackupPage() {
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
-  const { error, loading } = useStore()
+  const { data, error, loading } = useStore()
   const { addToast } = useToast()
-  const { puedeVer, esOwner, esSuperadmin, featureOn } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin, featureOn, orgNombre } = useAuth()
 
   // Genera notificaciones automáticas de vencimientos (VTV, seguro, service...).
   useChequeoVencimientos()
+
+  // Branding por empresa: color primario como acento + nombre en la pestaña.
+  // Al desloguear, App se desmonta y el cleanup restaura los defaults.
+  const colorPrimario = data?.orgSettings?.color_primario
+  useEffect(() => {
+    aplicarColorPrimario(colorPrimario)
+    return () => aplicarColorPrimario(null)
+  }, [colorPrimario])
+
+  useEffect(() => {
+    if (orgNombre) document.title = orgNombre
+  }, [orgNombre])
 
   // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
   // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
