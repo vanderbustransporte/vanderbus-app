@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
+import { supabase } from '../lib/supabase'
 import { formatARS, formatDate, monthName } from '../utils/format'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { TrendingUp, TrendingDown, Fuel, Wrench, DollarSign, Truck, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
@@ -64,86 +65,92 @@ function QuickBtn({ icon: Icon, label, onClick }) {
   )
 }
 
+// NOTA: el "Gastos del mes" del Dashboard es INTENCIONALMENTE mas amplio que el de
+// Finanzas. Finanzas solo suma el libro manual (tabla gastos + marketing); el Dashboard
+// suma TODOS los costos operativos: gastos + combustible + mantenimiento + nomina.
+// Por eso los dos numeros no coinciden y no deben coincidir. Esa definicion vive
+// ahora en la rpc dashboard_resumen() (y en el fallback local de aca abajo).
+
+const PIE_LABELS = { combustible: 'Combustible', mantenimiento: 'Mantenimiento', nomina: 'Nómina', otros: 'Otros' }
+
 export default function Dashboard({ onNav }) {
   const { data } = useStore()
-  const ingresos      = data.ingresos      || []
-  const gastos        = data.gastos        || []
-  const combustible   = data.combustible   || []
-  const mantenimiento = data.mantenimiento || []
-  const nomina        = data.nomina        || []
-  const vehiculo      = data.vehiculo      || {}
+  const vehiculo = data.vehiculo || {}
 
-  const now       = new Date()
-  const mesActual = now.toISOString().slice(0, 7)
-  const prevDate  = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const mesPasado = prevDate.toISOString().slice(0, 7)
+  // Agregaciones server-side (rpc dashboard_resumen; corre como el usuario, RLS
+  // filtra). Se refresca con cada cambio del store. Si el RPC falla (migracion
+  // sin aplicar) queda el calculo local sobre la ventana del store.
+  const [resumenRpc, setResumenRpc] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    supabase.rpc('dashboard_resumen').then(({ data: r, error }) => {
+      if (vivo && !error && r) setResumenRpc(r)
+    })
+    return () => { vivo = false }
+  }, [data])
 
-  const totalIngresosMes = useMemo(() =>
-    ingresos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0),
-    [ingresos, mesActual])
+  const resumenLocal = useMemo(() => {
+    const ingresos = data.ingresos || [], gastos = data.gastos || []
+    const combustible = data.combustible || [], mantenimiento = data.mantenimiento || []
+    const nomina = data.nomina || []
+    const sum = (rows, key, campo = 'importe') =>
+      rows.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r[campo]) || 0), 0)
+    const hoy = new Date()
+    const meses = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - 5 + i, 1)
+      const key = d.toISOString().slice(0, 7)
+      return {
+        mes: key,
+        ingresos: sum(ingresos, key),
+        gastos: sum(gastos, key) + sum(combustible, key) + sum(mantenimiento, key, 'costo') + sum(nomina, key),
+      }
+    })
+    const mesActual = meses[5].mes
+    const ultimo = (rows) => [...rows].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0] ?? null
+    return {
+      meses,
+      pie: {
+        combustible: sum(combustible, mesActual),
+        mantenimiento: sum(mantenimiento, mesActual, 'costo'),
+        nomina: sum(nomina, mesActual),
+        otros: sum(gastos, mesActual),
+      },
+      ultimos: { servicio: ultimo(ingresos), mantenimiento: ultimo(mantenimiento), nomina: ultimo(nomina) },
+    }
+  }, [data])
 
-  const totalIngresosMesPasado = useMemo(() =>
-    ingresos.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0),
-    [ingresos, mesPasado])
+  const resumen = resumenRpc ?? resumenLocal
+  const meses = resumen.meses ?? []
+  // La serie viene ascendente: el ultimo elemento es el mes actual.
+  const act = meses[meses.length - 1] ?? { ingresos: 0, gastos: 0 }
+  const ant = meses[meses.length - 2] ?? { ingresos: 0, gastos: 0 }
+  const totalIngresosMes       = act.ingresos
+  const totalIngresosMesPasado = ant.ingresos
 
-  // NOTA: el "Gastos del mes" del Dashboard es INTENCIONALMENTE mas amplio que el de
-  // Finanzas. Finanzas solo suma el libro manual (tabla gastos + marketing); el Dashboard
-  // suma TODOS los costos operativos: gastos + combustible + mantenimiento + nomina.
-  // Por eso los dos numeros no coinciden y no deben coincidir.
-  // El monto de combustible se lee de `importe` (el campo que guarda el modulo Combustible),
-  // no de `total`, que era una referencia vieja que hacia que el combustible sumara siempre 0.
-  const totalGastosMes = useMemo(() => {
-    const gBase = gastos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    const gComb = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
-    const gMant = mantenimiento.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
-    const gNom  = nomina.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    return gBase + gComb + gMant + gNom
-  }, [gastos, combustible, mantenimiento, nomina, mesActual])
-
-  const totalGastosMesPasado = useMemo(() => {
-    const gBase = gastos.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    const gComb = combustible.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
-    const gMant = mantenimiento.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
-    const gNom  = nomina.filter(r => r.fecha?.startsWith(mesPasado)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    return gBase + gComb + gMant + gNom
-  }, [gastos, combustible, mantenimiento, nomina, mesPasado])
-
-  const balance       = totalIngresosMes - totalGastosMes
-  const balancePasado = totalIngresosMesPasado - totalGastosMesPasado
+  const totalGastosMes         = act.gastos
+  const totalGastosMesPasado   = ant.gastos
+  const balance       = act.ingresos - act.gastos
+  const balancePasado = ant.ingresos - ant.gastos
 
   const barData = useMemo(() =>
-    Array.from({ length: 6 }, (_, i) => {
-      const d   = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
-      const key = d.toISOString().slice(0, 7)
-      const ing = ingresos.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-      const gas = gastos.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-        + combustible.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
-        + mantenimiento.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
-        + nomina.filter(r => r.fecha?.startsWith(key)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-      return { mes: monthName(d.getMonth()), Ingresos: ing, Gastos: gas }
-    }),
-    [ingresos, gastos, combustible, mantenimiento, nomina])
+    meses.map(m => ({
+      mes: monthName(parseInt(m.mes.slice(5), 10) - 1),
+      Ingresos: Number(m.ingresos) || 0,
+      Gastos: Number(m.gastos) || 0,
+    })),
+    [meses])
 
-  const pieData = useMemo(() => {
-    const combTotal  = combustible.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe)   || 0), 0)
-    const mantTotal  = mantenimiento.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.costo)  || 0), 0)
-    const nomTotal   = nomina.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    const otrosTotal = gastos.filter(r => r.fecha?.startsWith(mesActual)).reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
-    return [
-      { name: 'Combustible',   value: combTotal  },
-      { name: 'Mantenimiento', value: mantTotal  },
-      { name: 'Nómina',        value: nomTotal   },
-      { name: 'Otros',         value: otrosTotal },
-    ].filter(d => d.value > 0)
-  }, [combustible, mantenimiento, nomina, gastos, mesActual])
+  const pieData = useMemo(() =>
+    Object.entries(PIE_LABELS)
+      .map(([k, name]) => ({ name, value: Number(resumen.pie?.[k]) || 0 }))
+      .filter(d => d.value > 0),
+    [resumen])
 
-  const ultimoServicio = useMemo(() =>
-    [...ingresos].sort((a, b) => b.fecha?.localeCompare(a.fecha))[0], [ingresos])
-  const ultimoMant = useMemo(() =>
-    [...mantenimiento].sort((a, b) => b.fecha?.localeCompare(a.fecha))[0], [mantenimiento])
-  const ultimoNomina = useMemo(() =>
-    [...nomina].sort((a, b) => b.fecha?.localeCompare(a.fecha))[0], [nomina])
+  const ultimoServicio = resumen.ultimos?.servicio
+  const ultimoMant     = resumen.ultimos?.mantenimiento
+  const ultimoNomina   = resumen.ultimos?.nomina
 
+  const now = new Date()
   const fechaLargaRaw = now.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', '')
   const fechaLarga = fechaLargaRaw.charAt(0).toUpperCase() + fechaLargaRaw.slice(1)
 

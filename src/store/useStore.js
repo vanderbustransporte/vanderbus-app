@@ -5,6 +5,21 @@ import { genId } from '../utils/format'
 // Tablas que se manejan como arrays (vehiculo principal se deriva de la flota)
 const ARRAY_TABLES = ['combustible', 'mantenimiento', 'contactos', 'nomina', 'ingresos', 'gastos', 'marketing', 'viajes']
 
+// Ventana temporal: las tablas de movimientos cargan solo los ultimos N meses
+// (created_at es TEXT 'YYYY-MM-DD HH:mm:ss', compara bien como string).
+// contactos y vehiculos se cargan completos (son la agenda y la flota, no crecen
+// por dia); el Dashboard agrega server-side via rpc dashboard_resumen(), y el
+// export de Backup baja TODO fresco de la base, asi que nada depende de tener
+// la historia completa en memoria.
+const MESES_VENTANA = 24
+const TABLAS_VENTANA = ['combustible', 'mantenimiento', 'nomina', 'ingresos', 'gastos', 'marketing', 'viajes']
+
+function cutoffVentana() {
+  const d = new Date()
+  d.setMonth(d.getMonth() - MESES_VENTANA)
+  return d.toISOString().slice(0, 10)
+}
+
 const emptyVehiculo = {
   marca: '', modelo: '', anio: '', patente: '', motor: '', chasis: '',
   kilometraje: '', combustible: 'Gasoil', vtv: '', seguro: '',
@@ -90,15 +105,21 @@ async function loadFromSupabase() {
     const flota = flotaData || []
 
     // arrays (combustible ascendente, el resto descendente)
+    const cutoff = cutoffVentana()
     const arrays = await Promise.all(
-      ARRAY_TABLES.map(t =>
-        supabase
-          .from(t)
-          .select('*')
-          .eq('organization_id', orgId)
+      ARRAY_TABLES.map(t => {
+        let q = supabase.from(t).select('*').eq('organization_id', orgId)
+        if (t === 'mantenimiento') {
+          // Ventana + filas viejas con vencimiento programado: las necesita
+          // chequeoVencimientos aunque el registro tenga anios.
+          q = q.or(`created_at.gte.${cutoff},proximo_fecha.not.is.null,proximo_km.not.is.null`)
+        } else if (TABLAS_VENTANA.includes(t)) {
+          q = q.gte('created_at', cutoff)
+        }
+        return q
           .order('created_at', { ascending: t === 'combustible' })
           .then(r => r.data || [])
-      )
+      })
     )
 
     // configuracion de la empresa (fila unica en org_settings)
@@ -159,13 +180,46 @@ async function syncArray(table, oldArr, newArr) {
   }
 }
 
+// ── Realtime: reemplaza el poll ciego de 30s ──────────────────────────────────
+// Suscripcion a cambios de las tablas de la org (INSERT/UPDATE filtrados por
+// organization_id y ademas gateados por RLS en el server). Cualquier evento
+// dispara un refetch debounced. Los DELETE llegan SIN filtro (el evento solo
+// trae la PK, verificado empiricamente): tambien refrescan, con el costo menor
+// de algun refetch de mas si otra org borra filas — RLS sigue guardando los datos.
+let _channel = null
+let _reloadTimer = null
+
+function reloadDebounced() {
+  clearTimeout(_reloadTimer)
+  _reloadTimer = setTimeout(loadFromSupabase, 1500)
+}
+
+function suscribirRealtime(orgId) {
+  if (_channel || !orgId) return
+  let ch = supabase.channel(`org-data-${orgId}`)
+  for (const t of ['vehiculos', ...ARRAY_TABLES, 'org_settings']) {
+    ch = ch.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: t, filter: `organization_id=eq.${orgId}` },
+      reloadDebounced
+    )
+  }
+  _channel = ch.subscribe()
+}
+
+function desuscribirRealtime() {
+  if (_channel) { supabase.removeChannel(_channel); _channel = null }
+  clearTimeout(_reloadTimer)
+}
+
 // Cargar al haber sesion; limpiar al cerrar sesion
 supabase.auth.onAuthStateChange((event) => {
   if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
     _orgId = null
     _loading = true
-    loadFromSupabase()
+    loadFromSupabase().then(() => suscribirRealtime(_orgId))
   } else if (event === 'SIGNED_OUT') {
+    desuscribirRealtime()
     _orgId = null
     _data = { ...defaultData }
     _loading = false
@@ -173,7 +227,9 @@ supabase.auth.onAuthStateChange((event) => {
   }
 })
 
-setInterval(loadFromSupabase, 30000)
+// Poll de RESPALDO (antes era el mecanismo principal, cada 30s): cubre deletes
+// de otras sesiones y eventos Realtime perdidos por cortes de conexion.
+setInterval(loadFromSupabase, 300000)
 
 export function useStore() {
   const [, rerender] = useState(0)
@@ -235,8 +291,31 @@ export function useStore() {
     return { error }
   }, [])
 
-  const exportData = useCallback(() => {
-    const blob = new Blob([JSON.stringify(_data, null, 2)], { type: 'application/json' })
+  // El store en memoria solo tiene la ventana de MESES_VENTANA: el backup baja
+  // SIEMPRE la historia completa fresca de la base.
+  const exportData = useCallback(async () => {
+    const orgId = await ensureOrgId()
+    if (!orgId) return
+
+    const [{ data: flota }, ...resto] = await Promise.all([
+      supabase.from('vehiculos').select('*').eq('organization_id', orgId).order('created_at', { ascending: true }),
+      ...ARRAY_TABLES.map(t =>
+        supabase.from(t).select('*').eq('organization_id', orgId).order('created_at', { ascending: t === 'combustible' })
+      ),
+    ])
+    if (resto.some(r => r.error)) {
+      emitSaveError('No se pudo generar el backup completo. Reintentá.')
+      return
+    }
+
+    const completo = {
+      vehiculos: flota || [],
+      vehiculo: principal(flota || []),
+      ...Object.fromEntries(ARRAY_TABLES.map((t, i) => [t, resto[i].data || []])),
+      orgSettings: _data.orgSettings || {},
+    }
+
+    const blob = new Blob([JSON.stringify(completo, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
