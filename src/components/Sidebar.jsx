@@ -2,7 +2,7 @@ import React from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
-  Settings, ChevronLeft, ChevronRight, Bell,
+  Settings, ChevronLeft, ChevronRight, Bell, Building2,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -43,13 +43,21 @@ const GROUPS = [
       { id: 'backup',        label: 'Backup',        icon: Database, ownerOnly: true },
     ],
   },
+  {
+    // Grupo de plataforma (nosotros, no el cliente): solo con app_metadata.superadmin.
+    label: 'Plataforma',
+    items: [
+      { id: 'superadmin', label: 'Empresas', icon: Building2, superadminOnly: true },
+    ],
+  },
 ]
 
 export default function Sidebar({ active, onNav, collapsed, onToggleCollapse, mobileOpen, onCloseMobile, unreadCount = 0 }) {
-  const { puedeVer, esOwner } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin } = useAuth()
   const width = collapsed ? 64 : 240
 
-  const visible = (it) => (it.always ? true : it.ownerOnly ? esOwner : puedeVer(it.id))
+  const visible = (it) =>
+    it.superadminOnly ? esSuperadmin : it.always ? true : it.ownerOnly ? esOwner : puedeVer(it.id)
   const handleNav = (id) => { onNav(id); onCloseMobile?.() }
 
   return (

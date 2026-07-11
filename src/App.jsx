@@ -10,6 +10,7 @@ import Marketing from './modules/Marketing'
 import Viajes from './modules/Viajes'
 import SeguimientoGPS from './modules/SeguimientoGPS'
 import Usuarios from './modules/Usuarios'
+import Superadmin from './modules/Superadmin'
 import Configuracion from './modules/Configuracion'
 import Contactos from './modules/Contactos'
 import Notificaciones from './modules/Notificaciones'
@@ -39,6 +40,7 @@ const TITULOS = {
   usuarios:      'Usuarios',
   configuracion: 'Configuración',
   backup:        'Backup / Datos',
+  superadmin:    'Empresas',
 }
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
@@ -147,14 +149,15 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const { error, loading } = useStore()
   const { addToast } = useToast()
-  const { puedeVer, esOwner } = useAuth()
+  const { puedeVer, esOwner, esSuperadmin } = useAuth()
 
   // Genera notificaciones automáticas de vencimientos (VTV, seguro, service...).
   useChequeoVencimientos()
 
   // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
   // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
-  const canView = (p) => p === 'notificaciones' ? true : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
+  const canView = (p) =>
+    p === 'notificaciones' ? true : p === 'superadmin' ? esSuperadmin : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
 
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')
@@ -278,6 +281,7 @@ export default function App() {
               {page === 'seguimiento'   && <SeguimientoGPS />}
               {page === 'contactos'     && <Contactos />}
               {page === 'usuarios'      && <Usuarios />}
+              {page === 'superadmin'    && <Superadmin />}
               {page === 'configuracion' && <Configuracion />}
               {page === 'backup'        && <BackupPage />}
             </>

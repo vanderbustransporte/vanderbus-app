@@ -46,6 +46,10 @@ export function AuthProvider({ children }) {
   const rol = profile?.rol ?? null
   const permisos = profile?.permisos ?? {}
   const esOwner = rol === 'owner'
+  // Flag de plataforma (no de la empresa): solo se setea con service_role/SQL.
+  // Acá solo decide visibilidad de UI; la Edge Function re-valida contra la
+  // base con getUser(), así que un claim viejo del JWT no escala permisos.
+  const esSuperadmin = session?.user?.app_metadata?.superadmin === true
 
   // Helpers de permisos por seccion
   const puedeVer    = (mod) => esOwner || permisos[mod] === 'ver' || permisos[mod] === 'editar'
@@ -59,7 +63,7 @@ export function AuthProvider({ children }) {
       value={{
         session,
         user: session?.user ?? null,
-        profile, rol, permisos, esOwner, estadoSub,
+        profile, rol, permisos, esOwner, esSuperadmin, estadoSub,
         puedeVer, puedeEditar,
         loading, signIn, signOut,
       }}
