@@ -179,6 +179,81 @@ function calcularRango(periodo, fechaRef) {
   }
 }
 
+// ─── Capas de mapa ─────────────────────────────────────────────────────────────
+// Comparadas empíricamente sobre Lomas de Zamora (z14 y z16, 2026-07-12):
+// Esri World Street Map es la capa con más rutas nombradas y numeración vial
+// (datos comerciales Esri/HERE/Garmin) → default. OSM queda como alternativa
+// (más POIs) y el satélite de Esri como verdad de campo. CARTO Voyager se
+// descartó: casi sin detalle en AMBA a esos zooms.
+
+const CAPAS_MAPA = {
+  rutas: {
+    label: 'Rutas',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles © Esri — Esri, HERE, Garmin',
+    maxZoom: 19,
+  },
+  osm: {
+    label: 'OSM',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  },
+  satelite: {
+    label: 'Satélite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles © Esri — Maxar, Earthstar Geographics',
+    maxZoom: 19,
+  },
+}
+
+const CAPA_STORAGE_KEY = 'gps_capa_mapa'
+
+function useCapaMapa() {
+  const [capa, setCapa] = useState(() => {
+    const guardada = localStorage.getItem(CAPA_STORAGE_KEY)
+    return guardada in CAPAS_MAPA ? guardada : 'rutas'
+  })
+  const elegir = useCallback((id) => {
+    setCapa(id)
+    localStorage.setItem(CAPA_STORAGE_KEY, id)
+  }, [])
+  return [capa, elegir]
+}
+
+// key={capa} fuerza el remount del TileLayer al cambiar de proveedor.
+function CapaBase({ capa }) {
+  const { url, attribution, maxZoom } = CAPAS_MAPA[capa]
+  return <TileLayer key={capa} url={url} attribution={attribution} maxZoom={maxZoom} />
+}
+
+function SelectorCapa({ capa, onCapa }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 24, right: 12, zIndex: 900,
+      display: 'flex', gap: 2, padding: 3,
+      background: 'rgba(9,9,11,0.78)', backdropFilter: 'blur(6px)',
+      border: `1px solid ${C.border}`, borderRadius: 8,
+    }}>
+      {Object.entries(CAPAS_MAPA).map(([id, { label }]) => {
+        const active = capa === id
+        return (
+          <button key={id} onClick={() => onCapa(id)} style={{
+            padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, outline: 'none',
+            border: active ? '1px solid var(--accent-dim)' : '1px solid transparent',
+            background: active ? C.accentDim : 'transparent',
+            color: active ? C.accent : C.text2,
+            transition: 'background 100ms, color 100ms',
+          }}>
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Componente raíz ──────────────────────────────────────────────────────────
 
 const CENTER_ARG   = [-34.6037, -58.3816]
@@ -250,6 +325,7 @@ function TabSwitch({ tab, onTab, conDispositivos }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function VistaRealtime() {
+  const [capa, elegirCapa] = useCapaMapa()
   const [vehiculos, setVehiculos] = useState({})  // { dispositivo: last_row }
   const [rutas,     setRutas]     = useState({})  // { dispositivo: [{ lat, lon }] }
   const [flyTarget, setFlyTarget] = useState(null)
@@ -375,11 +451,7 @@ function VistaRealtime() {
         }}>
           <MapContainer center={CENTER_ARG} zoom={ZOOM_DEFAULT}
             style={{ position: 'absolute', inset: 0 }} zoomControl>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="© OpenStreetMap contributors"
-              maxZoom={19}
-            />
+            <CapaBase capa={capa} />
             <MapFlyTo target={flyTarget} />
 
             {/* Recorrido del día por dispositivo */}
@@ -412,6 +484,8 @@ function VistaRealtime() {
               </Marker>
             ))}
           </MapContainer>
+
+          <SelectorCapa capa={capa} onCapa={elegirCapa} />
         </div>
 
         {/* Panel lateral */}
@@ -474,6 +548,7 @@ function VistaRealtime() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function VistaHistorial() {
+  const [capa, elegirCapa] = useCapaMapa()
   const hoy = getHoyArgentina()
   const [periodo,     setPeriodo]     = useState('dia')
   const [fechaRef,    setFechaRef]    = useState(hoy)
@@ -599,11 +674,7 @@ function VistaHistorial() {
         }}>
           <MapContainer center={CENTER_ARG} zoom={ZOOM_DEFAULT}
             style={{ position: 'absolute', inset: 0 }} zoomControl>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="© OpenStreetMap contributors"
-              maxZoom={19}
-            />
+            <CapaBase capa={capa} />
             {viajes.length > 0 && !cargando && <MapFitBounds viajes={viajes} />}
             {flyTrip && <MapFlyToTrip target={flyTrip} />}
 
@@ -653,6 +724,8 @@ function VistaHistorial() {
                 ))}
             </div>
           )}
+
+          <SelectorCapa capa={capa} onCapa={elegirCapa} />
         </div>
 
         {/* Panel lateral */}
