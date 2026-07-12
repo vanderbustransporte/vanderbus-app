@@ -46,13 +46,13 @@ if (!URL_SB || !ANON) {
   process.exit(1)
 }
 
-// Las 19 tablas de public (mantener en sync con supabase/checks/rls_audit.sql).
+// Las 20 tablas de public (mantener en sync con supabase/checks/rls_audit.sql).
 const TABLAS = [
   'organizations', 'profiles', 'org_settings',
   'vehiculos', 'vehiculo', 'combustible', 'mantenimiento', 'viajes',
   'contactos', 'nomina', 'ingresos', 'gastos', 'marketing',
   'notificaciones', 'ubicaciones_gps', 'viajes_gps', 'ubicaciones',
-  'geofences', 'oportunidades',
+  'geofences', 'oportunidades', 'dispositivos_gps',
 ]
 
 // Tablas donde la org B DEBE verse solo a sí misma (1 fila propia, no 0).

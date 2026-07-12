@@ -3,10 +3,11 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import L from 'leaflet'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { detectarViajes } from '../utils/detectarViajes'
+import { useToast } from '../context/ToastContext'
 import {
   Navigation, Wifi, WifiOff, Clock, Gauge, Bus,
   History, Radio, MapPin, AlertCircle, Battery,
+  Smartphone, Plus, Copy, Power,
 } from 'lucide-react'
 
 const SIN_SENAL_MIN = 10  // minutos sin reporte → "sin señal"
@@ -185,6 +186,7 @@ const ZOOM_DEFAULT = 12
 
 export default function SeguimientoGPS() {
   const [tab, setTab] = useState('realtime')
+  const { esOwner } = useAuth()
 
   return (
     <div style={{
@@ -199,21 +201,23 @@ export default function SeguimientoGPS() {
           <Navigation size={18} style={{ color: C.accent }} />
           Seguimiento GPS
         </h1>
-        <TabSwitch tab={tab} onTab={setTab} />
+        <TabSwitch tab={tab} onTab={setTab} conDispositivos={esOwner} />
       </div>
 
-      {tab === 'realtime'  && <VistaRealtime />}
-      {tab === 'historial' && <VistaHistorial />}
+      {tab === 'realtime'     && <VistaRealtime />}
+      {tab === 'historial'    && <VistaHistorial />}
+      {tab === 'dispositivos' && esOwner && <VistaDispositivos />}
     </div>
   )
 }
 
 // ─── Tab switcher ─────────────────────────────────────────────────────────────
 
-function TabSwitch({ tab, onTab }) {
+function TabSwitch({ tab, onTab, conDispositivos }) {
   const tabs = [
     { id: 'realtime',  label: 'Tiempo real', Icon: Radio   },
     { id: 'historial', label: 'Historial',   Icon: History },
+    ...(conDispositivos ? [{ id: 'dispositivos', label: 'Dispositivos', Icon: Smartphone }] : []),
   ]
   return (
     <div style={{
@@ -470,8 +474,6 @@ function VistaRealtime() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function VistaHistorial() {
-  const { profile } = useAuth()
-  const orgId = profile?.organization_id ?? null
   const hoy = getHoyArgentina()
   const [periodo,     setPeriodo]     = useState('dia')
   const [fechaRef,    setFechaRef]    = useState(hoy)
@@ -483,6 +485,8 @@ function VistaHistorial() {
   const [cargando,    setCargando]    = useState(false)
   const [errorMsg,    setErrorMsg]    = useState(null)
 
+  // Los viajes ya vienen detectados por la Edge Function detectar-viajes-gps
+  // (cron cada 10 min). Acá solo se leen; RLS filtra por organización.
   useEffect(() => {
     async function cargar() {
       setCargando(true); setErrorMsg(null)
@@ -490,78 +494,29 @@ function VistaHistorial() {
 
       const { desde, hasta } = calcularRango(periodo, fechaRef)
 
-      const { data: pings, error } = await supabase
-        .from('ubicaciones_gps')
-        .select('dispositivo, lat, lon, velocidad, capturado_en')
-        .gte('capturado_en', desde.toISOString())
-        .lte('capturado_en', hasta.toISOString())
-        .order('capturado_en', { ascending: true })
+      const { data, error } = await supabase
+        .from('viajes_gps')
+        .select('patente, chofer, inicio, fin, duracion_seg, distancia_km, velocidad_max, recorrido')
+        .gte('inicio', desde.toISOString())
+        .lte('inicio', hasta.toISOString())
+        .order('inicio', { ascending: true })
 
       if (error) { setErrorMsg('Error cargando datos: ' + error.message); setCargando(false); return }
 
-      // Adaptar al formato que espera detectarViajes ({ patente, lat, lng, velocidad, created_at })
-      const data = (pings || []).map(p => ({
-        ...p,
-        patente:    p.dispositivo,
-        lng:        p.lon,
-        created_at: p.capturado_en,
+      const viajes = (data || []).map(v => ({
+        ...v,
+        duracion_seg:  parseInt(v.duracion_seg, 10) || 0,
+        distancia_km:  parseFloat(v.distancia_km) || 0,
+        velocidad_max: v.velocidad_max != null ? parseFloat(v.velocidad_max) : null,
+        recorrido:     Array.isArray(v.recorrido) ? v.recorrido : [],
       }))
 
-      const dispositivos = [...new Set(data.map(p => p.dispositivo))].sort()
-      setDispList(dispositivos)
-
-      const byDisp = {}
-      data.forEach(p => {
-        if (!byDisp[p.dispositivo]) byDisp[p.dispositivo] = []
-        byDisp[p.dispositivo].push(p)
-      })
-
-      let todosV = []
-      Object.values(byDisp).forEach(ps => {
-        todosV = [...todosV, ...detectarViajes(ps)]
-      })
-      todosV.sort((a, b) => new Date(a.inicio) - new Date(b.inicio))
-
-      // Persistir viajes nuevos en viajes_gps (dedup por patente+inicio)
-      if (todosV.length > 0) {
-        const { data: existentes } = await supabase
-          .from('viajes_gps')
-          .select('patente, inicio')
-          .gte('inicio', desde.toISOString())
-          .lte('inicio', hasta.toISOString())
-
-        const existSet = new Set(
-          (existentes || []).map(e => `${e.patente}|${new Date(e.inicio).getTime()}`)
-        )
-        const nuevos = todosV.filter(
-          v => !existSet.has(`${v.patente}|${new Date(v.inicio).getTime()}`)
-        )
-        if (nuevos.length > 0 && orgId) {
-          const { error: insErr } = await supabase.from('viajes_gps').insert(
-            nuevos.map(v => ({
-              organization_id: orgId,
-              patente:       v.patente,
-              chofer:        v.chofer || null,
-              inicio:        v.inicio,
-              fin:           v.fin,
-              duracion_seg:  v.duracion_seg,
-              distancia_km:  Math.round(v.distancia_km * 1000) / 1000,
-              velocidad_max: v.velocidad_max != null ? Math.round(v.velocidad_max * 10) / 10 : null,
-              recorrido:     v.recorrido,
-            }))
-          )
-          if (insErr) {
-            console.error('[viajes_gps] insert', insErr)
-            setErrorMsg('No se pudieron guardar los viajes detectados: ' + insErr.message)
-          }
-        }
-      }
-
-      setTodosViajes(todosV)
+      setDispList([...new Set(viajes.map(v => v.patente))].sort())
+      setTodosViajes(viajes)
       setCargando(false)
     }
     cargar()
-  }, [periodo, fechaRef, orgId])
+  }, [periodo, fechaRef])
 
   const viajes = useMemo(() => {
     if (!dispFilter) return todosViajes
@@ -754,7 +709,8 @@ function VistaHistorial() {
                 <MapPin size={28} style={{ color: C.text3, margin: '0 auto 10px', display: 'block' }} />
                 <p style={{ fontSize: 13, color: C.text2, margin: 0 }}>Sin viajes detectados</p>
                 <p style={{ fontSize: 12, color: C.text3, margin: '4px 0 0' }}>
-                  No hay recorridos en el período seleccionado
+                  No hay recorridos en el período seleccionado.
+                  La detección corre en el servidor cada 10 minutos.
                 </p>
               </div>
             )}
@@ -769,6 +725,212 @@ function VistaHistorial() {
             ))}
           </div>
         </aside>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VISTA DISPOSITIVOS (solo owner)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Alta y gestión de trackers. El token se genera acá (CSPRNG), en la base solo
+// se guarda su sha256, y se muestra en claro UNA sola vez para configurarlo en
+// el GPSLogger. La ingesta valida el token en la Edge Function gps-ingesta.
+
+const INGESTA_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gps-ingesta`
+
+function genToken() {
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function sha256Hex(texto) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto))
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function VistaDispositivos() {
+  const { profile } = useAuth()
+  const { addToast } = useToast()
+  const orgId = profile?.organization_id ?? null
+
+  const [dispositivos, setDispositivos] = useState([])
+  const [cargando,     setCargando]     = useState(true)
+  const [errorMsg,     setErrorMsg]     = useState(null)
+  const [alias,        setAlias]        = useState('')
+  const [creando,      setCreando]      = useState(false)
+  const [tokenNuevo,   setTokenNuevo]   = useState(null)  // { alias, token } — visible una sola vez
+
+  const cargar = useCallback(async () => {
+    setCargando(true); setErrorMsg(null)
+    const { data, error } = await supabase
+      .from('dispositivos_gps')
+      .select('id, alias, activo, ultimo_ping, created_at')
+      .order('created_at', { ascending: true })
+    if (error) setErrorMsg('Error cargando dispositivos: ' + error.message)
+    else setDispositivos(data || [])
+    setCargando(false)
+  }, [])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  async function crear(e) {
+    e.preventDefault()
+    const nombre = alias.trim()
+    if (!nombre || !orgId || creando) return
+    setCreando(true); setErrorMsg(null)
+
+    const token = genToken()
+    const { error } = await supabase.from('dispositivos_gps').insert({
+      organization_id: orgId,
+      alias: nombre,
+      token_hash: await sha256Hex(token),
+    })
+    if (error) {
+      setErrorMsg('No se pudo crear el dispositivo: ' + error.message)
+    } else {
+      setTokenNuevo({ alias: nombre, token })
+      setAlias('')
+      await cargar()
+    }
+    setCreando(false)
+  }
+
+  async function toggleActivo(d) {
+    const { error } = await supabase
+      .from('dispositivos_gps')
+      .update({ activo: !d.activo })
+      .eq('id', d.id)
+    if (error) { setErrorMsg('No se pudo actualizar: ' + error.message); return }
+    setDispositivos(prev => prev.map(x => x.id === d.id ? { ...x, activo: !d.activo } : x))
+  }
+
+  function copiar(texto, etiqueta) {
+    navigator.clipboard.writeText(texto)
+      .then(() => addToast({ message: `${etiqueta} copiado`, Icon: Copy, color: 'var(--accent)' }))
+      .catch(() => setErrorMsg('No se pudo copiar al portapapeles'))
+  }
+
+  return (
+    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        <p className="mod-sub" style={{ margin: 0 }}>
+          Cada tracker (celular con GPSLogger) usa un token propio para reportar posición.
+          El token se muestra una sola vez al crearlo y se puede revocar desactivando el dispositivo.
+        </p>
+
+        {errorMsg && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 8, fontSize: 13,
+            background: C.dangerDim, border: '1px solid var(--danger-dim)', color: C.danger,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <AlertCircle size={14} />{errorMsg}
+          </div>
+        )}
+
+        {/* Token recién generado: única vez que se ve en claro */}
+        {tokenNuevo && (
+          <div className="surface" style={{ padding: 16, border: '1px solid var(--accent-dim)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 8 }}>
+              Token de «{tokenNuevo.alias}» — guardalo ahora, no se vuelve a mostrar
+            </div>
+            {[
+              { etiqueta: 'Token',          valor: tokenNuevo.token },
+              { etiqueta: 'URL de ingesta', valor: INGESTA_URL },
+            ].map(({ etiqueta, valor }) => (
+              <div key={etiqueta} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <code style={{
+                  flex: 1, fontFamily: "'Geist Mono', monospace", fontSize: 12,
+                  padding: '7px 10px', borderRadius: 6, background: 'var(--bg-overlay)',
+                  color: C.text1, overflowX: 'auto', whiteSpace: 'nowrap',
+                }}>
+                  {valor}
+                </code>
+                <button onClick={() => copiar(valor, etiqueta)} title={`Copiar ${etiqueta.toLowerCase()}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px',
+                  borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  background: C.accentDim, border: '1px solid var(--accent-dim)', color: C.accent,
+                }}>
+                  <Copy size={12} />Copiar
+                </button>
+              </div>
+            ))}
+            <p style={{ fontSize: 12, color: C.text3, margin: '8px 0 0' }}>
+              En GPSLogger: Custom URL → método POST, header <code>x-device-token</code> con el token,
+              y la URL de arriba como destino.
+            </p>
+          </div>
+        )}
+
+        {/* Alta */}
+        <form onSubmit={crear} style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={alias}
+            onChange={e => setAlias(e.target.value)}
+            placeholder="Alias del dispositivo (ej: zebra-chofer1)"
+            style={{
+              flex: 1, padding: '8px 12px', borderRadius: 8, fontSize: 13,
+              background: C.surface, border: `1px solid ${C.border}`,
+              color: C.text1, outline: 'none',
+            }}
+          />
+          <button type="submit" className="glass-btn-primary" disabled={creando || !alias.trim()}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: creando || !alias.trim() ? 0.6 : 1 }}>
+            <Plus size={14} />{creando ? 'Creando...' : 'Agregar'}
+          </button>
+        </form>
+
+        {/* Listado */}
+        <div className="surface" style={{ overflow: 'hidden', padding: 0 }}>
+          {cargando && (
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: C.text2, fontSize: 13 }}>
+              Cargando...
+            </div>
+          )}
+          {!cargando && dispositivos.length === 0 && (
+            <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+              <Smartphone size={28} style={{ color: C.text3, margin: '0 auto 10px', display: 'block' }} />
+              <p style={{ fontSize: 13, color: C.text2, margin: 0 }}>Sin dispositivos</p>
+              <p style={{ fontSize: 12, color: C.text3, margin: '4px 0 0' }}>
+                Agregá el primero para obtener su token de ingesta
+              </p>
+            </div>
+          )}
+          {dispositivos.map((d, i) => (
+            <div key={d.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+              borderBottom: i < dispositivos.length - 1 ? `1px solid ${C.border}` : 'none',
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: d.activo ? 'var(--positive)' : C.inactive,
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, color: C.text1 }}>
+                  {d.alias}
+                </div>
+                <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>
+                  {d.ultimo_ping
+                    ? `Última señal hace ${tiempoDesde(d.ultimo_ping)}`
+                    : 'Nunca reportó'}
+                  {!d.activo && ' · desactivado (token revocado)'}
+                </div>
+              </div>
+              <button onClick={() => toggleActivo(d)} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px',
+                borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: d.activo ? 'transparent' : C.accentDim,
+                border: `1px solid ${d.activo ? C.border : 'var(--accent-dim)'}`,
+                color: d.activo ? C.text2 : C.accent,
+              }}>
+                <Power size={12} />{d.activo ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
