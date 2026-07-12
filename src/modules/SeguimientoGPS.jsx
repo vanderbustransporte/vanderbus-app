@@ -4,10 +4,12 @@ import L from 'leaflet'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { useStore } from '../store/useStore'
+import { formatARS } from '../utils/format'
 import {
   Navigation, Wifi, WifiOff, Clock, Gauge, Bus,
   History, Radio, MapPin, AlertCircle, Battery,
-  Smartphone, Plus, Copy, Power,
+  Smartphone, Plus, Copy, Power, Truck,
 } from 'lucide-react'
 
 const SIN_SENAL_MIN = 10  // minutos sin reporte → "sin señal"
@@ -44,27 +46,37 @@ const TRIP_COLORS = [
 
 // ─── Íconos de mapa ────────────────────────────────────────────────────────────
 
+// Pin de camión: caja redondeada con el camión recortado + cola de pin,
+// anclado en la punta (la punta señala la posición real del vehículo).
 function crearIcono(estado) {
   const esActivo  = estado === 'activo'
   const sinSenal  = estado === 'sinsenal'
   const color  = esActivo ? MAP_ACTIVE : sinSenal ? MAP_DANGER : MAP_INACTIVE
-  const bg     = esActivo ? 'rgba(56,189,248,0.16)' : sinSenal ? 'rgba(248,113,113,0.16)' : 'rgba(100,116,139,0.12)'
-  const border = esActivo ? 'rgba(56,189,248,0.55)' : sinSenal ? 'rgba(248,113,113,0.55)' : 'rgba(100,116,139,0.35)'
-  const glow   = esActivo ? 'rgba(56,189,248,0.22)' : sinSenal ? 'rgba(248,113,113,0.18)' : 'transparent'
+  const bg     = esActivo ? 'rgba(12,40,54,0.92)' : sinSenal ? 'rgba(54,18,18,0.92)' : 'rgba(24,28,36,0.92)'
+  const border = esActivo ? 'rgba(56,189,248,0.75)' : sinSenal ? 'rgba(248,113,113,0.75)' : 'rgba(100,116,139,0.45)'
+  const glow   = esActivo ? 'rgba(56,189,248,0.25)' : sinSenal ? 'rgba(248,113,113,0.20)' : 'transparent'
   return L.divIcon({
-    html: `<div style="width:36px;height:36px;background:${bg};border:1.5px solid ${border};
-        border-radius:10px;display:flex;align-items:center;justify-content:center;
-        backdrop-filter:blur(8px);box-shadow:0 0 0 5px ${glow},0 4px 16px rgba(0,0,0,0.45)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="${color}">
-          <path d="M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 001 1h1a1 1 0 001-1v-1h8v1a1 1 0
-            0 001 1h1a1 1 0 001-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8
-            4v10zm3.5 1a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm9 0a1.5 1.5 0 110-3 1.5 1.5 0
-            010 3zM4 11V6h16v5H4z"/>
-        </svg></div>`,
+    html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5))">
+        <div style="width:38px;height:38px;background:${bg};border:2px solid ${border};
+          border-radius:12px;display:flex;align-items:center;justify-content:center;
+          box-shadow:0 0 0 4px ${glow}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="${color}"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+            <path d="M15 18H9"/>
+            <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+            <circle cx="17" cy="18" r="2"/>
+            <circle cx="7" cy="18" r="2"/>
+          </svg>
+        </div>
+        <div style="width:0;height:0;margin-top:-2px;
+          border-left:7px solid transparent;border-right:7px solid transparent;
+          border-top:9px solid ${border}"></div>
+      </div>`,
     className: '',
-    iconSize:    [36, 36],
-    iconAnchor:  [18, 18],
-    popupAnchor: [0, -22],
+    iconSize:    [38, 49],
+    iconAnchor:  [19, 49],
+    popupAnchor: [0, -52],
   })
 }
 
@@ -254,6 +266,148 @@ function SelectorCapa({ capa, onCapa }) {
   )
 }
 
+// ─── Vínculo dispositivo → vehículo y ficha del viaje ─────────────────────────
+// El tracker se asocia a un vehículo desde la pestaña Dispositivos
+// (dispositivos_gps.vehiculo_id). Con ese vínculo, el click en cualquier punto
+// de una ruta muestra la ficha del camión + métricas del viaje + consumo
+// estimado. El consumo se calcula del histórico REAL de cargas de combustible
+// (litros / km entre la primera y la última carga con odómetro). Los datos de
+// carga (peso, volumen, contenedor, vuelta en vacío) se cargarán desde el
+// futuro módulo de cargas y acá quedan señalizados como pendientes.
+
+function useDispositivosGps() {
+  const [dispositivos, setDispositivos] = useState([])
+  useEffect(() => {
+    let vivo = true
+    supabase
+      .from('dispositivos_gps')
+      .select('id, alias, vehiculo_id, activo, ultimo_ping')
+      .then(({ data }) => { if (vivo) setDispositivos(data || []) })
+    return () => { vivo = false }
+  }, [])
+  return dispositivos
+}
+
+function vehiculoDeAlias(alias, dispositivos, vehiculos) {
+  const disp = (dispositivos || []).find(d => d.alias === alias)
+  if (!disp?.vehiculo_id) return null
+  return (vehiculos || []).find(v => v.id === disp.vehiculo_id) || null
+}
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R  = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// Rendimiento histórico en L/km: litros cargados entre la primera y la última
+// carga con odómetro, dividido por los km recorridos entre ambas. Null si no
+// hay al menos 2 cargas con km (o menos de 50 km entre ellas).
+function rendimientoLxKm(cargas) {
+  const filas = (cargas || [])
+    .map(c => ({ km: parseFloat(c.km) || 0, litros: parseFloat(c.litros) || 0 }))
+    .filter(c => c.km > 0 && c.litros > 0)
+    .sort((a, b) => a.km - b.km)
+  if (filas.length < 2) return null
+  const deltaKm = filas[filas.length - 1].km - filas[0].km
+  if (deltaKm < 50) return null
+  const litros = filas.slice(1).reduce((s, c) => s + c.litros, 0)
+  return litros / deltaKm
+}
+
+function precioLitroReciente(cargas) {
+  const conPrecio = (cargas || [])
+    .filter(c => (parseFloat(c.precio_litro) || 0) > 0)
+    .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
+  return conPrecio.length ? parseFloat(conPrecio[conPrecio.length - 1].precio_litro) : null
+}
+
+// Ficha que se abre al hacer click sobre la ruta (o el pin).
+function FichaViaje({ alias, vehiculo, cargas, distanciaKm, stats }) {
+  const rend   = vehiculo ? rendimientoLxKm(cargas) : null
+  const precio = vehiculo ? precioLitroReciente(cargas) : null
+  const litros = rend != null && distanciaKm > 0 ? rend * distanciaKm : null
+
+  const filaInfo = (label, value) => (
+    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '3px 0' }}>
+      <span style={{ color: C.text3 }}>{label}</span>
+      <span style={{ color: C.text1, fontWeight: 600, textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+
+  return (
+    <div style={{ minWidth: 230, maxWidth: 260 }}>
+      {/* Encabezado: vehículo o tracker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+        <Truck size={14} style={{ color: C.accent, flexShrink: 0 }} />
+        <span style={{ fontWeight: 700, fontSize: 13, color: C.text1 }}>
+          {vehiculo ? `${vehiculo.marca || ''} ${vehiculo.modelo || ''}`.trim() || vehiculo.alias : alias}
+        </span>
+        {vehiculo?.patente && (
+          <span style={{
+            marginLeft: 'auto', fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700,
+            padding: '2px 7px', borderRadius: 4, background: 'var(--accent-dim)', color: C.accent,
+          }}>
+            {vehiculo.patente}
+          </span>
+        )}
+      </div>
+
+      {/* Métricas del viaje */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 8 }}>
+        {stats.map(({ label, value }) => (
+          <div key={label} style={{ background: 'var(--bg-overlay)', borderRadius: 6, padding: '6px 8px' }}>
+            <div style={{ fontSize: 10, color: C.text3, marginBottom: 2 }}>{label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text1 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {vehiculo ? (
+        <>
+          {/* Datos del camión */}
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 6, marginBottom: 6 }}>
+            {vehiculo.capacidad   && filaInfo('Capacidad', vehiculo.capacidad)}
+            {vehiculo.combustible && filaInfo('Combustible', vehiculo.combustible)}
+            {vehiculo.anio        && filaInfo('Año', vehiculo.anio)}
+            {vehiculo.kilometraje && filaInfo('Odómetro', `${Number(vehiculo.kilometraje).toLocaleString('es-AR')} km`)}
+          </div>
+
+          {/* Consumo estimado */}
+          <div style={{ background: 'var(--accent-dim)', borderRadius: 6, padding: '7px 9px', marginBottom: 6 }}>
+            <div style={{ fontSize: 10, color: C.text3, marginBottom: 2 }}>CONSUMO ESTIMADO DEL VIAJE</div>
+            {litros != null ? (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>
+                  ≈ {litros.toFixed(1)} L{precio != null ? ` · ${formatARS(litros * precio)}` : ''}
+                </div>
+                <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>
+                  {(rend * 100).toFixed(1)} L/100km según cargas reales de combustible
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 11, color: C.text2 }}>
+                Sin cargas de combustible suficientes para estimar
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize: 11, color: C.warning ?? 'var(--warning)', background: 'var(--bg-overlay)', borderRadius: 6, padding: '7px 9px', marginBottom: 6 }}>
+          Tracker sin vehículo asignado — asignalo en la pestaña Dispositivos
+        </div>
+      )}
+
+      <div style={{ fontSize: 10, color: C.text3 }}>
+        Carga, peso, volumen y retorno en vacío: pendientes del módulo de cargas.
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente raíz ──────────────────────────────────────────────────────────
 
 const CENTER_ARG   = [-34.6037, -58.3816]
@@ -326,6 +480,8 @@ function TabSwitch({ tab, onTab, conDispositivos }) {
 
 function VistaRealtime() {
   const [capa, elegirCapa] = useCapaMapa()
+  const { data } = useStore()
+  const dispositivos = useDispositivosGps()
   const [vehiculos, setVehiculos] = useState({})  // { dispositivo: last_row }
   const [rutas,     setRutas]     = useState({})  // { dispositivo: [{ lat, lon }] }
   const [flyTarget, setFlyTarget] = useState(null)
@@ -454,35 +610,56 @@ function VistaRealtime() {
             <CapaBase capa={capa} />
             <MapFlyTo target={flyTarget} />
 
-            {/* Recorrido del día por dispositivo */}
+            {/* Recorrido del día por dispositivo — click en la línea = ficha */}
             {Object.entries(rutas).map(([disp, puntos]) => {
               if (puntos.length < 2) return null
               const isSel = selected === disp
+              const vehiculo = vehiculoDeAlias(disp, dispositivos, data.vehiculos)
+              const cargas   = vehiculo ? (data.combustible || []).filter(c => c.vehiculo_id === vehiculo.id) : []
+              let km = 0
+              for (let i = 1; i < puntos.length; i++) {
+                km += haversineKm(puntos[i - 1].lat, puntos[i - 1].lon, puntos[i].lat, puntos[i].lon)
+              }
               return (
                 <Polyline
                   key={`ruta-${disp}`}
                   positions={puntos.map(p => [p.lat, p.lon])}
+                  clickTolerance={14}
                   pathOptions={{
                     color:     MAP_ACTIVE,
-                    opacity:   isSel ? 0.85 : 0.28,
-                    weight:    isSel ? 4 : 2,
+                    opacity:   isSel ? 0.85 : 0.35,
+                    weight:    isSel ? 5 : 4,
                     dashArray: isSel ? null : '6 5',
                   }}
-                />
+                  eventHandlers={{ click: () => setSelected(disp) }}
+                >
+                  <Popup>
+                    <FichaViaje
+                      alias={disp} vehiculo={vehiculo} cargas={cargas} distanciaKm={km}
+                      stats={[
+                        { label: 'RECORRIDO HOY', value: `${km.toFixed(1)} km` },
+                        { label: 'REPORTES',      value: puntos.length },
+                      ]}
+                    />
+                  </Popup>
+                </Polyline>
               )
             })}
 
             {/* Marcadores: última posición por dispositivo */}
-            {lista.map(v => (
-              <Marker
-                key={v.dispositivo}
-                position={[v.lat, v.lon]}
-                icon={crearIcono(estadoDisp(v.capturado_en))}
-                eventHandlers={{ click: () => setSelected(v.dispositivo) }}
-              >
-                <Popup><PopupContent v={v} /></Popup>
-              </Marker>
-            ))}
+            {lista.map(v => {
+              const vehiculo = vehiculoDeAlias(v.dispositivo, dispositivos, data.vehiculos)
+              return (
+                <Marker
+                  key={v.dispositivo}
+                  position={[v.lat, v.lon]}
+                  icon={crearIcono(estadoDisp(v.capturado_en))}
+                  eventHandlers={{ click: () => setSelected(v.dispositivo) }}
+                >
+                  <Popup><PopupContent v={v} vehiculo={vehiculo} /></Popup>
+                </Marker>
+              )
+            })}
           </MapContainer>
 
           <SelectorCapa capa={capa} onCapa={elegirCapa} />
@@ -549,6 +726,8 @@ function VistaRealtime() {
 
 function VistaHistorial() {
   const [capa, elegirCapa] = useCapaMapa()
+  const { data } = useStore()
+  const dispositivos = useDispositivosGps()
   const hoy = getHoyArgentina()
   const [periodo,     setPeriodo]     = useState('dia')
   const [fechaRef,    setFechaRef]    = useState(hoy)
@@ -682,15 +861,32 @@ function VistaHistorial() {
               const color   = TRIP_COLORS[idx % TRIP_COLORS.length]
               const isSel   = viajeIdx === idx
               const opacity = viajeIdx === null ? 0.75 : isSel ? 1 : 0.22
-              const weight  = viajeIdx === null ? 3    : isSel ? 5 : 2
+              const weight  = viajeIdx === null ? 4    : isSel ? 6 : 3
               const coords  = viaje.recorrido.map(p => [p.lat, p.lng])
+              const vehiculo = vehiculoDeAlias(viaje.patente, dispositivos, data.vehiculos)
+              const cargas   = vehiculo ? (data.combustible || []).filter(c => c.vehiculo_id === vehiculo.id) : []
               return (
                 <React.Fragment key={idx}>
                   <Polyline
                     positions={coords}
+                    clickTolerance={14}
                     pathOptions={{ color, opacity, weight }}
                     eventHandlers={{ click: () => onSelectTrip(idx) }}
-                  />
+                  >
+                    {/* Click en cualquier punto de la ruta → ficha del viaje */}
+                    <Popup>
+                      <FichaViaje
+                        alias={viaje.patente} vehiculo={vehiculo} cargas={cargas}
+                        distanciaKm={viaje.distancia_km}
+                        stats={[
+                          { label: 'HORARIO',   value: `${fmtHora(viaje.inicio)} → ${fmtHora(viaje.fin)}` },
+                          { label: 'DURACIÓN',  value: fmtDuracion(viaje.duracion_seg) },
+                          { label: 'DISTANCIA', value: `${viaje.distancia_km.toFixed(2)} km` },
+                          { label: 'VEL. MÁX',  value: fmtVel(viaje.velocidad_max) },
+                        ]}
+                      />
+                    </Popup>
+                  </Polyline>
                   <Marker position={coords[0]}                 icon={ICONO_INICIO} />
                   <Marker position={coords[coords.length - 1]} icon={ICONO_FIN}    />
                 </React.Fragment>
@@ -826,7 +1022,9 @@ async function sha256Hex(texto) {
 function VistaDispositivos() {
   const { profile } = useAuth()
   const { addToast } = useToast()
+  const { data } = useStore()
   const orgId = profile?.organization_id ?? null
+  const flota = (data.vehiculos || []).filter(v => v.activo !== false)
 
   const [dispositivos, setDispositivos] = useState([])
   const [cargando,     setCargando]     = useState(true)
@@ -839,7 +1037,7 @@ function VistaDispositivos() {
     setCargando(true); setErrorMsg(null)
     const { data, error } = await supabase
       .from('dispositivos_gps')
-      .select('id, alias, activo, ultimo_ping, created_at')
+      .select('id, alias, activo, ultimo_ping, vehiculo_id, created_at')
       .order('created_at', { ascending: true })
     if (error) setErrorMsg('Error cargando dispositivos: ' + error.message)
     else setDispositivos(data || [])
@@ -877,6 +1075,19 @@ function VistaDispositivos() {
       .eq('id', d.id)
     if (error) { setErrorMsg('No se pudo actualizar: ' + error.message); return }
     setDispositivos(prev => prev.map(x => x.id === d.id ? { ...x, activo: !d.activo } : x))
+  }
+
+  // Vincula el tracker con un vehículo de la flota: es lo que permite que el
+  // mapa muestre la ficha del camión (y el consumo estimado) al tocar la ruta.
+  async function asignarVehiculo(d, vehiculoId) {
+    const valor = vehiculoId || null
+    const { error } = await supabase
+      .from('dispositivos_gps')
+      .update({ vehiculo_id: valor })
+      .eq('id', d.id)
+    if (error) { setErrorMsg('No se pudo asignar el vehículo: ' + error.message); return }
+    setDispositivos(prev => prev.map(x => x.id === d.id ? { ...x, vehiculo_id: valor } : x))
+    addToast({ message: valor ? 'Vehículo asignado' : 'Vehículo desvinculado', Icon: Truck, color: 'var(--accent)' })
   }
 
   function copiar(texto, etiqueta) {
@@ -992,6 +1203,23 @@ function VistaDispositivos() {
                   {!d.activo && ' · desactivado (token revocado)'}
                 </div>
               </div>
+              <select
+                value={d.vehiculo_id || ''}
+                onChange={e => asignarVehiculo(d, e.target.value)}
+                title="Vehículo que lleva este tracker"
+                style={{
+                  padding: '5px 8px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+                  maxWidth: 190, background: C.overlay, border: `1px solid ${C.border}`,
+                  color: d.vehiculo_id ? C.text1 : C.text3, outline: 'none', cursor: 'pointer',
+                }}
+              >
+                <option value="">Sin vehículo</option>
+                {flota.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {`${v.marca || ''} ${v.modelo || ''}`.trim() || v.alias || v.patente}{v.patente ? ` (${v.patente})` : ''}
+                  </option>
+                ))}
+              </select>
               <button onClick={() => toggleActivo(d)} style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px',
                 borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -1073,7 +1301,7 @@ function VehicleRow({ v, estado, esSel, onClick }) {
   )
 }
 
-function PopupContent({ v }) {
+function PopupContent({ v, vehiculo }) {
   const estado   = estadoDisp(v.capturado_en)
   const activo   = estado === 'activo'
   const sinSenal = estado === 'sinsenal'
@@ -1090,7 +1318,7 @@ function PopupContent({ v }) {
   return (
     <div style={{ minWidth: 190 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-        <Bus size={13} style={{ color: mainColor, flexShrink: 0 }} />
+        <Truck size={13} style={{ color: mainColor, flexShrink: 0 }} />
         <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: mainColor }}>
           {v.dispositivo}
         </span>
@@ -1104,6 +1332,22 @@ function PopupContent({ v }) {
           {label}
         </span>
       </div>
+
+      {vehiculo && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 12, color: C.text2 }}>
+          <span style={{ fontWeight: 600, color: C.text1 }}>
+            {`${vehiculo.marca || ''} ${vehiculo.modelo || ''}`.trim() || vehiculo.alias}
+          </span>
+          {vehiculo.patente && (
+            <span style={{
+              marginLeft: 'auto', fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700,
+              padding: '1px 6px', borderRadius: 4, background: 'var(--accent-dim)', color: C.accent,
+            }}>
+              {vehiculo.patente}
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 8 }}>
         {statCells.map(({ label: l, value }) => (
