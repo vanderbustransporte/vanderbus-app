@@ -154,6 +154,17 @@ try {
     check(!!d?.ultimo_ping, 'ultimo_ping actualizado')
   }
   {
+    // GPSLogger manda %SPD en m/s → la función convierte a km/h.
+    const capturado = new Date(Date.now() - 50_000).toISOString()
+    const r = await postIngesta(token, {
+      lat: -34.77, lon: -58.37, velocidad_ms: 25, capturado_en: capturado,
+    })
+    check(r.status === 201, `ping con velocidad_ms → 201 (dio ${r.status})`)
+    const { data } = await orgB
+      .from('ubicaciones_gps').select('velocidad').eq('capturado_en', capturado)
+    check(data?.[0]?.velocidad === 90, `velocidad_ms 25 m/s se guardó como 90 km/h (dio ${data?.[0]?.velocidad})`)
+  }
+  {
     await orgB.from('dispositivos_gps').update({ activo: false }).eq('alias', ALIAS_PRUEBA)
     const r = await postIngesta(token, { lat: -34.77, lon: -58.37 })
     check(r.status === 401, `dispositivo desactivado → 401 (revocación) (dio ${r.status})`)

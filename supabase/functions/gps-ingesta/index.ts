@@ -14,9 +14,11 @@
 // Config del GPSLogger (Custom URL):
 //   URL:     https://<proyecto>.supabase.co/functions/v1/gps-ingesta
 //   Método:  POST  ·  Header: x-device-token: <token>
-//   Body JSON: { "lat": %LAT, "lon": %LON, "velocidad": <km/h>,
+//   Body JSON: { "lat": %LAT, "lon": %LON, "velocidad_ms": %SPD,
 //                "precision_m": %ACC, "bateria": %BATT, "capturado_en": "%TIME" }
-//   (mismo contrato que el POST viejo a /rest/v1; `dispositivo` ya no hace falta)
+//   %SPD viene en m/s; la función lo convierte a km/h. Si otro tracker ya
+//   manda km/h puede usar el campo `velocidad` (tiene prioridad sobre
+//   `velocidad_ms`). `dispositivo` ya no hace falta: sale del token.
 //
 // Deploy: dashboard → Edge Functions → "gps-ingesta" → pegar este archivo y
 // APAGAR "Verify JWT with legacy secret" (el tracker no manda JWT). O con CLI:
@@ -74,12 +76,18 @@ Deno.serve(async (req) => {
     }
 
     const capturadoEn = campo('capturado_en')
+    // GPSLogger manda %SPD en m/s y su template no puede hacer aritmética:
+    // aceptamos `velocidad_ms` y convertimos acá. `velocidad` (km/h) manda
+    // si vienen las dos.
+    const velMs = num(campo('velocidad_ms'))
+    const velocidad =
+      num(campo('velocidad')) ?? (velMs != null ? Math.round(velMs * 36) / 10 : null)
     const ping = {
       organization_id: disp.organization_id,
       dispositivo:     disp.alias,
       lat,
       lon,
-      velocidad:    num(campo('velocidad')),
+      velocidad,
       precision_m:  num(campo('precision_m')),
       bateria:      num(campo('bateria')),
       capturado_en:
