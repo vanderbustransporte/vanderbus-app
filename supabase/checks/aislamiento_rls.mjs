@@ -56,7 +56,9 @@ const TABLAS = [
 ]
 
 // Tablas donde la org B DEBE verse solo a sí misma (1 fila propia, no 0).
-const FILA_PROPIA = { profiles: 1, organizations: 1, org_settings: 1 }
+// profiles se valida aparte (por contenido, no por conteo): la org B puede tener
+// varios usuarios (owner + staff de prueba) y todos deben ser de su propia org.
+const FILA_PROPIA = { organizations: 1, org_settings: 1 }
 
 let fallas = 0
 const ok   = (msg) => console.log(`  ✓ ${msg}`)
@@ -122,8 +124,9 @@ async function pasadaOrgB() {
   }
 
   const sb = createClient(URL_SB, ANON, { auth: { persistSession: false } })
-  const { error: eIn } = await sb.auth.signInWithPassword({ email, password })
+  const { data: sesion, error: eIn } = await sb.auth.signInWithPassword({ email, password })
   if (eIn) { fail(`login org B falló: ${eIn.message}`); return }
+  const uid = sesion.user.id
 
   // Si el usuario quedó confirmado pero sin empresa (--provision cortado por la
   // confirmación de email), completar acá la provisión.
@@ -137,8 +140,22 @@ async function pasadaOrgB() {
     console.log(`\n(Provisión completada: org B creada → ${orgId})`)
   }
 
+  // Empresa del usuario logueado (por su id: la org B puede tener varios perfiles).
+  const { data: prof } = await sb.from('profiles').select('organization_id').eq('id', uid).single()
+  const miOrg = prof?.organization_id
+
   console.log('\n[2/3] Lectura CROSS-TENANT (logueado como org B):')
   for (const t of TABLAS) {
+    if (t === 'profiles') {
+      // No se valida por conteo (org B tiene owner + staff) sino por contenido:
+      // ningún perfil visible puede ser de otra empresa.
+      const { data: perfiles, error } = await sb.from('profiles').select('organization_id')
+      if (error) { ok(`profiles: denegada (${error.code ?? error.message})`); continue }
+      const ajenos = (perfiles || []).filter(p => p.organization_id !== miOrg).length
+      if (ajenos === 0) ok(`profiles: ${perfiles.length} propio(s), 0 de otra org`)
+      else fail(`profiles: ${ajenos} perfil(es) de otra org — FUGA`)
+      continue
+    }
     const esperado = FILA_PROPIA[t] ?? 0
     const { count, error } = await sb.from(t).select('*', { count: 'exact', head: true })
     if (error) {
@@ -156,8 +173,6 @@ async function pasadaOrgB() {
   else if (estado === 'activa') ok(`estado_suscripcion() = 'activa'`)
   else fail(`estado_suscripcion() = '${estado}' (¿org B suspendida?)`)
 
-  const { data: prof } = await sb.from('profiles').select('organization_id').single()
-  const miOrg = prof?.organization_id
   const marca = `[test-rls ${new Date().toISOString()}]`
 
   // (a) Insert SIN organization_id → el with check de tenant_isolation debe
