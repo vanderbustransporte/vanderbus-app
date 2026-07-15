@@ -6,18 +6,30 @@ export default function BackupBar() {
   const { exportData, importData } = useStore()
   const fileRef = useRef()
   const [status, setStatus] = useState(null)
+  const [pendiente, setPendiente] = useState(null) // archivo elegido, esperando confirmación
+  const [importando, setImportando] = useState(false)
 
-  const handleImport = async (e) => {
+  const handleFile = (e) => {
     const file = e.target.files[0]
-    if (!file) return
+    e.target.value = ''
+    if (file) {
+      setStatus(null)
+      setPendiente(file)
+    }
+  }
+
+  const confirmarImport = async () => {
+    setImportando(true)
     try {
-      await importData(file)
-      setStatus({ type: 'ok', msg: 'Datos importados correctamente' })
+      const resumen = await importData(pendiente)
+      const total = Object.values(resumen || {}).reduce((a, b) => a + (b || 0), 0)
+      setStatus({ type: 'ok', msg: `Backup importado: ${total} registros` })
     } catch (err) {
       setStatus({ type: 'err', msg: err.message })
     }
-    e.target.value = ''
-    setTimeout(() => setStatus(null), 4000)
+    setPendiente(null)
+    setImportando(false)
+    setTimeout(() => setStatus(null), 8000)
   }
 
   const btnBase = {
@@ -33,6 +45,36 @@ export default function BackupBar() {
     background: 'var(--bg-elevated)',
     color: 'var(--text-2)',
     transition: 'background 0.15s',
+  }
+
+  if (pendiente) {
+    return (
+      <div
+        className="flex items-start gap-3 text-xs px-4 py-3 rounded-lg"
+        style={{ background: 'var(--warning-dim)', border: '1px solid var(--warning-dim)', maxWidth: 520 }}
+      >
+        <AlertTriangle size={16} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+        <div className="flex flex-col gap-2" style={{ color: 'var(--text-1)' }}>
+          <span>
+            Importar <strong>{pendiente.name}</strong> reemplaza <strong>todos</strong> los
+            datos de la empresa con el contenido del archivo (las tablas que no estén en el
+            archivo quedan vacías). Si algo falla, no se modifica nada.
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={confirmarImport}
+              disabled={importando}
+              style={{ ...btnBase, color: 'var(--warning)', opacity: importando ? 0.6 : 1 }}
+            >
+              <Upload size={13} /> {importando ? 'Importando…' : 'Sí, reemplazar todo'}
+            </button>
+            <button onClick={() => setPendiente(null)} disabled={importando} style={btnBase}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -68,7 +110,7 @@ export default function BackupBar() {
       >
         <Upload size={13} /> Importar
       </button>
-      <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+      <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFile} />
     </div>
   )
 }

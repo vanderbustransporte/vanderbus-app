@@ -324,6 +324,9 @@ export function useStore() {
     URL.revokeObjectURL(url)
   }, [])
 
+  // Import transaccional: la RPC importar_backup reemplaza TODO el contenido
+  // de la org en una sola transacción — si cualquier fila falla, no se toca
+  // nada (antes eran delete+insert sueltos: un fallo a mitad perdía datos).
   const importData = useCallback((file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -333,39 +336,23 @@ export function useStore() {
           if (!orgId) throw new Error('No hay sesion activa')
 
           const parsed = JSON.parse(e.target.result)
-          const newData = { ...defaultData, ...parsed }
-
-          // flota
-          if (Array.isArray(newData.vehiculos)) {
-            await supabase.from('vehiculos').delete().eq('organization_id', orgId)
-            const flota = newData.vehiculos.map(r => ({
-              ...r,
-              organization_id: orgId,
-              id: r.id || crypto.randomUUID(),
-              created_at: r.created_at || localNow(),
-            }))
-            if (flota.length) await supabase.from('vehiculos').insert(flota)
+          const payload = {}
+          for (const t of ['vehiculos', ...ARRAY_TABLES]) {
+            const rows = parsed[t] ?? []
+            if (!Array.isArray(rows)) throw new Error(`"${t}" no es una lista de filas`)
+            payload[t] = rows
           }
 
-          // arrays
-          for (const table of ARRAY_TABLES) {
-            await supabase.from(table).delete().eq('organization_id', orgId)
-            const rows = (newData[table] || []).map(r => ({
-              ...r,
-              organization_id: orgId,
-              id: r.id || genId(),
-              created_at: r.created_at || localNow(),
-            }))
-            if (rows.length) await supabase.from(table).insert(rows)
-          }
+          const { data: resumen, error } = await supabase.rpc('importar_backup', { p_data: payload })
+          if (error) throw error
 
-          _data = { ...newData, vehiculo: principal(newData.vehiculos) }
-          notify()
-          resolve()
+          await loadFromSupabase()
+          resolve(resumen)
         } catch (err) {
-          reject(new Error('Error al importar: ' + err.message))
+          reject(new Error('No se importó nada (los datos quedaron como estaban): ' + err.message))
         }
       }
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'))
       reader.readAsText(file)
     })
   }, [])
