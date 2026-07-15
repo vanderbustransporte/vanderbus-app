@@ -14,7 +14,7 @@ const ACCENT   = 'var(--accent)'
 const C_ING    = 'var(--positive)'
 const C_GAS    = 'var(--danger)'
 
-const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Flete', 'Alquiler de vehículo', 'Otro ingreso']
+const CATEGORIAS_INGRESO = ['Servicio de transporte', 'Alquiler de vehículo', 'Otro ingreso']
 const CATEGORIAS_GASTO   = ['Combustible', 'Mantenimiento', 'Nómina', 'Seguro', 'Impuestos y tasas', 'Peajes', 'Administrativo', 'Otro gasto']
 
 const emptyIngreso = () => ({ id: genId(), tipo: 'ingreso', fecha: todayISO(), descripcion: '', categoria: 'Servicio de transporte', importe: '', cliente: '',    comprobante: '', notas: '' })
@@ -60,7 +60,7 @@ function MovimientoModal({ onClose, onSave, tipo }) {
             <Input
               value={form.descripcion}
               onChange={e => set('descripcion', e.target.value)}
-              placeholder={isIngreso ? 'Ej: Flete Rosario-CABA' : 'Ej: Reparación frenos'}
+              placeholder={isIngreso ? 'Ej: Traslado Rosario-CABA' : 'Ej: Reparación frenos'}
             />
             {errors.descripcion && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.descripcion}</p>}
           </Field>

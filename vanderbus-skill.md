@@ -7,7 +7,7 @@ description: Conocimiento completo sobre la app Vanderbus: arquitectura, stack, 
 
 ## Que es este proyecto
 
-App de escritorio (Electron + React) para gestión de empresas de transporte y fletes. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+App de escritorio (Electron + React) para gestión de empresas de transporte. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
 
 El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es el colaborador técnico. El repositorio es `vanderbustransporte/vanderbus-app` en GitHub.
 

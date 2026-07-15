@@ -7,7 +7,7 @@ description: Conocimiento completo sobre la app Vanderbus: arquitectura, stack, 
 
 ## Que es este proyecto
 
-App de gestión para empresas de transporte y fletes. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+App de gestión para empresas de transporte. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
 
 > **Formato real de este repo:** es una **SPA web** (React + Vite) que se abre en el navegador con `npm run dev`. **No hay código, configuración ni dependencias de Electron en este repositorio ni en su historial de git.** La doc previa lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repo (ver Stack).
 
@@ -53,7 +53,6 @@ vanderbus-app\                 ← raíz del repo (acá está package.json y se 
 │   │   ├── Contactos.jsx
 │   │   ├── SeguimientoGPS.jsx
 │   │   ├── Usuarios.jsx        (solo visible para owner)
-│   │   ├── Asistente.jsx
 │   │   └── Backup.jsx
 │   ├── components\
 │   │   ├── Sidebar.jsx         (menú filtrado por permisos)

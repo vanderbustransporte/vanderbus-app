@@ -1,6 +1,6 @@
 # Vanderbus App — Sistema de Gestión Multi-Tenant
 
-App web (SPA React + Vite) para empresas de transporte y fletes. Arrancó como una herramienta interna de Vanderbus Transporte y está siendo migrada a una plataforma SaaS multi-tenant donde cada empresa tiene sus propios datos aislados.
+App web (SPA React + Vite) para empresas de transporte. Arrancó como una herramienta interna de Vanderbus Transporte y está siendo migrada a una plataforma SaaS multi-tenant donde cada empresa tiene sus propios datos aislados.
 
 > **Este repo es solo el frontend web.** Se abre en el navegador con `npm run dev`. No hay código de Electron ni backend propio versionado acá (ni en el historial de git). La versión anterior de este README lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repositorio.
 
