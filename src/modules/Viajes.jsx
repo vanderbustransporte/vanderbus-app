@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO } from '../utils/fecha'
@@ -64,6 +65,14 @@ export default function Viajes() {
   )
   const [search, setSearch]           = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
+
+  // La command palette (Ctrl+K) llega con la búsqueda elegida en location.state.q
+  // (ver useNav). Efecto y no initial state: si ya estás parado en Viajes, el
+  // componente no se remonta y el valor nuevo tiene que entrar igual.
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.q != null) setSearch(location.state.q)
+  }, [location.state])
   const [modal, setModal]             = useState(false)
   const [editId, setEditId]           = useState(null)
   const [form, setForm]               = useState(empty())

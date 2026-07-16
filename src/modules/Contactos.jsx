@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { genId } from '../utils/format'
 import Table from '../components/shared/Table'
@@ -17,6 +18,14 @@ export default function Contactos() {
   const list = data.contactos || []
   const [search, setSearch]       = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
+
+  // La command palette (Ctrl+K) llega con la búsqueda elegida en location.state.q
+  // (ver useNav). Efecto y no initial state: si ya estás parado en Contactos, el
+  // componente no se remonta y el valor nuevo tiene que entrar igual.
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.q != null) setSearch(location.state.q)
+  }, [location.state])
   const [modal, setModal]         = useState(false)
   const [form, setForm]           = useState(empty())
   const [editId, setEditId]       = useState(null)

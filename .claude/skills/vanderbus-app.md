@@ -346,8 +346,13 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    (`/#/viajes/:id`). El registro ya soporta params; falta que los módulos lean `useParams()`
    y abran el detalle. Es lo que haría que una notificación linkee al service exacto y no
    sólo a la lista.
-8. **Command palette (Ctrl+K)** — saltar a cualquier módulo y buscar registros (viajes,
-   contactos, vehículos) desde un solo input. Con 15 módulos, el sidebar ya no alcanza.
+8. ~~Command palette (Ctrl+K)~~ — **hecho** (2026-07-16): `src/components/CommandPalette.jsx`.
+   Se abre con Ctrl/Cmd+K o el botón "Buscar" de la topbar. Salta a módulos (usa la misma
+   `puedeAcceder` de routes.jsx: no puede ofrecer destinos prohibidos) y busca registros en
+   viajes/contactos/flota (mín. 2 caracteres, sin tildes, máx. 5 por grupo). Elegir un registro
+   navega al módulo con la búsqueda ya aplicada: `nav(id, { q })` → el módulo la lee de
+   `useLocation().state.q` (Viajes y Contactos lo hacen por useEffect, no por initial state,
+   para que funcione sin remount). Los deep links a la fila exacta siguen siendo el punto 7.
 9. **Confirmación y undo** — los borrados usan `confirm()` nativo (bloqueante, inconsistente)
    y no hay deshacer. Reemplazar por un dialog propio + toast con undo.
 10. **Vestigio del backend Express** — `vite.config.js` todavía define `apiPlugin()`, un

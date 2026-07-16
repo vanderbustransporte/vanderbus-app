@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import CommandPalette from './components/CommandPalette'
 import RouteFallback from './components/RouteFallback'
 import { useStore, onStoreError } from './store/useStore'
 import { supabase } from './lib/supabase'
@@ -13,7 +14,7 @@ import { aplicarColorPrimario } from './utils/branding'
 import { useChequeoVencimientos } from './utils/chequeoVencimientos'
 import { ROUTES, puedeAcceder } from './routes'
 import { useNav } from './hooks/useNav'
-import { Menu, LogOut, ChevronDown, AlertTriangle, Lock, Compass } from 'lucide-react'
+import { Menu, LogOut, ChevronDown, AlertTriangle, Lock, Compass, Search } from 'lucide-react'
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
@@ -156,6 +157,7 @@ export default function App() {
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   // Cerrar el menú mobile al cambiar de ruta: sin esto queda abierto tapando el
   // módulo recién navegado.
@@ -243,11 +245,38 @@ export default function App() {
 
         <div className="ml-auto flex items-center gap-1.5 shrink-0">
           <span className="hidden lg:block" style={{ fontSize: 12, color: 'var(--text-2)', marginRight: 6 }}>{fecha}</span>
+
+          {/* Buscador global: mismo destino que Ctrl+K. En mobile queda solo la lupa. */}
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="flex items-center gap-2 rounded-lg"
+            style={{ padding: '6px 10px', background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer', marginRight: 4 }}
+            title="Buscar (Ctrl+K)"
+            aria-label="Buscar"
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <Search size={14} />
+            <span className="hidden sm:block" style={{ fontSize: 12 }}>Buscar</span>
+            <kbd
+              className="hidden sm:block"
+              style={{ padding: '0px 5px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 10, fontWeight: 600, color: 'var(--text-3)' }}
+            >
+              Ctrl K
+            </kbd>
+          </button>
+
           <NotifCenter unreadCount={notifCount} onNav={nav} />
           <ThemeToggle />
           <UserMenu />
         </div>
       </header>
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpen={() => setPaletteOpen(true)}
+        onClose={() => setPaletteOpen(false)}
+      />
 
       {/* Main */}
       <main id="contenido" className="app-main" style={{ paddingTop: 56, minHeight: '100vh', transition: 'margin-left 180ms ease' }}>
