@@ -311,7 +311,24 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    `formatHora()` (display) y `horaOrden()` (minutos, sin hora va al final del día).
    Las filas viejas NO se migran: se normalizan al leer, igual criterio que los montos.
    Al guardar, pasar por `toHora()` para que lo nuevo salga siempre en 24h.
+3c. **FKs uuid vs. `''`:** `viajes.vehiculo_id` (y cualquier FK uuid) es **uuid**, no
+   text. Un `<Select>` sin selección manda `''` y Postgres lo rechaza con
+   *"invalid input syntax for type uuid"*: el guardado falla ENTERO y el usuario
+   sólo ve "No se pudieron guardar los cambios". Convertir siempre con
+   `campo || null` antes de guardar. (Bug real: crear un viaje sin vehículo
+   asignado fue imposible hasta el 2026-07-16.)
+3d. **Datos derivados:** un viaje `Realizado` con monto genera un **ingreso espejo**
+   en `ingresos` vinculado por `viaje_id`. Toda ruta que toque un viaje (alta,
+   edición, cambio de estado, borrado) tiene que mantenerlo sincronizado —
+   `sincronizarIngreso()` en `Viajes.jsx` es la única función que lo hace.
+   No duplicar esa lógica: un ingreso huérfano miente en Finanzas y no hay forma
+   de encontrarlo desde la UI.
 4. **Soft delete:** los vehículos no se borran, se archivan con `activo: false`.
+   **Ojo en los formularios:** un `<Select>` que filtra `activo !== false` no
+   encuentra la opción de un vehículo ya archivado, cae en la primera y al guardar
+   pisa el dato. Mismo problema con valores legacy fuera de la lista canónica
+   (hay viajes con `tipo: 'Mudanza'`/`'Flete'`, que ya no están en `TIPOS`).
+   Ver `conValorActual()` en `Viajes.jsx`.
 5. **Formularios:** usar el componente `<Field label="..."><Input/></Field>` de `src/components/shared/Field.jsx`.
 6. **Sin Express:** todo va directo a Supabase. No crear endpoints nuevos en el server.
 
@@ -336,9 +353,8 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 10. **Vestigio del backend Express** — `vite.config.js` todavía define `apiPlugin()`, un
    `/api/viajes` en memoria sobre el dev server. No lo usa nadie del frontend y contradice
    la regla de "backend jubilado". Confirmar con el dueño y borrar.
-11. **Editar viajes** — el módulo sólo permite alta, borrado y cambio de estado; no hay
-   edición. Desde que se carga la hora (2026-07-16) esto duele: mover un viaje 30 minutos
-   obliga a borrarlo y recrearlo. Es el próximo agujero operativo a cerrar.
+11. ~~Editar viajes~~ — **hecho** (2026-07-16). Queda la misma deuda en otros módulos:
+   `Combustible` y `Nomina` tampoco tienen edición.
 
 ---
 

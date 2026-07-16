@@ -7,7 +7,7 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { MapPin, Plus, Trash2, Calculator } from 'lucide-react'
+import { MapPin, Plus, Trash2, Edit2, Calculator } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { calcularTarifa, tarifasConfiguradas } from '../utils/tarifas'
 
@@ -22,6 +22,16 @@ const ESTADO_STYLES = {
 }
 
 const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
+
+// Mantiene el valor actual como opción aunque no esté en la lista canónica.
+//
+// Sin esto, editar una fila con un valor legacy la corrompe en silencio: hay
+// viajes con tipo 'Mudanza' o 'Flete' (vocabulario viejo, ya no está en TIPOS).
+// El <select> no encuentra ninguna <option> que matchee, el navegador cae en la
+// PRIMERA, y al guardar el tipo pasaba de 'Mudanza' a 'Excursión' sin que nadie
+// lo tocara. Mismo problema con un vehículo archivado (no está entre los activos).
+const conValorActual = (opciones, actual) =>
+  actual && !opciones.includes(actual) ? [actual, ...opciones] : opciones
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
@@ -55,12 +65,27 @@ export default function Viajes() {
   const [search, setSearch]           = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
   const [modal, setModal]             = useState(false)
+  const [editId, setEditId]           = useState(null)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
   const [calc, setCalc]               = useState({ horas: '', conPeon: false })
 
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
+
+  // Opciones del modal, preservando lo que la fila ya tiene guardado.
+  const tiposOpciones   = useMemo(() => conValorActual(TIPOS, form.tipo), [form.tipo])
+  const estadosOpciones = useMemo(() => conValorActual(ESTADOS, form.estado), [form.estado])
+
+  // Un vehículo archivado (activo: false) no está entre los seleccionables, pero
+  // si este viaje lo tiene asignado tiene que seguir apareciendo: si no, el Select
+  // caía en "Sin asignar" y guardar lo desvinculaba solo.
+  const vehiculosOpciones = useMemo(() => {
+    const todos   = data.vehiculos || []
+    const activos = todos.filter(v => v.activo !== false)
+    const asignado = todos.find(v => v.id === form.vehiculo_id)
+    return asignado && asignado.activo === false ? [asignado, ...activos] : activos
+  }, [data.vehiculos, form.vehiculo_id])
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('viajes')
@@ -76,7 +101,32 @@ export default function Viajes() {
     return Object.keys(e).length === 0
   }
 
-  const openNew    = () => { setForm(empty()); setErrors({}); setCalc({ horas: '', conPeon: false }); setModal(true) }
+  const openNew = () => {
+    setEditId(null); setForm(empty()); setErrors({})
+    setCalc({ horas: '', conPeon: false }); setModal(true)
+  }
+
+  // Al abrir para editar hay que NORMALIZAR sí o sí: <input type="date"> sólo
+  // acepta 'YYYY-MM-DD' y <input type="time"> sólo 'HH:MM' 24h. La base tiene
+  // filas con fecha '6/6/2026' y hora '9:00:00 AM' (las que escribe n8n): el
+  // navegador las rechaza como valor inválido, deja el campo VACÍO y al guardar
+  // se borraba el dato. `...empty()` primero para que las filas viejas sin
+  // `hora`/`vehiculo_id` tengan la clave definida y el input quede controlado.
+  const openEdit = (r) => {
+    setEditId(r.id)
+    setForm({
+      ...empty(),
+      // null → '' : la base guarda null en los campos vacíos (notas, vehiculo_id)
+      // y React avisa "`value` prop should not be null" y pasa el input a no
+      // controlado. Los inputs quieren string; el '' vuelve a null al guardar.
+      ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ?? ''])),
+      fecha: toISO(r.fecha),
+      hora: toHora(r.hora),
+    })
+    setErrors({})
+    setCalc({ horas: '', conPeon: false })
+    setModal(true)
+  }
 
   // Calculadora de tarifa: autocompleta monto_total y monto_sena desde org_settings
   const aplicarCalc = (next) => {
@@ -88,35 +138,96 @@ export default function Viajes() {
       monto_sena:  sena  ? String(Math.round(sena))  : '',
     }))
   }
+  // Un viaje Realizado con monto tiene un ingreso espejo en Finanzas, vinculado
+  // por `viaje_id`. Esta es la ÚNICA función que lo mantiene al día: crea, refresca
+  // o borra según corresponda.
+  //
+  // Antes la lógica vivía sólo acá adentro de handleEstado (el dropdown de la
+  // tabla), que únicamente cambia el estado. Al sumar la edición aparecieron dos
+  // casos que quedaban rotos: pasar un viaje de Realizado a Cancelado DESDE EL
+  // MODAL dejaba el ingreso colgado, y editarle el monto a un viaje ya Realizado
+  // dejaba a Finanzas con el importe viejo (el useEffect de abajo sólo crea los
+  // que faltan, nunca actualiza ni borra).
+  //
+  // Sólo para viajes que YA existen en la base. Para uno nuevo lo sigue creando
+  // el useEffect una vez guardado el viaje, para no insertar el ingreso antes que
+  // el viaje que referencia.
+  const sincronizarIngreso = (viaje) => {
+    const ingresos = data.ingresos || []
+    const existente = ingresos.find(i => i.viaje_id === viaje.id)
+    const corresponde = viaje.estado === 'Realizado' && viaje.monto_total
+
+    if (!corresponde) {
+      if (existente) update('ingresos', ingresos.filter(i => i.viaje_id !== viaje.id))
+      return
+    }
+
+    const campos = {
+      fecha: toISO(viaje.fecha),
+      descripcion: `Viaje: ${viaje.cliente} — ${viaje.origen} → ${viaje.destino}`,
+      importe: viaje.monto_total,
+      cliente: viaje.cliente,
+    }
+
+    if (!existente) {
+      update('ingresos', [{
+        id: genId(), tipo: 'ingreso', viaje_id: viaje.id,
+        categoria: 'Servicio de transporte',
+        comprobante: '', notas: '',
+        ...campos,
+      }, ...ingresos])
+      return
+    }
+
+    // Ya existe: reescribir sólo si algo cambió, para no mandar un UPDATE al pedo.
+    if (Object.entries(campos).some(([k, v]) => existente[k] !== v)) {
+      update('ingresos', ingresos.map(i => i.viaje_id === viaje.id ? { ...i, ...campos } : i))
+    }
+  }
+
   // Se guarda normalizado: fecha ISO y hora 'HH:MM' 24h. La base tiene filas
   // viejas en otros formatos (n8n escribe '9:00:00 AM'), pero las nuevas salen
   // todas iguales.
   const handleSave = () => {
     if (!validate()) return
-    update('viajes', [{ ...form, fecha: toISO(form.fecha), hora: toHora(form.hora) }, ...list])
+    const viaje = {
+      ...form,
+      fecha: toISO(form.fecha),
+      hora: toHora(form.hora),
+      // `vehiculo_id` es uuid en la base y el Select manda '' en "Sin asignar".
+      // Postgres rechaza el string vacío ("invalid input syntax for type uuid"),
+      // así que guardar un viaje sin vehículo fallaba entero y el viaje se perdía
+      // con un toast genérico. uuid vacío se representa con NULL, no con ''.
+      vehiculo_id: form.vehiculo_id || null,
+    }
+    if (editId) {
+      update('viajes', list.map(r => r.id === editId ? viaje : r))
+      sincronizarIngreso(viaje)
+    } else {
+      update('viajes', [viaje, ...list])
+      // El ingreso lo crea el useEffect cuando el viaje ya está guardado.
+    }
     setModal(false)
   }
-  const handleDelete = id => { if (confirm('¿Eliminar este viaje?')) update('viajes', list.filter(r => r.id !== id)) }
+
+  // Borrar el viaje tiene que llevarse su ingreso espejo. Antes no lo hacía:
+  // borrar un viaje Realizado dejaba el ingreso colgado en Finanzas para siempre,
+  // sin viaje que lo respalde y sin forma de encontrarlo desde acá.
+  const handleDelete = id => {
+    if (!confirm('¿Eliminar este viaje?')) return
+    const ingresos = data.ingresos || []
+    if (ingresos.some(i => i.viaje_id === id)) {
+      update('ingresos', ingresos.filter(i => i.viaje_id !== id))
+    }
+    update('viajes', list.filter(r => r.id !== id))
+  }
 
   const handleEstado = (id, nuevoEstado) => {
     const viaje = list.find(r => r.id === id)
-    const ingresos = data.ingresos || []
-    if (nuevoEstado === 'Realizado' && viaje?.monto_total) {
-      if (!ingresos.some(i => i.viaje_id === id)) {
-        update('ingresos', [{
-          id: genId(), tipo: 'ingreso', viaje_id: id,
-          fecha: toISO(viaje.fecha),
-          descripcion: `Viaje: ${viaje.cliente} — ${viaje.origen} → ${viaje.destino}`,
-          categoria: 'Servicio de transporte',
-          importe: viaje.monto_total, cliente: viaje.cliente,
-          comprobante: '', notas: '',
-        }, ...ingresos])
-      }
-    } else if (viaje?.estado === 'Realizado' && nuevoEstado !== 'Realizado') {
-      const filtrados = ingresos.filter(i => i.viaje_id !== id)
-      if (filtrados.length !== ingresos.length) update('ingresos', filtrados)
-    }
-    update('viajes', list.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r))
+    if (!viaje) return
+    const actualizado = { ...viaje, estado: nuevoEstado }
+    sincronizarIngreso(actualizado)
+    update('viajes', list.map(r => r.id === id ? actualizado : r))
   }
 
   useEffect(() => {
@@ -180,15 +291,28 @@ export default function Viajes() {
     },
     {
       key: 'acciones', label: '', render: r => editable ? (
-        <button
-          onClick={() => handleDelete(r.id)}
-          className="p-1.5 rounded-lg"
-          style={{ color: 'var(--danger)' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '' }}
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => openEdit(r)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--text-2)' }}
+            aria-label={`Editar viaje de ${r.cliente || 'sin cliente'}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => handleDelete(r.id)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--danger)' }}
+            aria-label={`Eliminar viaje de ${r.cliente || 'sin cliente'}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       ) : null
     },
   ]
@@ -256,7 +380,7 @@ export default function Viajes() {
 
       {/* ── Modal ── */}
       {modal && (
-        <Modal title="Nuevo viaje" onClose={() => setModal(false)} size="lg">
+        <Modal title={editId ? 'Editar viaje' : 'Nuevo viaje'} onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
             {mostrarCalc ? (
               <div className="col-span-2" style={{ padding: 14, borderRadius: 'var(--radius)', background: 'var(--accent-dim)', border: '1px solid transparent' }}>
@@ -295,14 +419,16 @@ export default function Viajes() {
             <Field label="Vehículo">
               <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
                 <option value="">— Sin asignar —</option>
-                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
-                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                {vehiculosOpciones.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.alias || v.patente || 'Vehículo'}{v.activo === false ? ' (archivado)' : ''}
+                  </option>
                 ))}
               </Select>
             </Field>
             <Field label="Tipo de viaje">
               <Select value={form.tipo} onChange={e => set('tipo', e.target.value)}>
-                {TIPOS.map(t => <option key={t}>{t}</option>)}
+                {tiposOpciones.map(t => <option key={t}>{t}</option>)}
               </Select>
             </Field>
             <Field label="Cliente" required>
@@ -311,7 +437,7 @@ export default function Viajes() {
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={e => set('estado', e.target.value)}>
-                {ESTADOS.map(e => <option key={e}>{e}</option>)}
+                {estadosOpciones.map(e => <option key={e}>{e}</option>)}
               </Select>
             </Field>
             <Field label="Origen" required>
