@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO } from '../utils/fecha'
+import { toHora, formatHora, horaOrden } from '../utils/hora'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
@@ -23,7 +24,7 @@ const ESTADO_STYLES = {
 const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
 
 const empty = () => ({
-  id: genId(), fecha: todayISO(), cliente: '', tipo: 'Excursión',
+  id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
   origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
   vehiculo_id: '',
 })
@@ -87,7 +88,14 @@ export default function Viajes() {
       monto_sena:  sena  ? String(Math.round(sena))  : '',
     }))
   }
-  const handleSave = () => { if (!validate()) return; update('viajes', [{ ...form, fecha: toISO(form.fecha) }, ...list]); setModal(false) }
+  // Se guarda normalizado: fecha ISO y hora 'HH:MM' 24h. La base tiene filas
+  // viejas en otros formatos (n8n escribe '9:00:00 AM'), pero las nuevas salen
+  // todas iguales.
+  const handleSave = () => {
+    if (!validate()) return
+    update('viajes', [{ ...form, fecha: toISO(form.fecha), hora: toHora(form.hora) }, ...list])
+    setModal(false)
+  }
   const handleDelete = id => { if (confirm('¿Eliminar este viaje?')) update('viajes', list.filter(r => r.id !== id)) }
 
   const handleEstado = (id, nuevoEstado) => {
@@ -140,7 +148,15 @@ export default function Viajes() {
         const matchEstado = !estadoFilter || r.estado === estadoFilter
         return matchQ && matchEstado
       })
-      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+      // Más reciente primero y, dentro del mismo día, por hora.
+      //
+      // Se ordena por toISO(fecha) y no por el string crudo: la base tiene fechas
+      // mezcladas ('2026-05-28' y '6/6/2026'), y comparar eso como texto ponía
+      // cualquier fila con barras arriba de todo sin importar la fecha real.
+      .sort((a, b) => {
+        const f = toISO(b.fecha || '').localeCompare(toISO(a.fecha || ''))
+        return f !== 0 ? f : horaOrden(a.hora) - horaOrden(b.hora)
+      })
   }, [list, search, estadoFilter])
 
   const totalEsperado  = list.filter(r => r.estado === 'Pendiente' || r.estado === 'Confirmado').reduce((s, r) => s + (parseFloat(r.monto_total) || 0), 0)
@@ -149,6 +165,9 @@ export default function Viajes() {
 
   const cols = [
     { key: 'fecha',   label: 'Fecha',   render: r => formatDate(r.fecha) },
+    { key: 'hora',    label: 'Hora',    render: r => r.hora
+        ? <span className="num">{formatHora(r.hora)}</span>
+        : <span style={{ color: 'var(--text-3)' }}>—</span> },
     { key: 'cliente', label: 'Cliente', render: r => <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{r.cliente}</span> },
     { key: 'tipo',    label: 'Tipo' },
     { key: 'origen',  label: 'Origen' },
@@ -265,6 +284,14 @@ export default function Viajes() {
                 Cargá las tarifas en <strong style={{ color: 'var(--text-1)' }}>Configuración</strong> para calcular el precio automáticamente.
               </div>
             )}
+            {/* Orden pensado para la grilla de 2 columnas: cada fila es un par que
+                se lee junto (Fecha|Hora, Vehículo|Tipo, Cliente|Estado, Origen|Destino). */}
+            <Field label="Fecha">
+              <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+            </Field>
+            <Field label="Hora de salida">
+              <Input type="time" value={form.hora} onChange={e => set('hora', e.target.value)} />
+            </Field>
             <Field label="Vehículo">
               <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
                 <option value="">— Sin asignar —</option>
@@ -272,9 +299,6 @@ export default function Viajes() {
                   <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
                 ))}
               </Select>
-            </Field>
-            <Field label="Fecha">
-              <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
             </Field>
             <Field label="Tipo de viaje">
               <Select value={form.tipo} onChange={e => set('tipo', e.target.value)}>

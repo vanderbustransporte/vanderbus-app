@@ -21,11 +21,9 @@ export const FEATURES = [
 
 export const FEATURE_DEFAULTS = Object.fromEntries(FEATURES.map(f => [f.id, f.porDefecto]))
 
-// Página del App/Sidebar → feature que la gatea (las demás no se gatean).
-export const PAGE_FEATURE = {
-  seguimiento: 'seguimiento',
-  marketing: 'marketing',
-}
+// El mapa página → feature vive ahora en el registro de rutas (src/routes.jsx,
+// campo `feature`), junto al resto de la definición del módulo. Este archivo
+// queda como la definición de los flags en sí (los edita el superadmin).
 
 export function featureEfectiva(features, id) {
   const v = features?.[id]

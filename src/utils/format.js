@@ -22,8 +22,20 @@ export function formatDate(str) {
   return str
 }
 
+// Fecha de HOY según el reloj local, no UTC.
+//
+// Antes esto era `new Date().toISOString().slice(0, 10)`. toISOString() pasa a
+// UTC, así que en Argentina (UTC-3) desde las 21:00 devolvía el día siguiente:
+// a las 21:30 del 16/07 daba '2026-07-17'. Efecto real: el default de fecha en
+// los formularios se adelantaba un día toda la noche, y el panel de "viajes de
+// hoy" mostraba los de mañana. Además contradecía a daysDiff() de este mismo
+// archivo, que sí parsea en local — las dos funciones no coincidían.
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
 }
 
 export function daysDiff(dateStr) {

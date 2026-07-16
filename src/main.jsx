@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { HashRouter } from 'react-router-dom'
 import App from './App.jsx'
 import Login from './components/Login.jsx'
 import CuentaSuspendida from './components/CuentaSuspendida.jsx'
@@ -40,12 +41,22 @@ function AuthGate() {
   return user ? <App /> : <Login />
 }
 
+// El router envuelve al AuthGate, no sólo a <App/>: así, si alguien abre un link
+// profundo (#/viajes) sin sesión, la URL sobrevive al login y después de entrar
+// cae en Viajes en vez del dashboard.
+//
+// HashRouter (y no BrowserRouter) porque el build usa `base: './'` y no hay
+// rewrite de servidor configurado: con paths reales, refrescar en /viajes daría
+// 404. Si algún día se sirve desde un host con rewrite a index.html, es cambiar
+// esta línea por BrowserRouter.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AuthGate />
+          <HashRouter>
+            <AuthGate />
+          </HashRouter>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

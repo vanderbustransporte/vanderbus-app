@@ -89,7 +89,11 @@ function estadoPorDias(dias) {
 //  - re-correr el chequeo no duplica (mismo título → se saltea),
 //  - al acercarse el vencimiento cambia el estado → nueva notificación (escala),
 //  - al renovar (cambia la fecha) → nueva notificación (nuevo ciclo).
-function armarNotif({ tipo, estado, concepto, entidad, fecha, mensaje, link }) {
+// `dias`, `estado`, `concepto` y `entidad` son campos ADITIVOS para que el
+// Dashboard pinte el panel "Requiere atención" sin re-parsear el título ni
+// duplicar esta lógica. No afectan las notificaciones: el dedup compara sólo
+// `titulo` y crearNotificacion() destructura los campos que le sirven.
+function armarNotif({ tipo, estado, concepto, entidad, fecha, mensaje, link, dias = null }) {
   const sufijo = fecha ? ` (${formatDate(fecha)})` : ''
   return {
     tipo,
@@ -97,11 +101,19 @@ function armarNotif({ tipo, estado, concepto, entidad, fecha, mensaje, link }) {
     titulo: `${estado.label}: ${concepto} · ${entidad}${sufijo}`,
     mensaje,
     link,
+    estado: estado.label,
+    concepto,
+    entidad,
+    fecha,
+    dias,
   }
 }
 
 // ── Recolección de vencimientos ──────────────────────────────────────────────
-function recolectarVencimientos(data) {
+// Exportada: además de alimentar las notificaciones, la usa el Dashboard para el
+// panel "Requiere atención". Es la MISMA fuente, así que el panel y la campanita
+// nunca se contradicen.
+export function recolectarVencimientos(data) {
   const items = []
   const vehiculos = (data?.vehiculos || []).filter((v) => v.activo !== false)
 
@@ -120,7 +132,7 @@ function recolectarVencimientos(data) {
         : `vence en ${dias} días`
       items.push(armarNotif({
         tipo: 'vencimiento',
-        estado, concepto: label, entidad, fecha,
+        estado, concepto: label, entidad, fecha, dias,
         mensaje: `${label} de ${entidad} ${cuando} (${formatDate(fecha)}).`,
         link: 'vehiculo',
       }))
@@ -143,7 +155,7 @@ function recolectarVencimientos(data) {
           : `en ${dias} días`
         items.push(armarNotif({
           tipo: 'mantenimiento',
-          estado, concepto: `Próximo ${concepto}`, entidad, fecha: m.proximo_fecha,
+          estado, concepto: `Próximo ${concepto}`, entidad, fecha: m.proximo_fecha, dias,
           mensaje: `Próximo ${concepto.toLowerCase()} de ${entidad} ${cuando} (${formatDate(m.proximo_fecha)}).`,
           link: 'mantenimiento',
         }))
@@ -166,6 +178,14 @@ function recolectarVencimientos(data) {
             ? `${concepto} de ${entidad} pasado por ${Math.abs(restan).toLocaleString('es-AR')} km (objetivo ${proxKm.toLocaleString('es-AR')} km).`
             : `${concepto} de ${entidad} en ${restan.toLocaleString('es-AR')} km (objetivo ${proxKm.toLocaleString('es-AR')} km).`,
           link: 'mantenimiento',
+          estado: estado.label,
+          concepto,
+          entidad,
+          // Este vencimiento es por KM, no por fecha: no tiene `dias`. El panel
+          // lo ordena por urgencia usando `km` (restantes, negativo = pasado).
+          fecha: null,
+          dias: null,
+          km: restan,
         })
       }
     }

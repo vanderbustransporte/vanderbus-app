@@ -281,6 +281,71 @@ button:active { transform: scale(0.97); }
   margin-bottom: 16px;
 }
 
+/* ── Dashboard: listas operativas (viajes de hoy, atención) ─ */
+.db-rows {
+  display: flex;
+  flex-direction: column;
+}
+.db-rows > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.db-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background 140ms ease;
+}
+/* El press global de `button` (scale .97) deforma una fila full-width: acá no. */
+.db-row:active { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .db-row:hover { background: var(--hover-tint); }
+}
+
+/* Columna de hora de la agenda. Ancho fijo + tabular para que las horas queden
+   alineadas en vertical y el día se lea de un vistazo. */
+.db-hora {
+  flex-shrink: 0;
+  width: 42px;
+  align-self: flex-start;
+  padding-top: 1px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.db-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .db-quick:hover {
+    border-color: var(--border-hi);
+    background: var(--hover-tint);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .db-row, .db-quick { transition: none; }
+}
+
 /* ── Dashboard empty state ─────────────────────────────── */
 .db-empty {
   display: flex;
@@ -371,6 +436,125 @@ button:active { transform: scale(0.97); }
   .db-panel-h { transition: none; }
   .db-panel-h:hover { transform: none; }
   .glass-btn-primary { transition: none; }
+}
+
+/* ── Skip link ─────────────────────────────────────────── */
+/* El sidebar mete ~15 tabs antes del contenido: sin esto, llegar al módulo
+   con teclado es tabular todo el menú en cada carga. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 150ms ease;
+}
+.skip-link:focus { top: 8px; }
+
+/* ── Skeleton (fallback de chunk lazy) ─────────────────── */
+.sk {
+  background: linear-gradient(
+    90deg,
+    var(--bg-overlay)   25%,
+    var(--hover-tint-md) 37%,
+    var(--bg-overlay)   63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes sk-shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position:   0 50%; }
+}
+
+/* ── Sidebar items ─────────────────────────────────────── */
+/* Antes el hover se pintaba con onMouseEnter/onMouseLeave escribiendo
+   style.background desde JS en cada item. En CSS es una regla sola, no corre
+   JS por cada movimiento del mouse, y respeta hover:hover (en touch no se
+   queda "pegado" el hover después de tocar). */
+.sb-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--sb-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+.sb-item.is-collapsed {
+  padding: 9px 0;
+  justify-content: center;
+}
+.sb-item.is-active {
+  background: var(--sb-active-bg);
+  color: var(--sb-text-active);
+  font-weight: 600;
+}
+.sb-item:active { transform: scale(0.98); }
+@media (hover: hover) and (pointer: fine) {
+  .sb-item:hover:not(.is-active) {
+    background: var(--sb-hover);
+    color: var(--sb-text-active);
+  }
+}
+
+.sb-item-bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--sb-bar);
+}
+
+.sb-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--badge-text);
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 6px;
+  line-height: 16px;
+  min-width: 16px;
+  text-align: center;
+}
+.sb-badge-dot {
+  position: absolute;
+  top: 5px;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid var(--sb-bg);
+}
+
+.sb-icon-btn { transition: background 140ms ease, color 140ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .sb-icon-btn:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text-active);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk        { animation: none; }
+  .sb-item   { transition: none; }
+  .sb-item:active { transform: none; }
+  .skip-link { transition: none; }
 }
 
 /* ── App shell layout ──────────────────────────────────── */

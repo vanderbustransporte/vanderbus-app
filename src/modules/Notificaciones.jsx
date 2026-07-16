@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { TIPO_CONFIG } from '../utils/tipoNotif'
 import { agruparPorSeveridad } from '../utils/notifGrupos'
 import { tiempoRelativo } from '../utils/tiempoRelativo'
+import { useNav } from '../hooks/useNav'
 
 const ACCENT = 'var(--accent)'
 
@@ -89,7 +90,8 @@ function Fila({ n, onAbrir, onLeer }) {
 }
 
 // ── Página ───────────────────────────────────────────────────────────────────
-export default function Notificaciones({ onNav }) {
+export default function Notificaciones() {
+  const onNav = useNav()
   const [notifs, setNotifs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todas') // 'todas' | 'noleidas'
@@ -120,7 +122,7 @@ export default function Notificaciones({ onNav }) {
 
   const abrir = useCallback(async (n) => {
     if (!n.leida) await leer(n)
-    if (n.link) onNav?.(n.link)
+    if (n.link) onNav(n.link)
   }, [leer, onNav])
 
   const marcarTodas = useCallback(async () => {

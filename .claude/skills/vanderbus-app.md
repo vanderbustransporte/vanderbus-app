@@ -18,6 +18,7 @@ El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es e
 ## Stack completo
 
 - **Frontend:** React 19 + Vite + Tailwind CSS 4 — **SPA web** (corre en el navegador)
+- **Router:** react-router-dom 7 en modo **HashRouter** (`/#/viajes`). Es Hash y no Browser porque el build usa `base: './'` y no hay rewrite de servidor: con paths reales, refrescar en `/viajes` daría 404. Si algún día se sirve desde un host con rewrite a index.html, es cambiar una línea en `main.jsx`.
 - **Desktop:** *no presente en este repo.* `vite.config.js` usa `base: './'` (assets con rutas relativas), lo que sugiere que en algún momento se pensó para empaquetar en un contenedor tipo Electron, pero **no hay wrapper Electron ni `electron-updater` versionado acá** (verificado: nada de Electron en el árbol de archivos ni en el historial de git).
 - **Base de datos:** Supabase (PostgreSQL + Auth + RLS + Realtime + Edge Functions)
 - **Estado global:** Singleton propio en `src/store/useStore.js`
@@ -39,8 +40,10 @@ vanderbus-app\                 ← raíz del repo (acá está package.json y se 
 ├── vite.config.js             ← base: './' (assets con rutas relativas)
 ├── package.json               ← Vite + React 19 (sin Electron)
 ├── src\
-│   ├── main.jsx
-│   ├── App.jsx                ← navegación entre módulos con useState (sin react-router)
+│   ├── main.jsx               ← HashRouter envuelve al AuthGate (el deep link sobrevive al login)
+│   ├── App.jsx                ← shell: topbar + <Routes> + guard de permisos
+│   ├── routes.jsx             ← CRÍTICO: registro único de módulos (path, label, permisos, feature, lazy)
+│   ├── hooks\useNav.js        ← navegar por id de módulo: nav('viajes')
 │   ├── modules\               ← Un archivo = un módulo completo
 │   │   ├── Dashboard.jsx
 │   │   ├── Vehiculo.jsx        (gestión de FLOTA, no un solo vehículo)
@@ -255,11 +258,59 @@ export default function MiModulo() {
 
 ---
 
+## Navegación y rutas — `src/routes.jsx`
+
+**Registro único de módulos.** Agregar o cambiar un módulo se hace en UNA fila de
+`ROUTES`, no tocando cuatro archivos. Antes esto vivía partido en `TITULOS` +
+`OWNER_ONLY` (App.jsx), `GROUPS` (Sidebar.jsx) y `PAGE_FEATURE` (utils/features.js),
+y había que mantenerlos en sync a mano: si se desincronizaban, el módulo aparecía
+en el menú y tiraba "Sin acceso" al entrar (o peor, al revés).
+
+```js
+{ id, path, label, titulo, grupo, icon, acceso, Component, feature? }
+```
+
+- **`id`** — token canónico. **Se persiste en `notificaciones.link`**: NO renombrar
+  sin migrar esas filas. Es lo que reciben `nav(id)` y `crearNotificacion({link})`.
+- **`label`** = texto del sidebar (corto: "GPS"). **`titulo`** = topbar y pestaña
+  ("Seguimiento GPS"). Son dos campos a propósito.
+- **`acceso`** — `'libre'` | `'permiso'` (→ `puedeVer(id)`) | `'owner'` | `'superadmin'`.
+- **`feature`** — flag de `organizations.features`. Se evalúa ANTES que `acceso`:
+  un flag apagado oculta el módulo para toda la org, **incluido el owner**.
+- **`Component`** — siempre `lazy(() => import(...))`. El chunk baja al entrar.
+
+`puedeAcceder(route, auth)` es la **única** regla de visibilidad: la usan el
+Sidebar (qué items pinta) y el guard de ruta (qué deja entrar). No duplicarla.
+
+**Para navegar** usar `useNav()`, nunca `navigate('/viajes')` a mano:
+
+```js
+import { useNav } from '../hooks/useNav'
+const nav = useNav()
+nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.jsx
+```
+
+---
+
 ## Convenciones importantes
 
 1. **IDs:** se generan en el frontend con `genId()` de `src/utils/format.js` (base36 + random). Los vehículos nuevos usan `crypto.randomUUID()`.
-2. **Fechas:** siempre ISO `YYYY-MM-DD`. Usar `todayISO()` de `src/utils/fecha.js`. Nunca `new Date().toLocaleDateString()` directo.
+2. **Fechas:** siempre ISO `YYYY-MM-DD` al guardar (`toISO()` de `src/utils/fecha.js`).
+   Usar `todayISO()` de `src/utils/format.js` para "hoy"; nunca `new Date().toISOString()`
+   — eso da UTC y en Argentina devuelve **mañana** a partir de las 21:00 (bug real,
+   arreglado 2026-07-16: adelantaba un día el default de todos los formularios).
+   **Ojo al leer:** hay filas viejas con fecha en otros formatos (`'6/6/2026'` conviviendo
+   con `'2026-05-28'`). Comparar el string crudo ordena mal (`'6'` > `'2'` y esas filas se
+   trepan al tope); pasar por `toISO()` antes de comparar u ordenar.
 3. **Montos:** siempre strings en la base (legado). Parsear con `parseFloat(r.importe) || 0`. Formatear con `formatARS(n)` de `src/utils/format.js`.
+3b. **Horas (`viajes.hora`):** columna TEXT con formatos MEZCLADOS — n8n (Google Forms
+   → Viajes) escribe 12h (`'9:00:00 AM'`) y el formulario de la app escribe 24h
+   (`'14:30'`, que es lo único que produce `<input type="time">`). Hay filas en `null`.
+   **Nunca ordenar ni comparar `hora` como string**: `'11:59:00 AM' < '9:00:00 AM'` como
+   texto. Usar siempre `src/utils/hora.js` → `toHora()` (canónico `'HH:MM'` 24h),
+   `formatHora()` (display) y `horaOrden()` (minutos, sin hora va al final del día).
+   Las filas viejas NO se migran: se normalizan al leer, igual criterio que los montos.
+   Al guardar, pasar por `toHora()` para que lo nuevo salga siempre en 24h.
 4. **Soft delete:** los vehículos no se borran, se archivan con `activo: false`.
 5. **Formularios:** usar el componente `<Field label="..."><Input/></Field>` de `src/components/shared/Field.jsx`.
 6. **Sin Express:** todo va directo a Supabase. No crear endpoints nuevos en el server.
@@ -274,6 +325,20 @@ export default function MiModulo() {
 4. **Dominio propio** — `api.vanderbus.app` → Supabase (evita bloqueos de red corporativa).
 5. **Nómina mejorada** — sueldo fijo + extras, resumen día 26, notificación WhatsApp via n8n.
 6. **Ancho uniforme** — todos los módulos a `max-w-[1680px]` (el Dashboard ya lo tiene).
+7. **Deep links a registros** — hoy las rutas llegan al módulo (`/#/viajes`), no a la fila
+   (`/#/viajes/:id`). El registro ya soporta params; falta que los módulos lean `useParams()`
+   y abran el detalle. Es lo que haría que una notificación linkee al service exacto y no
+   sólo a la lista.
+8. **Command palette (Ctrl+K)** — saltar a cualquier módulo y buscar registros (viajes,
+   contactos, vehículos) desde un solo input. Con 15 módulos, el sidebar ya no alcanza.
+9. **Confirmación y undo** — los borrados usan `confirm()` nativo (bloqueante, inconsistente)
+   y no hay deshacer. Reemplazar por un dialog propio + toast con undo.
+10. **Vestigio del backend Express** — `vite.config.js` todavía define `apiPlugin()`, un
+   `/api/viajes` en memoria sobre el dev server. No lo usa nadie del frontend y contradice
+   la regla de "backend jubilado". Confirmar con el dueño y borrar.
+11. **Editar viajes** — el módulo sólo permite alta, borrado y cambio de estado; no hay
+   edición. Desde que se carga la hora (2026-07-16) esto duele: mover un viaje 30 minutos
+   obliga a borrarlo y recrearlo. Es el próximo agujero operativo a cerrar.
 
 ---
 

@@ -1,20 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
-import Dashboard from './modules/Dashboard'
-import Vehiculo from './modules/Vehiculo'
-import Combustible from './modules/Combustible'
-import Mantenimiento from './modules/Mantenimiento'
-import Nomina from './modules/Nomina'
-import Finanzas from './modules/Finanzas'
-import Marketing from './modules/Marketing'
-import Viajes from './modules/Viajes'
-import SeguimientoGPS from './modules/SeguimientoGPS'
-import Usuarios from './modules/Usuarios'
-import Superadmin from './modules/Superadmin'
-import Configuracion from './modules/Configuracion'
-import Contactos from './modules/Contactos'
-import Notificaciones from './modules/Notificaciones'
-import BackupBar from './modules/Backup'
+import RouteFallback from './components/RouteFallback'
 import { useStore, onStoreError } from './store/useStore'
 import { supabase } from './lib/supabase'
 import NotifCenter from './components/NotifCenter'
@@ -22,33 +9,13 @@ import ThemeToggle from './components/ThemeToggle'
 import { useToast } from './context/ToastContext'
 import { useAuth } from './context/AuthContext'
 import { TIPO_CONFIG } from './utils/tipoNotif'
-import { PAGE_FEATURE } from './utils/features'
 import { aplicarColorPrimario } from './utils/branding'
 import { useChequeoVencimientos } from './utils/chequeoVencimientos'
-import { Menu, LogOut, ChevronDown, AlertTriangle, Lock } from 'lucide-react'
-
-const TITULOS = {
-  dashboard:     'Panel de control',
-  notificaciones: 'Notificaciones',
-  viajes:        'Viajes',
-  vehiculo:      'Flota',
-  combustible:   'Combustible',
-  mantenimiento: 'Mantenimiento',
-  seguimiento:   'Seguimiento GPS',
-  finanzas:      'Finanzas',
-  nomina:        'Nómina',
-  contactos:     'Contactos',
-  marketing:     'Marketing',
-  usuarios:      'Usuarios',
-  configuracion: 'Configuración',
-  backup:        'Backup / Datos',
-  superadmin:    'Empresas',
-}
+import { ROUTES, puedeAcceder } from './routes'
+import { useNav } from './hooks/useNav'
+import { Menu, LogOut, ChevronDown, AlertTriangle, Lock, Compass } from 'lucide-react'
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
-
-// Secciones visibles solo para el owner. Mantener en sync con Sidebar (ownerOnly).
-const OWNER_ONLY = ['usuarios', 'configuracion', 'backup']
 
 // ── Panel de acceso denegado ───────────────────────────────────────────────────
 function AccessDenied() {
@@ -61,6 +28,36 @@ function AccessDenied() {
       </div>
     </div>
   )
+}
+
+// ── 404 ────────────────────────────────────────────────────────────────────────
+// Con URLs reales una dirección puede no existir (link viejo, typo, módulo
+// renombrado). Antes era imposible: `page` sólo tomaba valores del propio código.
+function NotFound() {
+  const nav = useNav()
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="surface db-in db-d0" style={{ padding: 48, textAlign: 'center', borderRadius: 'var(--radius)' }}>
+        <Compass size={30} style={{ color: 'var(--text-3)', margin: '0 auto 12px' }} />
+        <h1 className="mod-h1" style={{ fontSize: 20 }}>Esta página no existe</h1>
+        <p className="mod-sub">El link puede estar viejo o mal escrito.</p>
+        <button className="glass-btn-primary" style={{ marginTop: 20 }} onClick={() => nav('dashboard')}>
+          Ir al panel de control
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Guard de ruta ──────────────────────────────────────────────────────────────
+// Usa la MISMA `puedeAcceder` que el Sidebar (routes.jsx). Antes App tenía su
+// propia copia de la regla y un comentario avisando que "espejaba" la del
+// Sidebar; al vivir en un solo lugar ya no pueden divergir.
+function Guarded({ route }) {
+  const { puedeVer, esOwner, esSuperadmin, featureOn } = useAuth()
+  const { Component } = route
+  if (!puedeAcceder(route, { puedeVer, esOwner, esSuperadmin, featureOn })) return <AccessDenied />
+  return <Component />
 }
 
 // ── Menú de usuario (avatar + dropdown con cerrar sesión) ──────────────────────
@@ -88,6 +85,8 @@ function UserMenu() {
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
         title="Cuenta"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
           {inicial}
@@ -101,6 +100,7 @@ function UserMenu() {
       {open && (
         <div
           className="notif-panel-in"
+          role="menu"
           style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 224, background: 'var(--bg-elevated)', border: '1px solid var(--border-hi)', borderRadius: 'var(--radius)', boxShadow: 'var(--panel-shadow)', overflow: 'hidden', zIndex: 60 }}
         >
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
@@ -112,6 +112,7 @@ function UserMenu() {
           </div>
           <button
             onClick={signOut}
+            role="menuitem"
             className="w-full flex items-center gap-2"
             style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
@@ -125,33 +126,12 @@ function UserMenu() {
   )
 }
 
-// ── Página de Backup / Datos ───────────────────────────────────────────────────
-function BackupPage() {
-  return (
-    <div className="max-w-3xl mx-auto w-full">
-      <div className="db-in db-d0" style={{ marginBottom: 24 }}>
-        <h1 className="mod-h1">Backup / Datos</h1>
-        <p className="mod-sub">Exportá una copia de seguridad de tu empresa o restaurá desde un archivo.</p>
-      </div>
-      <div className="surface db-in db-d1" style={{ padding: 20 }}>
-        <BackupBar />
-        <div
-          className="flex items-start gap-2"
-          style={{ marginTop: 16, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--warning-dim)', color: 'var(--warning)', fontSize: 12, lineHeight: 1.5 }}
-        >
-          <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span><strong>Importar reemplaza todos los datos actuales</strong> de tu empresa por los del archivo. Exportá antes, por las dudas.</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function App() {
-  const [page, setPage] = useState('dashboard')
   const { data, error, loading } = useStore()
   const { addToast } = useToast()
-  const { puedeVer, esOwner, esSuperadmin, featureOn, orgNombre } = useAuth()
+  const { orgNombre } = useAuth()
+  const location = useLocation()
+  const nav = useNav()
 
   // Genera notificaciones automáticas de vencimientos (VTV, seguro, service...).
   useChequeoVencimientos()
@@ -164,20 +144,22 @@ export default function App() {
     return () => aplicarColorPrimario(null)
   }, [colorPrimario])
 
-  useEffect(() => {
-    if (orgNombre) document.title = orgNombre
-  }, [orgNombre])
+  const rutaActual = ROUTES.find(r => r.path === location.pathname)
 
-  // Espeja la regla de visibilidad del Sidebar: sin esto, navegar por un link de
-  // notificacion o un boton del Dashboard podia abrir un modulo sin permiso.
-  const canView = (p) => {
-    if (PAGE_FEATURE[p] && !featureOn(PAGE_FEATURE[p])) return false
-    return p === 'notificaciones' ? true : p === 'superadmin' ? esSuperadmin : OWNER_ONLY.includes(p) ? esOwner : puedeVer(p)
-  }
+  // Título de pestaña: ahora refleja también en qué sección estás, que es lo que
+  // se ve al tener varias pestañas abiertas del sistema.
+  useEffect(() => {
+    const empresa = orgNombre || 'Vanderbus'
+    document.title = rutaActual ? `${rutaActual.titulo} · ${empresa}` : empresa
+  }, [orgNombre, rutaActual])
 
   const [notifCount, setNotifCount] = useState(0)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('vanderbus_sidebar_collapsed') === '1')
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Cerrar el menú mobile al cambiar de ruta: sin esto queda abierto tapando el
+  // módulo recién navegado.
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
   useEffect(() => {
     const fetchNotifCount = () => {
@@ -223,20 +205,21 @@ export default function App() {
     return next
   })
 
-  const titulo = TITULOS[page] || ''
+  const titulo = rutaActual?.titulo ?? ''
   const fechaRaw = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '')
   const fecha = fechaRaw.charAt(0).toUpperCase() + fechaRaw.slice(1)
 
   return (
     <div style={{ '--sb-w': `${collapsed ? 64 : 240}px`, minHeight: '100vh' }}>
+      {/* Salto directo al contenido: el sidebar son ~15 tabs antes del módulo. */}
+      <a href="#contenido" className="skip-link">Saltar al contenido</a>
+
       <Sidebar
-        active={page}
-        onNav={setPage}
-        unreadCount={notifCount}
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
+        unreadCount={notifCount}
       />
 
       {/* Topbar */}
@@ -249,6 +232,7 @@ export default function App() {
           className="md:hidden p-1.5 rounded-md shrink-0"
           style={{ color: 'var(--text-2)' }}
           title="Menú"
+          aria-label="Abrir menú"
         >
           <Menu size={20} />
         </button>
@@ -259,19 +243,20 @@ export default function App() {
 
         <div className="ml-auto flex items-center gap-1.5 shrink-0">
           <span className="hidden lg:block" style={{ fontSize: 12, color: 'var(--text-2)', marginRight: 6 }}>{fecha}</span>
-          <NotifCenter unreadCount={notifCount} onNav={setPage} />
+          <NotifCenter unreadCount={notifCount} onNav={nav} />
           <ThemeToggle />
           <UserMenu />
         </div>
       </header>
 
       {/* Main */}
-      <main className="app-main" style={{ paddingTop: 56, minHeight: '100vh', transition: 'margin-left 180ms ease' }}>
+      <main id="contenido" className="app-main" style={{ paddingTop: 56, minHeight: '100vh', transition: 'margin-left 180ms ease' }}>
         <div className="p-4 sm:p-6 lg:p-8">
           {error && (
             <div
               className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
               style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-dim)', color: 'var(--danger)' }}
+              role="alert"
             >
               <span className="font-semibold">Sin conexión al servidor:</span> {error}
             </div>
@@ -283,25 +268,15 @@ export default function App() {
             </div>
           )}
 
-          {!canView(page) ? <AccessDenied /> : (
-            <>
-              {page === 'dashboard'     && <Dashboard onNav={setPage} />}
-              {page === 'notificaciones' && <Notificaciones onNav={setPage} />}
-              {page === 'vehiculo'      && <Vehiculo />}
-              {page === 'combustible'   && <Combustible />}
-              {page === 'mantenimiento' && <Mantenimiento />}
-              {page === 'nomina'        && <Nomina />}
-              {page === 'finanzas'      && <Finanzas />}
-              {page === 'viajes'        && <Viajes />}
-              {page === 'marketing'     && <Marketing />}
-              {page === 'seguimiento'   && <SeguimientoGPS />}
-              {page === 'contactos'     && <Contactos />}
-              {page === 'usuarios'      && <Usuarios />}
-              {page === 'superadmin'    && <Superadmin />}
-              {page === 'configuracion' && <Configuracion />}
-              {page === 'backup'        && <BackupPage />}
-            </>
-          )}
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {ROUTES.map(route => (
+                <Route key={route.id} path={route.path} element={<Guarded route={route} />} />
+              ))}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
     </div>
