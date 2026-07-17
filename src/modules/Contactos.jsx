@@ -8,13 +8,14 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Contact, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 
 const TIPOS = ['Cliente', 'Proveedor', 'Taller mecánico', 'Seguro', 'Empleado', 'Otro']
 
 const empty = () => ({ id: genId(), nombre: '', tipo: 'Cliente', telefono: '', email: '', empresa: '', direccion: '', notas: '' })
 
 export default function Contactos() {
-  const { data, update } = useStore()
+  const { data, update, loading } = useStore()
   const list = data.contactos || []
   const [search, setSearch]       = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
@@ -26,6 +27,12 @@ export default function Contactos() {
   useEffect(() => {
     if (location.state?.q != null) setSearch(location.state.q)
   }, [location.state])
+
+  // Deep link a un contacto (/#/contactos/:id): limpia filtros y resalta la fila.
+  const destacadoId = useRegistroDestacado(list, {
+    listo: !loading,
+    onEncontrado: () => { setSearch(''); setFiltroTipo('') },
+  })
   const [modal, setModal]         = useState(false)
   const [form, setForm]           = useState(empty())
   const [editId, setEditId]       = useState(null)
@@ -144,7 +151,7 @@ export default function Contactos() {
             {TIPOS.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin contactos registrados" />
+        <Table columns={cols} data={filtered} emptyText="Sin contactos registrados" highlightId={destacadoId} />
       </div>
 
       {/* ── Modal ── */}

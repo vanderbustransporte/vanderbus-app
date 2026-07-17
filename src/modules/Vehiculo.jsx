@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useStore } from '../store/useStore'
+import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
 import { faltantesVehiculo } from '../utils/chequeoVencimientos'
@@ -47,11 +48,18 @@ function ExpiryBadge({ label, date }) {
 }
 
 // Tarjeta de un vehiculo en la grilla de flota
-function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [] }) {
+function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = false }) {
   const chips = [['VTV', v.vtv], ['Seguro', v.seguro], ['Habil.', v.habilitacion]]
+  // Deep link: scrollear la tarjeta resaltada al montarse (el ref sólo se ata a esa).
+  const flashRef = useCallback(node => {
+    if (!node) return
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    node.scrollIntoView({ block: 'center', behavior: reducido ? 'auto' : 'smooth' })
+  }, [])
   return (
     <div
-      className="surface db-in db-d2"
+      ref={flash ? flashRef : null}
+      className={`surface db-in db-d2${flash ? ' row-flash' : ''}`}
       style={{
         padding: 18, borderRadius: 'var(--radius)', display: 'flex', flexDirection: 'column', gap: 12,
         border: faltan.length ? '1px solid var(--warning)' : undefined,
@@ -147,6 +155,12 @@ export default function Vehiculo() {
   const handleNew    = () => { setForm({ ...emptyVehiculo, id: crypto.randomUUID() }); setEditingId('new') }
   const handleEdit   = (v) => { setForm({ ...emptyVehiculo, ...v }); setEditingId(v.id) }
   const handleCancel = () => setEditingId(null)
+
+  // Deep link a un vehículo (/#/vehiculo/:id): resalta la tarjeta. Un archivado
+  // no está en la grilla (la palette igual lo lista), así que se abre su ficha.
+  const destacadoId = useRegistroDestacado(data.vehiculos || [], {
+    onEncontrado: (v) => { if (v.activo === false && editable) handleEdit(v) },
+  })
 
   const handleSave = () => {
     const all = data.vehiculos || []
@@ -264,6 +278,7 @@ export default function Vehiculo() {
               onArchive={handleArchive}
               editable={editable}
               faltan={faltantesVehiculo(v, data.mantenimiento)}
+              flash={v.id === destacadoId}
             />
           ))}
         </div>

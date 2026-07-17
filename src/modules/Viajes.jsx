@@ -10,6 +10,7 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { MapPin, Plus, Trash2, Edit2, Calculator } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { calcularTarifa, tarifasConfiguradas } from '../utils/tarifas'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
@@ -73,6 +74,13 @@ export default function Viajes() {
   useEffect(() => {
     if (location.state?.q != null) setSearch(location.state.q)
   }, [location.state])
+
+  // Deep link a un viaje (/#/viajes/:id): limpia filtros que taparían la fila y
+  // la resalta. Llegan así la palette, las notificaciones y el Dashboard.
+  const destacadoId = useRegistroDestacado(list, {
+    listo: !loading,
+    onEncontrado: () => { setSearch(''); setEstadoFilter('') },
+  })
   const [modal, setModal]             = useState(false)
   const [editId, setEditId]           = useState(null)
   const [form, setForm]               = useState(empty())
@@ -384,7 +392,7 @@ export default function Viajes() {
             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin viajes registrados" />
+        <Table columns={cols} data={filtered} emptyText="Sin viajes registrados" highlightId={destacadoId} />
       </div>
 
       {/* ── Modal ── */}

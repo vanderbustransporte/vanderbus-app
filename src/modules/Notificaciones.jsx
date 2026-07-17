@@ -8,10 +8,12 @@ import { useNav } from '../hooks/useNav'
 
 const ACCENT = 'var(--accent)'
 
-// Etiqueta del botón de acción según el destino del link.
+// Etiqueta del botón de acción según el destino del link. El link puede traer
+// registro ('vehiculo:uuid'); el destino es la parte antes del ':'.
 function accionLabel(link) {
-  if (link === 'vehiculo')      return 'Completar'
-  if (link === 'mantenimiento') return 'Ver service'
+  const destino = String(link).split(':')[0]
+  if (destino === 'vehiculo')      return 'Completar'
+  if (destino === 'mantenimiento') return 'Ver service'
   return 'Ver'
 }
 

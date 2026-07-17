@@ -252,7 +252,8 @@ export default function Dashboard() {
         // Los viajes por salir pesan más que un vencimiento a 30 días; dentro del
         // mismo día, primero el que sale más temprano.
         orden: d - 100 + horaOrden(v.hora) / 10000,
-        link: 'viajes',
+        // Deep link a la fila exacta del viaje (useNav parsea 'modulo:registro').
+        link: `viajes:${v.id}`,
       })
     }
 

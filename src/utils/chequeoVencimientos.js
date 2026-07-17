@@ -134,7 +134,10 @@ export function recolectarVencimientos(data) {
         tipo: 'vencimiento',
         estado, concepto: label, entidad, fecha, dias,
         mensaje: `${label} de ${entidad} ${cuando} (${formatDate(fecha)}).`,
-        link: 'vehiculo',
+        // 'modulo:registroId' → deep link a la tarjeta exacta del vehículo
+        // (useNav lo parsea; las filas viejas con 'vehiculo' a secas siguen
+        // llegando al módulo).
+        link: `vehiculo:${v.id}`,
       }))
     }
   }
@@ -157,7 +160,7 @@ export function recolectarVencimientos(data) {
           tipo: 'mantenimiento',
           estado, concepto: `Próximo ${concepto}`, entidad, fecha: m.proximo_fecha, dias,
           mensaje: `Próximo ${concepto.toLowerCase()} de ${entidad} ${cuando} (${formatDate(m.proximo_fecha)}).`,
-          link: 'mantenimiento',
+          link: `mantenimiento:${m.id}`,
         }))
       }
     }
@@ -177,7 +180,7 @@ export function recolectarVencimientos(data) {
           mensaje: restan <= 0
             ? `${concepto} de ${entidad} pasado por ${Math.abs(restan).toLocaleString('es-AR')} km (objetivo ${proxKm.toLocaleString('es-AR')} km).`
             : `${concepto} de ${entidad} en ${restan.toLocaleString('es-AR')} km (objetivo ${proxKm.toLocaleString('es-AR')} km).`,
-          link: 'mantenimiento',
+          link: `mantenimiento:${m.id}`,
           estado: estado.label,
           concepto,
           entidad,
@@ -209,7 +212,7 @@ function recolectarObligatorios(data) {
       // Título estable por vehículo → una sola notif de acción por vehículo.
       titulo: `Datos obligatorios sin cargar · ${entidad}`,
       mensaje: `Cargá ${faltan.join(', ')} de ${entidad} para poder avisarte a tiempo de sus vencimientos.`,
-      link: 'vehiculo',
+      link: `vehiculo:${v.id}`,
     })
   }
   return items

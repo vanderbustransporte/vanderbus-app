@@ -550,11 +550,29 @@ button:active { transform: scale(0.97); }
   }
 }
 
+/* ── Registro destacado (deep link a una fila/tarjeta) ─── */
+@keyframes row-flash {
+  0%, 55% { background-color: var(--accent-dim); }
+  100%    { background-color: transparent; }
+}
+.row-flash { animation: row-flash 2.4s ease-out 1; }
+/* Sobre una tarjeta con entrada .db-in hay que declarar AMBAS animaciones:
+   `animation` es shorthand y una sola regla pisa a la otra — con sólo .row-flash
+   la tarjeta perdía su db-up y quedaba clavada en opacity: 0 (invisible). */
+.db-in.row-flash {
+  animation: db-up 320ms cubic-bezier(0.23, 1, 0.32, 1) forwards,
+             row-flash 2.4s ease-out 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sk        { animation: none; }
   .sb-item   { transition: none; }
   .sb-item:active { transform: none; }
   .skip-link { transition: none; }
+  /* Sin animación: resaltado fijo, lo apaga el timeout del hook. El selector
+     doble también neutraliza a .db-in.row-flash (misma especificidad, y este
+     bloque va después). */
+  .row-flash, .db-in.row-flash { animation: none; background-color: var(--accent-dim); }
 }
 
 /* ── App shell layout ──────────────────────────────────── */

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useStore } from '../store/useStore'
+import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
 import Table from '../components/shared/Table'
@@ -27,12 +28,19 @@ const ESTADO_STYLES = {
 }
 
 export default function Mantenimiento() {
-  const { data, update } = useStore()
+  const { data, update, loading } = useStore()
   const list = (data.mantenimiento || []).filter(r =>
     r.descripcion || r.categoria || r.costo
   )
   const [search, setSearch]           = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
+
+  // Deep link a un service (/#/mantenimiento/:id): las notificaciones de próximo
+  // service llegan acá con la fila exacta. Limpia filtros y la resalta.
+  const destacadoId = useRegistroDestacado(list, {
+    listo: !loading,
+    onEncontrado: () => { setSearch(''); setFiltroEstado('') },
+  })
   const [modal, setModal]             = useState(false)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
@@ -170,7 +178,7 @@ export default function Mantenimiento() {
             <option>En proceso</option>
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin registros de mantenimiento" />
+        <Table columns={cols} data={filtered} emptyText="Sin registros de mantenimiento" highlightId={destacadoId} />
       </div>
 
       {modal && (

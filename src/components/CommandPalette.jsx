@@ -60,8 +60,8 @@ function buildResults({ q, auth, data, nav }) {
 
   const puede = (id) => puedeAcceder(rutaDe(id), auth)
 
-  // ── Viajes ── al elegir uno se navega al módulo con el cliente como búsqueda
-  // aplicada (no hay deep link a la fila todavía; ver roadmap punto 7).
+  // ── Viajes ── al elegir uno se navega a la fila exacta (deep link con
+  // registro): el módulo la resalta y scrollea vía useRegistroDestacado.
   if (puede('viajes')) {
     const viajes = (data.viajes || [])
       .filter(r => r.cliente || r.origen || r.destino)
@@ -76,7 +76,7 @@ function buildResults({ q, auth, data, nav }) {
         icon: MapPin,
         label: r.cliente || ruta || 'Sin cliente',
         detail: [formatDate(r.fecha), r.cliente ? ruta : ''].filter(Boolean).join(' · '),
-        run: () => nav('viajes', { q: r.cliente || '' }),
+        run: () => nav('viajes', { registro: r.id }),
       })
     }
   }
@@ -94,7 +94,7 @@ function buildResults({ q, auth, data, nav }) {
         icon: Contact,
         label: r.nombre || 'Sin nombre',
         detail: [r.tipo, r.empresa || r.telefono].filter(Boolean).join(' · '),
-        run: () => nav('contactos', { q: r.nombre || '' }),
+        run: () => nav('contactos', { registro: r.id }),
       })
     }
   }
@@ -112,7 +112,7 @@ function buildResults({ q, auth, data, nav }) {
         icon: Truck,
         label: r.alias || r.patente || 'Sin nombre',
         detail: [[r.marca, r.modelo].filter(Boolean).join(' '), r.patente, r.activo === false ? 'Archivado' : ''].filter(Boolean).join(' · '),
-        run: () => nav('vehiculo'),
+        run: () => nav('vehiculo', { registro: r.id }),
       })
     }
   }

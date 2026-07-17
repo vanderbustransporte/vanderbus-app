@@ -1,11 +1,28 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
-export default function Table({ columns, data, emptyText = 'Sin registros' }) {
+export default function Table({ columns, data, emptyText = 'Sin registros', highlightId = null }) {
   const [page, setPage] = useState(0)
   useEffect(() => { setPage(0) }, [data])
+
+  // Deep link a una fila (useRegistroDestacado): saltar a la página que la
+  // contiene. Declarado DESPUÉS del reset de arriba a propósito: si ambos corren
+  // en el mismo render (llegar con filtros limpios cambia `data`), gana este.
+  useEffect(() => {
+    if (highlightId == null) return
+    const idx = data.findIndex(r => r.id === highlightId)
+    if (idx >= 0) setPage(Math.floor(idx / PAGE_SIZE))
+  }, [highlightId, data])
+
+  // Scrollea la fila resaltada al montarse (el ref sólo se ata a esa fila).
+  const flashRef = useCallback(node => {
+    if (!node) return
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    node.scrollIntoView({ block: 'center', behavior: reducido ? 'auto' : 'smooth' })
+  }, [])
+
   const totalPages = Math.ceil(data.length / PAGE_SIZE)
   const rows = data.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
@@ -36,6 +53,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros' }) {
             ) : rows.map((row, i) => (
               <tr
                 key={row.id || i}
+                ref={row.id === highlightId ? flashRef : null}
+                className={row.id === highlightId ? 'row-flash' : undefined}
                 style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms ease-out' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '' }}

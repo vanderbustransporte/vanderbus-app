@@ -342,10 +342,16 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 4. **Dominio propio** — `api.vanderbus.app` → Supabase (evita bloqueos de red corporativa).
 5. **Nómina mejorada** — sueldo fijo + extras, resumen día 26, notificación WhatsApp via n8n.
 6. **Ancho uniforme** — todos los módulos a `max-w-[1680px]` (el Dashboard ya lo tiene).
-7. **Deep links a registros** — hoy las rutas llegan al módulo (`/#/viajes`), no a la fila
-   (`/#/viajes/:id`). El registro ya soporta params; falta que los módulos lean `useParams()`
-   y abran el detalle. Es lo que haría que una notificación linkee al service exacto y no
-   sólo a la lista.
+7. ~~Deep links a registros~~ — **hecho** (2026-07-17): `/#/viajes/:id`, `/#/contactos/:id`,
+   `/#/vehiculo/:id`, `/#/mantenimiento/:id` (los módulos con `detalle: true` en routes.jsx).
+   El módulo destino consume el param con `src/hooks/useRegistroDestacado.js`: limpia filtros,
+   salta a la página de la tabla donde está la fila, la scrollea y la resalta (`.row-flash`).
+   `notificaciones.link` ahora acepta `'modulo:registroId'` (ej. `vehiculo:<uuid>`) y `useNav`
+   lo parsea; las filas viejas con `'vehiculo'` a secas siguen llegando al módulo. Emisores
+   actualizados: palette Ctrl+K (salta a la fila exacta), chequeoVencimientos (VTV/seguro →
+   vehículo exacto, service → fila exacta de mantenimiento) y el panel "Requiere atención"
+   del Dashboard (viaje sin confirmar → fila exacta). Un vehículo archivado no está en la
+   grilla: el deep link abre su ficha de edición directamente (si hay permiso).
 8. ~~Command palette (Ctrl+K)~~ — **hecho** (2026-07-16): `src/components/CommandPalette.jsx`.
    Se abre con Ctrl/Cmd+K o el botón "Buscar" de la topbar. Salta a módulos (usa la misma
    `puedeAcceder` de routes.jsx: no puede ofrecer destinos prohibidos) y busca registros en

@@ -145,7 +145,9 @@ export default function App() {
     return () => aplicarColorPrimario(null)
   }, [colorPrimario])
 
-  const rutaActual = ROUTES.find(r => r.path === location.pathname)
+  // Matchea también las URLs con registro (/viajes/abc123): sin el prefijo, la
+  // topbar y la pestaña quedaban sin título al entrar por un deep link.
+  const rutaActual = ROUTES.find(r => location.pathname === r.path || location.pathname.startsWith(r.path + '/'))
 
   // Título de pestaña: ahora refleja también en qué sección estás, que es lo que
   // se ve al tener varias pestañas abiertas del sistema.
@@ -301,7 +303,14 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               {ROUTES.map(route => (
-                <Route key={route.id} path={route.path} element={<Guarded route={route} />} />
+                <React.Fragment key={route.id}>
+                  <Route path={route.path} element={<Guarded route={route} />} />
+                  {/* Deep link a un registro: mismo componente y mismo guard; el
+                      módulo lee :registroId con useRegistroDestacado(). */}
+                  {route.detalle && (
+                    <Route path={`${route.path}/:registroId`} element={<Guarded route={route} />} />
+                  )}
+                </React.Fragment>
               ))}
               <Route path="*" element={<NotFound />} />
             </Routes>

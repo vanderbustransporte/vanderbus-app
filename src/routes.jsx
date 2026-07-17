@@ -30,6 +30,11 @@ import {
 // `feature` (opcional) → flag de organizations.features. Un flag apagado oculta
 // el módulo para TODA la org, incluido el owner, y se evalúa ANTES que `acceso`.
 //
+// `detalle: true` → el módulo acepta deep link a un registro: `path/:registroId`
+// (ej: /#/viajes/abc123). App.jsx monta la ruta con parámetro y el módulo la
+// consume con useRegistroDestacado() (limpia filtros, scrollea y resalta la fila).
+// `notificaciones.link` puede llevar el token 'modulo:registroId'; useNav lo parsea.
+//
 // Cada `Component` es lazy: el chunk del módulo se baja recién al entrar. Así el
 // mapa (Leaflet) y los gráficos (Recharts) no los paga quien nunca los abre.
 
@@ -55,16 +60,16 @@ export const ROUTES = [
   // ── Operación ──
   { id: 'dashboard',      path: '/dashboard',      label: 'Dashboard',     titulo: 'Panel de control', grupo: 'Operación',      icon: LayoutDashboard, acceso: 'permiso',    Component: Dashboard },
   { id: 'notificaciones', path: '/notificaciones', label: 'Notificaciones', titulo: 'Notificaciones',  grupo: 'Operación',      icon: Bell,            acceso: 'libre',      Component: Notificaciones },
-  { id: 'viajes',         path: '/viajes',         label: 'Viajes',        titulo: 'Viajes',           grupo: 'Operación',      icon: MapPin,          acceso: 'permiso',    Component: Viajes },
-  { id: 'vehiculo',       path: '/vehiculo',       label: 'Flota',         titulo: 'Flota',            grupo: 'Operación',      icon: Truck,           acceso: 'permiso',    Component: Vehiculo },
+  { id: 'viajes',         path: '/viajes',         label: 'Viajes',        titulo: 'Viajes',           grupo: 'Operación',      icon: MapPin,          acceso: 'permiso',    Component: Viajes, detalle: true },
+  { id: 'vehiculo',       path: '/vehiculo',       label: 'Flota',         titulo: 'Flota',            grupo: 'Operación',      icon: Truck,           acceso: 'permiso',    Component: Vehiculo, detalle: true },
   { id: 'combustible',    path: '/combustible',    label: 'Combustible',   titulo: 'Combustible',      grupo: 'Operación',      icon: Fuel,            acceso: 'permiso',    Component: Combustible },
-  { id: 'mantenimiento',  path: '/mantenimiento',  label: 'Mantenimiento', titulo: 'Mantenimiento',    grupo: 'Operación',      icon: Wrench,          acceso: 'permiso',    Component: Mantenimiento },
+  { id: 'mantenimiento',  path: '/mantenimiento',  label: 'Mantenimiento', titulo: 'Mantenimiento',    grupo: 'Operación',      icon: Wrench,          acceso: 'permiso',    Component: Mantenimiento, detalle: true },
   { id: 'seguimiento',    path: '/seguimiento',    label: 'GPS',           titulo: 'Seguimiento GPS',  grupo: 'Operación',      icon: Navigation,      acceso: 'permiso',    Component: SeguimientoGPS, feature: 'seguimiento' },
 
   // ── Administración ──
   { id: 'finanzas',       path: '/finanzas',       label: 'Finanzas',      titulo: 'Finanzas',         grupo: 'Administración', icon: TrendingUp,      acceso: 'permiso',    Component: Finanzas },
   { id: 'nomina',         path: '/nomina',         label: 'Nómina',        titulo: 'Nómina',           grupo: 'Administración', icon: DollarSign,      acceso: 'permiso',    Component: Nomina },
-  { id: 'contactos',      path: '/contactos',      label: 'Contactos',     titulo: 'Contactos',        grupo: 'Administración', icon: Contact,         acceso: 'permiso',    Component: Contactos },
+  { id: 'contactos',      path: '/contactos',      label: 'Contactos',     titulo: 'Contactos',        grupo: 'Administración', icon: Contact,         acceso: 'permiso',    Component: Contactos, detalle: true },
 
   // ── Crecimiento ──
   { id: 'marketing',      path: '/marketing',      label: 'Marketing',     titulo: 'Marketing',        grupo: 'Crecimiento',    icon: Megaphone,       acceso: 'permiso',    Component: Marketing, feature: 'marketing' },
