@@ -5,6 +5,7 @@ import App from './App.jsx'
 import Login from './components/Login.jsx'
 import CuentaSuspendida from './components/CuentaSuspendida.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
+import { ConfirmProvider } from './context/ConfirmContext.jsx'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import './index.css'
@@ -53,11 +54,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
       <ToastProvider>
-        <AuthProvider>
-          <HashRouter>
-            <AuthGate />
-          </HashRouter>
-        </AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <HashRouter>
+              <AuthGate />
+            </HashRouter>
+          </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </ThemeProvider>
   </React.StrictMode>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
 import Table from '../components/shared/Table'
@@ -8,6 +8,8 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnCancel } from '../components/shared/Field'
 import { TrendingUp, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
 import { useChartTheme } from '../utils/chartTheme'
 
 const ACCENT   = 'var(--accent)'
@@ -109,6 +111,8 @@ export default function Finanzas() {
   const { data, update } = useStore()
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('finanzas')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
   const ct = useChartTheme()
   const ingresos      = (data.ingresos || []).filter(r => r.descripcion || r.importe)
   const gastosPropios = (data.gastos   || []).filter(r => r.descripcion || r.importe)
@@ -151,11 +155,26 @@ export default function Finanzas() {
     setModal(null)
   }
 
-  const handleDelete = r => {
+  const handleDelete = async r => {
     if (r._marketing || r.viaje_id) return
-    if (!confirm('¿Eliminar este movimiento?')) return
-    if (r.tipo === 'ingreso') update('ingresos', ingresos.filter(x => x.id !== r.id))
-    else update('gastos', gastosPropios.filter(x => x.id !== r.id))
+    const esIngreso = r.tipo === 'ingreso'
+    const ok = await confirmar({
+      titulo: esIngreso ? 'Eliminar ingreso' : 'Eliminar gasto',
+      mensaje: `Se elimina "${r.descripcion || 'este movimiento'}" del ${formatDate(r.fecha)} (${formatARS(r.importe)}).`,
+    })
+    if (!ok) return
+    const tabla = esIngreso ? 'ingresos' : 'gastos'
+    update(tabla, (esIngreso ? ingresos : gastosPropios).filter(x => x.id !== r.id))
+    // El registro guardado no lleva el `tipo` sintético que le agrega `all`
+    // para pintar la tabla: se restaura la fila tal como vive en su tabla.
+    const fila = (esIngreso ? ingresos : gastosPropios).find(x => x.id === r.id)
+    addToast({
+      message: esIngreso ? 'Ingreso eliminado.' : 'Gasto eliminado.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update(tabla, [fila, ...(getData()[tabla] || [])]) },
+    })
   }
 
   const cols = [

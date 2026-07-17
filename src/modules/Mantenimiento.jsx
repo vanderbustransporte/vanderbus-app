@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
@@ -7,13 +7,17 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { Wrench, Plus, Trash2 } from 'lucide-react'
+import { Wrench, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
+import { conValorActual, vehiculosSeleccionables } from '../utils/form'
 
 const ACCENT = 'var(--accent)'
 const MONO   = "'Geist', system-ui, sans-serif"
 
 const CATEGORIAS = ['Aceite y filtros', 'Frenos', 'Neumáticos', 'Suspensión', 'Motor', 'Eléctrico', 'Carrocería', 'Revisión general', 'Otro']
+const ESTADOS    = ['Realizado', 'Pendiente', 'En proceso']
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), categoria: 'Revisión general', descripcion: '',
@@ -42,13 +46,25 @@ export default function Mantenimiento() {
     onEncontrado: () => { setSearch(''); setFiltroEstado('') },
   })
   const [modal, setModal]             = useState(false)
+  const [editId, setEditId]           = useState(null)
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('mantenimiento')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Opciones preservando valores legacy y el vehículo asignado aunque esté
+  // archivado (ver utils/form.js).
+  const categoriasOpciones = useMemo(() => conValorActual(CATEGORIAS, form.categoria), [form.categoria])
+  const estadosOpciones    = useMemo(() => conValorActual(ESTADOS, form.estado), [form.estado])
+  const vehiculosOpciones  = useMemo(
+    () => vehiculosSeleccionables(data.vehiculos, form.vehiculo_id),
+    [data.vehiculos, form.vehiculo_id]
+  )
 
   const validate = () => {
     const e = {}
@@ -58,15 +74,54 @@ export default function Mantenimiento() {
     return Object.keys(e).length === 0
   }
 
-  const handleSave = () => {
-    if (!validate()) return
-    update('mantenimiento', [{ ...form, fecha: toISO(form.fecha), proximo_fecha: toISO(form.proximo_fecha) }, ...list])
-    setModal(false)
-    setForm(empty())
+  const openNew = () => { setEditId(null); setForm(empty()); setErrors({}); setModal(true) }
+
+  // `...empty()` primero para que las filas viejas tengan todas las claves
+  // definidas, null → '' para inputs controlados, y fechas normalizadas a ISO
+  // (el <input type="date"> rechaza otros formatos y borraría el dato).
+  const openEdit = (r) => {
+    setEditId(r.id)
+    setForm({
+      ...empty(),
+      ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ?? ''])),
+      fecha: toISO(r.fecha),
+      proximo_fecha: toISO(r.proximo_fecha),
+    })
+    setErrors({})
+    setModal(true)
   }
 
-  const handleDelete = id => {
-    if (confirm('¿Eliminar este registro?')) update('mantenimiento', list.filter(r => r.id !== id))
+  const handleSave = () => {
+    if (!validate()) return
+    const registro = {
+      ...form,
+      fecha: toISO(form.fecha),
+      proximo_fecha: toISO(form.proximo_fecha),
+      // vehiculo_id es uuid: '' de "Sin asignar" se guarda como NULL (mismo
+      // bug que tenía Viajes: el string vacío hacía fallar el guardado entero).
+      vehiculo_id: form.vehiculo_id || null,
+    }
+    if (editId) update('mantenimiento', list.map(r => r.id === editId ? registro : r))
+    else        update('mantenimiento', [registro, ...list])
+    setModal(false)
+  }
+
+  const handleDelete = async id => {
+    const registro = list.find(r => r.id === id)
+    if (!registro) return
+    const ok = await confirmar({
+      titulo: 'Eliminar registro',
+      mensaje: `Se elimina "${registro.descripcion || registro.categoria || 'este registro'}" del ${formatDate(registro.fecha)}.`,
+    })
+    if (!ok) return
+    update('mantenimiento', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Registro eliminado.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('mantenimiento', [registro, ...(getData().mantenimiento || [])]) },
+    })
   }
 
   const filtered = useMemo(() => {
@@ -105,15 +160,28 @@ export default function Mantenimiento() {
     },
     {
       key: 'acciones', label: '', render: r => editable ? (
-        <button
-          onClick={() => handleDelete(r.id)}
-          className="p-1.5 rounded-lg"
-          style={{ color: 'var(--danger)' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '' }}
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => openEdit(r)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--text-2)' }}
+            aria-label={`Editar registro del ${formatDate(r.fecha)}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => handleDelete(r.id)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--danger)' }}
+            aria-label={`Eliminar registro del ${formatDate(r.fecha)}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       ) : null
     }
   ]
@@ -133,9 +201,7 @@ export default function Mantenimiento() {
           </div>
         </div>
         {editable && (
-          <button
-            className="glass-btn-primary" onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          >
+          <button className="glass-btn-primary" onClick={openNew}>
             <Plus size={15} /> Nuevo registro
           </button>
         )}
@@ -182,13 +248,15 @@ export default function Mantenimiento() {
       </div>
 
       {modal && (
-        <Modal title="Nuevo mantenimiento / arreglo" onClose={() => setModal(false)} size="lg">
+        <Modal title={editId ? 'Editar mantenimiento / arreglo' : 'Nuevo mantenimiento / arreglo'} onClose={() => setModal(false)} size="lg">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Vehículo">
               <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
                 <option value="">— Sin asignar —</option>
-                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
-                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                {vehiculosOpciones.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.alias || v.patente || 'Vehículo'}{v.activo === false ? ' (archivado)' : ''}
+                  </option>
                 ))}
               </Select>
             </Field>
@@ -198,7 +266,7 @@ export default function Mantenimiento() {
             </Field>
             <Field label="Categoría">
               <Select value={form.categoria} onChange={e => set('categoria', e.target.value)}>
-                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+                {categoriasOpciones.map(c => <option key={c}>{c}</option>)}
               </Select>
             </Field>
             <div className="col-span-2">
@@ -218,7 +286,7 @@ export default function Mantenimiento() {
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={e => set('estado', e.target.value)}>
-                <option>Realizado</option><option>Pendiente</option><option>En proceso</option>
+                {estadosOpciones.map(e => <option key={e}>{e}</option>)}
               </Select>
             </Field>
             <Field label="Próximo service (KM)">

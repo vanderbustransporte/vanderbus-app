@@ -22,10 +22,14 @@ export function ToastProvider({ children }) {
     timersRef.current[id] = { ...(timersRef.current[id] ?? {}), removeTimer }
   }, [])
 
-  const addToast = useCallback(({ message, Icon, color }) => {
+  // `action` (opcional): { label, onClick } — botón dentro del toast (ej. el
+  // "Deshacer" de un borrado). Al clickearlo corre onClick y el toast se cierra.
+  // `duration` (opcional): los toasts con acción conviene darles más aire que
+  // los 3.5s informativos.
+  const addToast = useCallback(({ message, Icon, color, action, duration = 3500 }) => {
     const id = ++idRef.current
-    setToasts(prev => [...prev, { id, message, Icon, color, removing: false }])
-    const autoTimer = setTimeout(() => removeToast(id), 3500)
+    setToasts(prev => [...prev, { id, message, Icon, color, action, removing: false }])
+    const autoTimer = setTimeout(() => removeToast(id), duration)
     timersRef.current[id] = { autoTimer }
   }, [removeToast])
 

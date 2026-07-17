@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { genId } from '../utils/format'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
@@ -8,6 +8,8 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Contact, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 
 const TIPOS = ['Cliente', 'Proveedor', 'Taller mecánico', 'Seguro', 'Empleado', 'Otro']
@@ -40,6 +42,8 @@ export default function Contactos() {
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('contactos')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -60,8 +64,22 @@ export default function Contactos() {
     setModal(false)
   }
 
-  const handleDelete = id => {
-    if (confirm('¿Eliminar contacto?')) update('contactos', list.filter(r => r.id !== id))
+  const handleDelete = async id => {
+    const contacto = list.find(r => r.id === id)
+    if (!contacto) return
+    const ok = await confirmar({
+      titulo: 'Eliminar contacto',
+      mensaje: `Se elimina a ${contacto.nombre || 'este contacto'}.`,
+    })
+    if (!ok) return
+    update('contactos', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Contacto eliminado.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('contactos', [contacto, ...(getData().contactos || [])]) },
+    })
   }
 
   const filtered = useMemo(() => {

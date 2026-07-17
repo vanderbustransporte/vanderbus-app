@@ -359,13 +359,26 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    navega al módulo con la búsqueda ya aplicada: `nav(id, { q })` → el módulo la lee de
    `useLocation().state.q` (Viajes y Contactos lo hacen por useEffect, no por initial state,
    para que funcione sin remount). Los deep links a la fila exacta siguen siendo el punto 7.
-9. **Confirmación y undo** — los borrados usan `confirm()` nativo (bloqueante, inconsistente)
-   y no hay deshacer. Reemplazar por un dialog propio + toast con undo.
+9. ~~Confirmación y undo~~ — **hecho** (2026-07-17). `useConfirm()` de
+   `src/context/ConfirmContext.jsx` (promise-based: `const ok = await confirmar({ titulo,
+   mensaje, accion?, tono?, Icon? })`) reemplazó TODOS los `confirm()` nativos. Los borrados
+   además muestran un toast con **Deshacer** (6s): `addToast` ahora acepta `{ action:
+   { label, onClick }, duration }`. **Regla del deshacer:** el callback re-inserta contra
+   `getData()` del store (export nuevo de useStore.js), NUNCA contra el array capturado en
+   el closure — si hubo un refetch en el medio, el array viejo desharía cambios ajenos.
+   En Viajes el deshacer restaura SOLO el viaje: el ingreso espejo lo recrea el useEffect
+   (reinsertarlo en paralelo rompería la FK `viaje_id`).
 10. **Vestigio del backend Express** — `vite.config.js` todavía define `apiPlugin()`, un
    `/api/viajes` en memoria sobre el dev server. No lo usa nadie del frontend y contradice
    la regla de "backend jubilado". Confirmar con el dueño y borrar.
-11. ~~Editar viajes~~ — **hecho** (2026-07-16). Queda la misma deuda en otros módulos:
-   `Combustible` y `Nomina` tampoco tienen edición.
+11. ~~Editar viajes~~ — **hecho** (2026-07-16). ~~Edición en Combustible, Nómina y
+   Mantenimiento~~ — **hecho** (2026-07-17), mismo patrón (`editId` + `openEdit` con
+   normalización: `...empty()` primero, null → `''`, fechas por `toISO()`, y en Combustible
+   sacar el campo derivado `consumo` antes de guardar). Los helpers `conValorActual()` y
+   `vehiculosSeleccionables()` ahora viven en `src/utils/form.js` (compartidos por Viajes,
+   Combustible y Mantenimiento). De paso se cerró el bug de uuid en Combustible y
+   Mantenimiento: `vehiculo_id: form.vehiculo_id || null` al guardar (el `''` del Select
+   hacía fallar el INSERT entero, mismo bug que tenía Viajes).
 
 ---
 

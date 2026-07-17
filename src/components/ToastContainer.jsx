@@ -27,6 +27,20 @@ export default function ToastContainer({ toasts, onRemove }) {
           <span style={{ color: 'var(--text-1)', flex: 1, lineHeight: 1.4 }}>
             {t.message}
           </span>
+          {t.action && (
+            <button
+              onClick={() => { t.action.onClick(); onRemove(t.id) }}
+              style={{
+                color: 'var(--accent)', background: 'none', border: 'none',
+                cursor: 'pointer', padding: '0 2px', flexShrink: 0,
+                fontSize: 12, fontWeight: 700,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
             onClick={() => onRemove(t.id)}
             style={{

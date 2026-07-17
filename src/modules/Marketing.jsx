@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO } from '../utils/fecha'
 import Table from '../components/shared/Table'
@@ -8,6 +8,8 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Megaphone, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
 
 const ACCENT = 'var(--accent)'
 
@@ -40,6 +42,8 @@ export default function Marketing() {
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('marketing')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -61,8 +65,22 @@ export default function Marketing() {
     setModal(false)
   }
 
-  const handleDelete = id  => {
-    if (confirm('¿Eliminar esta campaña?')) update('marketing', list.filter(r => r.id !== id))
+  const handleDelete = async id => {
+    const campania = list.find(r => r.id === id)
+    if (!campania) return
+    const ok = await confirmar({
+      titulo: 'Eliminar campaña',
+      mensaje: `Se elimina "${campania.titulo || 'esta campaña'}".`,
+    })
+    if (!ok) return
+    update('marketing', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Campaña eliminada.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('marketing', [campania, ...(getData().marketing || [])]) },
+    })
   }
 
   const filtered = useMemo(() => {

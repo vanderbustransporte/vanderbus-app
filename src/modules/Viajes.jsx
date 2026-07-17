@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO } from '../utils/fecha'
 import { toHora, formatHora, horaOrden } from '../utils/hora'
@@ -10,7 +10,10 @@ import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { MapPin, Plus, Trash2, Edit2, Calculator } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
+import { conValorActual, vehiculosSeleccionables } from '../utils/form'
 import { calcularTarifa, tarifasConfiguradas } from '../utils/tarifas'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
@@ -24,16 +27,6 @@ const ESTADO_STYLES = {
 }
 
 const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
-
-// Mantiene el valor actual como opción aunque no esté en la lista canónica.
-//
-// Sin esto, editar una fila con un valor legacy la corrompe en silencio: hay
-// viajes con tipo 'Mudanza' o 'Flete' (vocabulario viejo, ya no está en TIPOS).
-// El <select> no encuentra ninguna <option> que matchee, el navegador cae en la
-// PRIMERA, y al guardar el tipo pasaba de 'Mudanza' a 'Excursión' sin que nadie
-// lo tocara. Mismo problema con un vehículo archivado (no está entre los activos).
-const conValorActual = (opciones, actual) =>
-  actual && !opciones.includes(actual) ? [actual, ...opciones] : opciones
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
@@ -90,22 +83,19 @@ export default function Viajes() {
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
 
-  // Opciones del modal, preservando lo que la fila ya tiene guardado.
+  // Opciones del modal, preservando lo que la fila ya tiene guardado (valores
+  // legacy tipo 'Mudanza'/'Flete' y vehículos archivados; ver utils/form.js).
   const tiposOpciones   = useMemo(() => conValorActual(TIPOS, form.tipo), [form.tipo])
   const estadosOpciones = useMemo(() => conValorActual(ESTADOS, form.estado), [form.estado])
-
-  // Un vehículo archivado (activo: false) no está entre los seleccionables, pero
-  // si este viaje lo tiene asignado tiene que seguir apareciendo: si no, el Select
-  // caía en "Sin asignar" y guardar lo desvinculaba solo.
-  const vehiculosOpciones = useMemo(() => {
-    const todos   = data.vehiculos || []
-    const activos = todos.filter(v => v.activo !== false)
-    const asignado = todos.find(v => v.id === form.vehiculo_id)
-    return asignado && asignado.activo === false ? [asignado, ...activos] : activos
-  }, [data.vehiculos, form.vehiculo_id])
+  const vehiculosOpciones = useMemo(
+    () => vehiculosSeleccionables(data.vehiculos, form.vehiculo_id),
+    [data.vehiculos, form.vehiculo_id]
+  )
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('viajes')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -230,13 +220,31 @@ export default function Viajes() {
   // Borrar el viaje tiene que llevarse su ingreso espejo. Antes no lo hacía:
   // borrar un viaje Realizado dejaba el ingreso colgado en Finanzas para siempre,
   // sin viaje que lo respalde y sin forma de encontrarlo desde acá.
-  const handleDelete = id => {
-    if (!confirm('¿Eliminar este viaje?')) return
-    const ingresos = data.ingresos || []
-    if (ingresos.some(i => i.viaje_id === id)) {
-      update('ingresos', ingresos.filter(i => i.viaje_id !== id))
+  //
+  // El deshacer restaura SOLO el viaje contra el estado fresco del store
+  // (getData); el ingreso espejo lo recrea el useEffect de abajo — reinsertarlo
+  // acá correría en paralelo con el insert del viaje y rompería la FK viaje_id.
+  const handleDelete = async id => {
+    const viaje = list.find(r => r.id === id)
+    if (!viaje) return
+    const tieneEspejo = (data.ingresos || []).some(i => i.viaje_id === id)
+    const ok = await confirmar({
+      titulo: 'Eliminar viaje',
+      mensaje: `Se elimina el viaje de ${viaje.cliente || 'sin cliente'} del ${formatDate(viaje.fecha)}.`
+        + (tieneEspejo ? ' También se elimina su ingreso en Finanzas.' : ''),
+    })
+    if (!ok) return
+    if (tieneEspejo) {
+      update('ingresos', (data.ingresos || []).filter(i => i.viaje_id !== id))
     }
     update('viajes', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Viaje eliminado.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('viajes', [viaje, ...(getData().viajes || [])]) },
+    })
   }
 
   const handleEstado = (id, nuevoEstado) => {

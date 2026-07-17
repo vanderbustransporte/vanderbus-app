@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId, monthName } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { Fuel, Plus, Trash2 } from 'lucide-react'
+import { Fuel, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
+import { conValorActual, vehiculosSeleccionables } from '../utils/form'
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -32,6 +35,8 @@ class ErrorBoundary extends React.Component {
     return this.props.children
   }
 }
+
+const TIPOS = ['Gasoil', 'Diésel Premium', 'GNC', 'Nafta']
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), litros: '', importe: '', km: '', proveedor: '', tipo: 'Gasoil',
@@ -66,13 +71,24 @@ function Combustible() {
     r.fecha || r.litros || r.km || r.total || r.importe
   )
   const [modal, setModal]   = useState(false)
+  const [editId, setEditId] = useState(null)
   const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('combustible')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Opciones preservando valores legacy y el vehículo asignado aunque esté
+  // archivado (ver utils/form.js).
+  const tiposOpciones = useMemo(() => conValorActual(TIPOS, form.tipo), [form.tipo])
+  const vehiculosOpciones = useMemo(
+    () => vehiculosSeleccionables(data.vehiculos, form.vehiculo_id),
+    [data.vehiculos, form.vehiculo_id]
+  )
 
   const validate = () => {
     const e = {}
@@ -83,15 +99,50 @@ function Combustible() {
     return Object.keys(e).length === 0
   }
 
-  const handleSave = () => {
-    if (!validate()) return
-    update('combustible', [{ ...form, fecha: toISO(form.fecha) }, ...list])
-    setModal(false)
-    setForm(empty())
+  const openNew = () => { setEditId(null); setForm(empty()); setErrors({}); setModal(true) }
+
+  // La fila de la tabla trae `consumo` (derivado en memoria, no es columna):
+  // hay que sacarlo antes de que entre al form o el UPDATE lo rebota entero.
+  // `...empty()` primero para que las filas viejas sin `vehiculo_id` tengan la
+  // clave definida, y null → '' para que los inputs queden controlados.
+  const openEdit = (r) => {
+    const { consumo, ...fila } = r
+    setEditId(fila.id)
+    setForm({
+      ...empty(),
+      ...Object.fromEntries(Object.entries(fila).map(([k, v]) => [k, v ?? ''])),
+      fecha: toISO(fila.fecha),
+    })
+    setErrors({})
+    setModal(true)
   }
 
-  const handleDelete = id => {
-    if (confirm('¿Eliminar este registro?')) update('combustible', list.filter(r => r.id !== id))
+  const handleSave = () => {
+    if (!validate()) return
+    // vehiculo_id es uuid: el Select manda '' en "Sin asignar" y Postgres lo
+    // rechaza; uuid vacío se representa con NULL (mismo bug que tenía Viajes).
+    const registro = { ...form, fecha: toISO(form.fecha), vehiculo_id: form.vehiculo_id || null }
+    if (editId) update('combustible', list.map(r => r.id === editId ? registro : r))
+    else        update('combustible', [registro, ...list])
+    setModal(false)
+  }
+
+  const handleDelete = async id => {
+    const registro = list.find(r => r.id === id)
+    if (!registro) return
+    const ok = await confirmar({
+      titulo: 'Eliminar carga',
+      mensaje: `Se elimina la carga del ${formatDate(registro.fecha)}${registro.litros ? ` (${parseFloat(registro.litros).toFixed(1)} L)` : ''}.`,
+    })
+    if (!ok) return
+    update('combustible', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Carga eliminada.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('combustible', [registro, ...(getData().combustible || [])]) },
+    })
   }
 
   const sortedByKm = useMemo(() =>
@@ -161,9 +212,7 @@ function Combustible() {
           </div>
         </div>
         {editable && (
-          <button
-            className="glass-btn-primary" onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          >
+          <button className="glass-btn-primary" onClick={openNew}>
             <Plus size={15} /> Nueva carga
           </button>
         )}
@@ -267,15 +316,28 @@ function Combustible() {
                       </td>
                       <td className="py-3 px-3">
                         {editable && (
-                          <button
-                            onClick={() => handleDelete(r.id)}
-                            className="p-1.5 rounded-lg"
-                            style={{ color: 'var(--danger)' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '' }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => openEdit(r)}
+                              className="p-1.5 rounded-lg"
+                              style={{ color: 'var(--text-2)' }}
+                              aria-label={`Editar carga del ${formatDate(r.fecha)}`}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(r.id)}
+                              className="p-1.5 rounded-lg"
+                              style={{ color: 'var(--danger)' }}
+                              aria-label={`Eliminar carga del ${formatDate(r.fecha)}`}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -289,13 +351,15 @@ function Combustible() {
 
       {/* ── Modal ── */}
       {modal && (
-        <Modal title="Nueva carga de combustible" onClose={() => setModal(false)}>
+        <Modal title={editId ? 'Editar carga' : 'Nueva carga de combustible'} onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Vehículo">
               <Select value={form.vehiculo_id || ''} onChange={e => set('vehiculo_id', e.target.value)}>
                 <option value="">— Sin asignar —</option>
-                {(data.vehiculos || []).filter(v => v.activo !== false).map(v => (
-                  <option key={v.id} value={v.id}>{v.alias || v.patente || 'Vehículo'}</option>
+                {vehiculosOpciones.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.alias || v.patente || 'Vehículo'}{v.activo === false ? ' (archivado)' : ''}
+                  </option>
                 ))}
               </Select>
             </Field>
@@ -317,10 +381,7 @@ function Combustible() {
             <div className="col-span-2">
               <Field label="Tipo de combustible">
                 <Select value={form.tipo} onChange={e => set('tipo', e.target.value)}>
-                  <option>Gasoil</option>
-                  <option>Diésel Premium</option>
-                  <option>GNC</option>
-                  <option>Nafta</option>
+                  {tiposOpciones.map(t => <option key={t}>{t}</option>)}
                 </Select>
               </Field>
             </div>

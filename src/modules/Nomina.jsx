@@ -1,17 +1,21 @@
 import React, { useState, useMemo } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { Users, Plus, Trash2 } from 'lucide-react'
+import { Users, Plus, Trash2, Edit2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
+import { conValorActual } from '../utils/form'
 
 const ACCENT = 'var(--accent)'
 
 const CONCEPTOS = ['Sueldo mensual', 'Horas extra', 'Aguinaldo', 'Vacaciones', 'Bono', 'Anticipo', 'Liquidación', 'Otro']
+const METODOS   = ['Efectivo', 'Transferencia', 'Cheque']
 
 const empty = () => ({
   id: genId(), fecha: todayISO(), empleado: '', concepto: 'Sueldo mensual',
@@ -25,13 +29,21 @@ export default function Nomina() {
   )
   const [search, setSearch] = useState('')
   const [modal, setModal]   = useState(false)
+  const [editId, setEditId] = useState(null)
   const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
 
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('nomina')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // Opciones preservando valores legacy (ver utils/form.js): un concepto o
+  // método fuera de la lista canónica no se pisa al editar.
+  const conceptosOpciones = useMemo(() => conValorActual(CONCEPTOS, form.concepto), [form.concepto])
+  const metodosOpciones   = useMemo(() => conValorActual(METODOS, form.metodo), [form.metodo])
 
   const validate = () => {
     const e = {}
@@ -42,15 +54,46 @@ export default function Nomina() {
     return Object.keys(e).length === 0
   }
 
-  const handleSave = () => {
-    if (!validate()) return
-    update('nomina', [{ ...form, fecha: toISO(form.fecha) }, ...list])
-    setModal(false)
-    setForm(empty())
+  const openNew = () => { setEditId(null); setForm(empty()); setErrors({}); setModal(true) }
+
+  // `...empty()` primero para que las filas viejas tengan todas las claves
+  // definidas, null → '' para inputs controlados, y fecha normalizada a ISO
+  // (el <input type="date"> rechaza otros formatos y borraría el dato).
+  const openEdit = (r) => {
+    setEditId(r.id)
+    setForm({
+      ...empty(),
+      ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ?? ''])),
+      fecha: toISO(r.fecha),
+    })
+    setErrors({})
+    setModal(true)
   }
 
-  const handleDelete = id => {
-    if (confirm('¿Eliminar este pago?')) update('nomina', list.filter(r => r.id !== id))
+  const handleSave = () => {
+    if (!validate()) return
+    const registro = { ...form, fecha: toISO(form.fecha) }
+    if (editId) update('nomina', list.map(r => r.id === editId ? registro : r))
+    else        update('nomina', [registro, ...list])
+    setModal(false)
+  }
+
+  const handleDelete = async id => {
+    const pago = list.find(r => r.id === id)
+    if (!pago) return
+    const ok = await confirmar({
+      titulo: 'Eliminar pago',
+      mensaje: `Se elimina el pago a ${pago.empleado || 'sin empleado'} del ${formatDate(pago.fecha)} (${formatARS(pago.importe)}).`,
+    })
+    if (!ok) return
+    update('nomina', list.filter(r => r.id !== id))
+    addToast({
+      message: 'Pago eliminado.',
+      Icon: Trash2,
+      color: 'var(--danger)',
+      duration: 6000,
+      action: { label: 'Deshacer', onClick: () => update('nomina', [pago, ...(getData().nomina || [])]) },
+    })
   }
 
   const filtered = useMemo(() => {
@@ -76,15 +119,28 @@ export default function Nomina() {
     { key: 'metodo',   label: 'Método',   render: r => r.metodo || <span style={{ color: 'var(--text-3)' }}>—</span> },
     {
       key: 'acciones', label: '', render: r => editable ? (
-        <button
-          onClick={() => handleDelete(r.id)}
-          className="p-1.5 rounded-lg"
-          style={{ color: 'var(--danger)' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '' }}
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => openEdit(r)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--text-2)' }}
+            aria-label={`Editar pago a ${r.empleado || 'sin empleado'}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => handleDelete(r.id)}
+            className="p-1.5 rounded-lg"
+            style={{ color: 'var(--danger)' }}
+            aria-label={`Eliminar pago a ${r.empleado || 'sin empleado'}`}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       ) : null
     }
   ]
@@ -104,9 +160,7 @@ export default function Nomina() {
           </div>
         </div>
         {editable && (
-          <button
-            className="glass-btn-primary" onClick={() => { setForm(empty()); setErrors({}); setModal(true) }}
-          >
+          <button className="glass-btn-primary" onClick={openNew}>
             <Plus size={15} /> Registrar pago
           </button>
         )}
@@ -139,7 +193,7 @@ export default function Nomina() {
       </div>
 
       {modal && (
-        <Modal title="Registrar pago de nómina" onClose={() => setModal(false)}>
+        <Modal title={editId ? 'Editar pago de nómina' : 'Registrar pago de nómina'} onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
@@ -147,7 +201,7 @@ export default function Nomina() {
             </Field>
             <Field label="Concepto">
               <Select value={form.concepto} onChange={e => set('concepto', e.target.value)}>
-                {CONCEPTOS.map(c => <option key={c}>{c}</option>)}
+                {conceptosOpciones.map(c => <option key={c}>{c}</option>)}
               </Select>
             </Field>
             <div className="col-span-2">
@@ -166,7 +220,7 @@ export default function Nomina() {
             </Field>
             <Field label="Método de pago">
               <Select value={form.metodo} onChange={e => set('metodo', e.target.value)}>
-                <option>Efectivo</option><option>Transferencia</option><option>Cheque</option>
+                {metodosOpciones.map(m => <option key={m}>{m}</option>)}
               </Select>
             </Field>
             <div className="col-span-2">

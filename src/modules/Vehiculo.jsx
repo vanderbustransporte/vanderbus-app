@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, getData } from '../store/useStore'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
+import { useToast } from '../context/ToastContext'
+import { useConfirm } from '../context/ConfirmContext'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
 import { faltantesVehiculo } from '../utils/chequeoVencimientos'
@@ -145,6 +147,8 @@ export default function Vehiculo() {
   const { data, update } = useStore()
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('vehiculo')
+  const { addToast } = useToast()
+  const confirmar = useConfirm()
   const flota = (data.vehiculos || []).filter(x => x.activo !== false)
 
   const [editingId, setEditingId] = useState(null)   // null | 'new' | id
@@ -171,10 +175,27 @@ export default function Vehiculo() {
     setEditingId(null)
   }
 
-  const handleArchive = (v) => {
-    if (!window.confirm(`¿Archivar ${v.alias || v.patente || 'este vehículo'}? El historial no se borra.`)) return
-    const next = (data.vehiculos || []).map(x => x.id === v.id ? { ...x, activo: false } : x)
-    update('vehiculos', next)
+  const handleArchive = async (v) => {
+    const nombre = v.alias || v.patente || 'este vehículo'
+    const ok = await confirmar({
+      titulo: `Archivar ${nombre}`,
+      mensaje: 'Sale de la flota activa pero el historial no se borra. Se puede desarchivar cuando quieras.',
+      accion: 'Archivar',
+      tono: 'normal',
+      Icon: Archive,
+    })
+    if (!ok) return
+    update('vehiculos', (data.vehiculos || []).map(x => x.id === v.id ? { ...x, activo: false } : x))
+    addToast({
+      message: `${nombre} archivado.`,
+      Icon: Archive,
+      color: 'var(--accent)',
+      duration: 6000,
+      action: {
+        label: 'Deshacer',
+        onClick: () => update('vehiculos', (getData().vehiculos || []).map(x => x.id === v.id ? { ...x, activo: true } : x)),
+      },
+    })
   }
 
   // ── Modo formulario (alta o edicion) ──

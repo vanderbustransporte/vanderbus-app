@@ -61,6 +61,15 @@ export function onStoreError(fn) {
   return () => { _errorListeners = _errorListeners.filter(f => f !== fn) }
 }
 
+// Lectura puntual del estado ACTUAL del store, para callbacks diferidos (ej. el
+// "Deshacer" de un toast). Un closure de render captura el _data de ese momento;
+// si entre el borrado y el deshacer hubo un refetch (Realtime/poll), pasarle ese
+// array viejo a update() desharía cambios concurrentes de otras sesiones. El
+// callback debe armar el array nuevo sobre getData(), no sobre su closure.
+export function getData() {
+  return _data
+}
+
 // Vehiculo "principal": el primer vehiculo activo de la flota (para el Dashboard)
 function principal(flota) {
   return (flota || []).find(x => x.activo !== false) || (flota || [])[0] || emptyVehiculo
