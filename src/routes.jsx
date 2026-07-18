@@ -2,7 +2,7 @@ import { lazy } from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
-  Settings, Bell, Building2,
+  Settings, Bell, Building2, IdCard,
 } from 'lucide-react'
 
 // ── Registro único de módulos ────────────────────────────────────────────────
@@ -51,6 +51,7 @@ const Contactos      = lazy(() => import('./modules/Contactos'))
 const Marketing      = lazy(() => import('./modules/Marketing'))
 const Configuracion  = lazy(() => import('./modules/Configuracion'))
 const Usuarios       = lazy(() => import('./modules/Usuarios'))
+const Choferes       = lazy(() => import('./modules/Choferes'))
 const BackupPage     = lazy(() => import('./modules/BackupPage'))
 const Superadmin     = lazy(() => import('./modules/Superadmin'))
 
@@ -62,6 +63,7 @@ export const ROUTES = [
   { id: 'notificaciones', path: '/notificaciones', label: 'Notificaciones', titulo: 'Notificaciones',  grupo: 'Operación',      icon: Bell,            acceso: 'libre',      Component: Notificaciones },
   { id: 'viajes',         path: '/viajes',         label: 'Viajes',        titulo: 'Viajes',           grupo: 'Operación',      icon: MapPin,          acceso: 'permiso',    Component: Viajes, detalle: true },
   { id: 'vehiculo',       path: '/vehiculo',       label: 'Flota',         titulo: 'Flota',            grupo: 'Operación',      icon: Truck,           acceso: 'permiso',    Component: Vehiculo, detalle: true },
+  { id: 'choferes',       path: '/choferes',       label: 'Choferes',      titulo: 'Choferes',         grupo: 'Operación',      icon: IdCard,          acceso: 'permiso',    Component: Choferes, detalle: true },
   { id: 'combustible',    path: '/combustible',    label: 'Combustible',   titulo: 'Combustible',      grupo: 'Operación',      icon: Fuel,            acceso: 'permiso',    Component: Combustible },
   { id: 'mantenimiento',  path: '/mantenimiento',  label: 'Mantenimiento', titulo: 'Mantenimiento',    grupo: 'Operación',      icon: Wrench,          acceso: 'permiso',    Component: Mantenimiento, detalle: true },
   { id: 'seguimiento',    path: '/seguimiento',    label: 'GPS',           titulo: 'Seguimiento GPS',  grupo: 'Operación',      icon: Navigation,      acceso: 'permiso',    Component: SeguimientoGPS, feature: 'seguimiento' },

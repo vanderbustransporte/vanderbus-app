@@ -382,6 +382,41 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 
 ---
 
+12. ~~Finanzas completa~~ — **hecho** (2026-07-18): el módulo tiene 4 vistas (Resumen con
+   KPIs + evolución 12 meses + desgloses por período, Movimientos con filtro por mes +
+   edición + export CSV `;`+BOM, Clientes con facturado/por cobrar por cliente, Rentabilidad
+   por vehículo cruzando viajes Realizados vs combustible+mantenimiento). Todo derivado de
+   tablas existentes, sin migración. "Por cobrar" = `monto_total − monto_sena` de viajes
+   Pendiente/Confirmado. Los movimientos derivados (marketing, ingreso espejo con `viaje_id`)
+   no se editan ni borran desde Finanzas.
+13. **Despacho completo (Fase B del plan de producto)** — código **hecho** (2026-07-18),
+   falta SOLO aplicar la migración `20260718120000_viajes_despacho.sql` (17 columnas text
+   nullable en `viajes`: carga tipo/bultos/peso/volumen/valor, chofer nombre/dni/cel,
+   patente_semi, custodia, satelital, precintos, referencia, destinatario). El análisis
+   competitivo que originó esto vive en `docs/plan-producto-tms.md`.
+   **Cómo funciona:** `src/utils/despacho.js` detecta en runtime si la migración está
+   aplicada (select de `carga_tipo`, promesa cacheada; error 42703 = no aplicada) — hasta
+   entonces Viajes oculta la sección "Datos de despacho" y `handleSave` SACA esos campos
+   del payload (mandarlos contra columnas inexistentes haría fallar el guardado entero,
+   mismo patrón que el bug del uuid ''). La **ficha de despacho** (botón FileText en cada
+   fila, visible también para solo-lectura) arma texto plano con solo las líneas con datos
+   (`armarFichaDespacho`) y ofrece Copiar + link wa.me. Fase D (tracking público) sigue
+   pendiente en el plan.
+14. **Choferes (Fase C)** — código **hecho** (2026-07-18), falta SOLO aplicar la migración
+   `20260718130000_choferes.sql`: tabla `choferes` (id TEXT genId, fechas TEXT ISO, soft
+   delete `activo`) + `tenant_isolation` + policies restrictivas sección **'choferes'**
+   (nueva: está en `SECCIONES` de Usuarios.jsx y en routes.jsx con `detalle: true`) +
+   realtime + `importar_backup` reemplazada con choferes en su array.
+   **Cómo funciona:** detección runtime en `src/utils/choferes.js` (error **42P01** = tabla
+   inexistente); el store trata la tabla ausente como vacía, la EXCLUYE de la suscripción
+   Realtime (`_tablasAusentes` — un binding a tabla fuera de la publicación pone el canal
+   entero en error) y el export de backup tolera el 42P01 en vez de abortar. Vencimientos
+   del legajo (licencia / habilitación LNH / psicofísico, `CAMPOS_VENC_CHOFER`) entran a
+   `chequeoVencimientos` con tipo **'vencimiento'** (reutilizado a propósito: NO hubo que
+   tocar el CHECK de `notificaciones.tipo`) y link `choferes:<id>`. En Viajes, la sección
+   de despacho tiene un select-acción "Elegir chofer del legajo" que copia nombre/DNI/cel
+   a los campos de texto (siguen editables). La palette Ctrl+K también busca choferes.
+
 ## Comandos clave
 
 ```bash

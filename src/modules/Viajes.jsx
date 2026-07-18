@@ -8,13 +8,17 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { MapPin, Plus, Trash2, Edit2, Calculator } from 'lucide-react'
+import { MapPin, Plus, Trash2, Edit2, Calculator, FileText, ChevronRight, ChevronDown, Copy } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirm } from '../context/ConfirmContext'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { conValorActual, vehiculosSeleccionables } from '../utils/form'
 import { calcularTarifa, tarifasConfiguradas } from '../utils/tarifas'
+import {
+  CAMPOS_DESPACHO, CARGA_TIPOS, CUSTODIA_TIPOS,
+  emptyDespacho, despachoDisponible, armarFichaDespacho,
+} from '../utils/despacho'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
@@ -28,10 +32,14 @@ const ESTADO_STYLES = {
 
 const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
 
+// Los campos de despacho van en el form SIEMPRE (inputs controlados), pero
+// handleSave los saca del payload si la migración 20260718120000 no está
+// aplicada (ver utils/despacho.js).
 const empty = () => ({
   id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
   origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
   vehiculo_id: '',
+  ...emptyDespacho(),
 })
 
 function EstadoBadge({ estado, id, onChange }) {
@@ -79,9 +87,17 @@ export default function Viajes() {
   const [form, setForm]               = useState(empty())
   const [errors, setErrors]           = useState({})
   const [calc, setCalc]               = useState({ horas: '', conPeon: false })
+  const [ficha, setFicha]             = useState(null)   // viaje cuya ficha de despacho se muestra
+  const [showDespacho, setShowDespacho] = useState(false)
+  const [despachoOn, setDespachoOn]   = useState(false)
+  useEffect(() => { let vivo = true; despachoDisponible().then(ok => { if (vivo) setDespachoOn(ok) }); return () => { vivo = false } }, [])
 
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
+  const choferesActivos = useMemo(
+    () => (data.choferes || []).filter(c => c.activo !== false && (c.nombre || c.dni)),
+    [data.choferes]
+  )
 
   // Opciones del modal, preservando lo que la fila ya tiene guardado (valores
   // legacy tipo 'Mudanza'/'Flete' y vehículos archivados; ver utils/form.js).
@@ -110,7 +126,7 @@ export default function Viajes() {
 
   const openNew = () => {
     setEditId(null); setForm(empty()); setErrors({})
-    setCalc({ horas: '', conPeon: false }); setModal(true)
+    setCalc({ horas: '', conPeon: false }); setShowDespacho(false); setModal(true)
   }
 
   // Al abrir para editar hay que NORMALIZAR sí o sí: <input type="date"> sólo
@@ -132,6 +148,8 @@ export default function Viajes() {
     })
     setErrors({})
     setCalc({ horas: '', conPeon: false })
+    // Si la fila ya tiene datos de despacho, la sección arranca abierta.
+    setShowDespacho(CAMPOS_DESPACHO.some(k => r[k]))
     setModal(true)
   }
 
@@ -207,6 +225,9 @@ export default function Viajes() {
       // con un toast genérico. uuid vacío se representa con NULL, no con ''.
       vehiculo_id: form.vehiculo_id || null,
     }
+    // Sin la migración de despacho aplicada, estas columnas no existen en la
+    // base y mandarlas haría fallar el guardado ENTERO del viaje.
+    if (!despachoOn) for (const k of CAMPOS_DESPACHO) delete viaje[k]
     if (editId) {
       update('viajes', list.map(r => r.id === editId ? viaje : r))
       sincronizarIngreso(viaje)
@@ -315,30 +336,34 @@ export default function Viajes() {
         : <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: (ESTADO_STYLES[r.estado] || ESTADO_FALLBACK).bg, color: (ESTADO_STYLES[r.estado] || ESTADO_FALLBACK).color }}>{r.estado}</span>
     },
     {
-      key: 'acciones', label: '', render: r => editable ? (
+      key: 'acciones', label: '', render: r => (
         <div className="flex gap-1">
           <button
+            onClick={() => setFicha(r)}
+            className="icon-btn icon-btn-accent"
+            aria-label={`Ficha de despacho del viaje de ${r.cliente || 'sin cliente'}`}
+            title="Ficha de despacho"
+          >
+            <FileText size={14} />
+          </button>
+          {editable && <>
+          <button
             onClick={() => openEdit(r)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--text-2)' }}
+            className="icon-btn"
             aria-label={`Editar viaje de ${r.cliente || 'sin cliente'}`}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => handleDelete(r.id)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--danger)' }}
+            className="icon-btn icon-btn-danger"
             aria-label={`Eliminar viaje de ${r.cliente || 'sin cliente'}`}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <Trash2 size={14} />
           </button>
+          </>}
         </div>
-      ) : null
+      )
     },
   ]
 
@@ -391,10 +416,8 @@ export default function Viajes() {
           <select
             value={estadoFilter}
             onChange={e => setEstadoFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
-            onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
-            onBlur={e => { e.target.style.borderColor = '' }}
+            className="input-base"
+            style={{ width: 'auto' }}
           >
             <option value="">Todos los estados</option>
             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
@@ -479,6 +502,109 @@ export default function Viajes() {
             <Field label="Monto total ($)">
               <Input type="number" step="0.01" min="0" value={form.monto_total} onChange={e => set('monto_total', e.target.value)} placeholder="0.00" />
             </Field>
+            {despachoOn ? (
+              <div className="col-span-2">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setShowDespacho(s => !s)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', padding: '9px 12px', width: '100%', cursor: 'pointer' }}
+                >
+                  {showDespacho ? <ChevronDown size={14} style={{ color: 'var(--accent)' }} /> : <ChevronRight size={14} style={{ color: 'var(--accent)' }} />}
+                  Datos de despacho
+                  <span style={{ fontWeight: 500, color: 'var(--text-2)' }}>— carga · chofer · custodia</span>
+                </button>
+              </div>
+            ) : (
+              <div className="col-span-2" style={{ fontSize: 12, color: 'var(--text-2)' }}>
+                Los datos de despacho (carga, chofer, custodia) se habilitan aplicando la migración
+                {' '}<code style={{ color: 'var(--text-1)' }}>20260718120000_viajes_despacho.sql</code> en el SQL editor de Supabase.
+              </div>
+            )}
+            {despachoOn && showDespacho && <>
+              <div className="col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Carga</p></div>
+              <Field label="Tipo de carga">
+                <Input value={form.carga_tipo} onChange={e => set('carga_tipo', e.target.value)} list="carga-tipos" placeholder="General, pallets, granel..." />
+                <datalist id="carga-tipos">{CARGA_TIPOS.map(t => <option key={t} value={t} />)}</datalist>
+              </Field>
+              <Field label="Bultos / pallets">
+                <Input value={form.carga_bultos} onChange={e => set('carga_bultos', e.target.value)} placeholder="Ej: 32 pallets" />
+              </Field>
+              <Field label="Peso (kg)">
+                <Input type="number" step="0.01" min="0" value={form.carga_peso_kg} onChange={e => set('carga_peso_kg', e.target.value)} placeholder="0" />
+              </Field>
+              <Field label="Volumen (m³)">
+                <Input type="number" step="0.01" min="0" value={form.carga_volumen_m3} onChange={e => set('carga_volumen_m3', e.target.value)} placeholder="0" />
+              </Field>
+              <Field label="Valor declarado ($)">
+                <Input type="number" step="0.01" min="0" value={form.carga_valor} onChange={e => set('carga_valor', e.target.value)} placeholder="0.00" />
+              </Field>
+              <Field label="Referencia / OC del dador">
+                <Input value={form.referencia} onChange={e => set('referencia', e.target.value)} placeholder="Ej: OC-2026-114" />
+              </Field>
+              <div className="col-span-2">
+                <Field label="Destinatario (recibe en destino)">
+                  <Input value={form.destinatario} onChange={e => set('destinatario', e.target.value)} placeholder="Empresa / persona que recibe" />
+                </Field>
+              </div>
+
+              <div className="col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Chofer y unidad</p></div>
+              {choferesActivos.length > 0 && (
+                <div className="col-span-2">
+                  <Field label="Elegir chofer del legajo">
+                    {/* Select-acción: elegir uno copia nombre/DNI/celular a los
+                        campos de abajo (que siguen editables) y vuelve a vacío. */}
+                    <Select
+                      value=""
+                      onChange={e => {
+                        const c = choferesActivos.find(x => x.id === e.target.value)
+                        if (c) setForm(f => ({ ...f, chofer_nombre: c.nombre || '', chofer_dni: c.dni || '', chofer_cel: c.celular || '' }))
+                      }}
+                    >
+                      <option value="">— Completar a mano o elegir del legajo —</option>
+                      {choferesActivos.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre || c.dni}{c.dni && c.nombre ? ` (DNI ${c.dni})` : ''}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+              )}
+              <Field label="Chofer">
+                <Input value={form.chofer_nombre} onChange={e => set('chofer_nombre', e.target.value)} placeholder="Nombre y apellido" />
+              </Field>
+              <Field label="DNI">
+                <Input value={form.chofer_dni} onChange={e => set('chofer_dni', e.target.value)} />
+              </Field>
+              <Field label="Celular">
+                <Input value={form.chofer_cel} onChange={e => set('chofer_cel', e.target.value)} placeholder="11-..." />
+              </Field>
+              <Field label="Patente semi / acoplado">
+                <Input value={form.patente_semi} onChange={e => set('patente_semi', e.target.value)} />
+              </Field>
+
+              <div className="col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Custodia y seguridad</p></div>
+              <Field label="Custodia">
+                <Select value={form.custodia_tipo} onChange={e => set('custodia_tipo', e.target.value)}>
+                  <option value="">— Sin custodia —</option>
+                  {CUSTODIA_TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+                </Select>
+              </Field>
+              <Field label="Empresa de custodia">
+                <Input value={form.custodia_empresa} onChange={e => set('custodia_empresa', e.target.value)} />
+              </Field>
+              <Field label="Contacto de custodia">
+                <Input value={form.custodia_contacto} onChange={e => set('custodia_contacto', e.target.value)} placeholder="Nombre / teléfono" />
+              </Field>
+              <Field label="Empresa satelital">
+                <Input value={form.satelital_empresa} onChange={e => set('satelital_empresa', e.target.value)} />
+              </Field>
+              <Field label="ID equipo satelital">
+                <Input value={form.satelital_equipo} onChange={e => set('satelital_equipo', e.target.value)} />
+              </Field>
+              <Field label="Precintos">
+                <Input value={form.precintos} onChange={e => set('precintos', e.target.value)} placeholder="Números, separados por coma" />
+              </Field>
+            </>}
             <div className="col-span-2">
               <Field label="Notas">
                 <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Observaciones adicionales..." />
@@ -491,6 +617,46 @@ export default function Viajes() {
           </div>
         </Modal>
       )}
+
+      {/* ── Ficha de despacho ── */}
+      {ficha && (() => {
+        const veh   = (data.vehiculos || []).find(v => v.id === ficha.vehiculo_id)
+        const texto = armarFichaDespacho(ficha, veh)
+        const copiar = async () => {
+          try {
+            await navigator.clipboard.writeText(texto)
+            addToast({ message: 'Ficha copiada al portapapeles.', Icon: Copy, color: 'var(--accent)' })
+          } catch {
+            addToast({ message: 'No se pudo copiar. Seleccioná el texto a mano.', color: 'var(--danger)' })
+          }
+        }
+        return (
+          <Modal title="Ficha de despacho" onClose={() => setFicha(null)}>
+            <pre style={{
+              whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6, color: 'var(--text-1)',
+              background: 'var(--bg-overlay)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: 16, maxHeight: 380, overflowY: 'auto',
+            }}>{texto}</pre>
+            {despachoOn && !CAMPOS_DESPACHO.some(k => ficha[k]) && (
+              <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 10 }}>
+                Este viaje no tiene datos de despacho todavía: editálo y completá la sección
+                "Datos de despacho" para que la ficha salga con carga, chofer y custodia.
+              </p>
+            )}
+            <div className="flex justify-end gap-3 mt-5">
+              <BtnCancel onClick={() => setFicha(null)}>Cerrar</BtnCancel>
+              <a
+                className="glass-btn-primary"
+                href={`https://wa.me/?text=${encodeURIComponent(texto)}`}
+                target="_blank" rel="noopener noreferrer"
+              >
+                Enviar por WhatsApp
+              </a>
+              <BtnPrimary onClick={copiar}><Copy size={14} /> Copiar</BtnPrimary>
+            </div>
+          </Modal>
+        )
+      })()}
     </div>
   )
 }

@@ -12,6 +12,7 @@ const SECCIONES = [
   { id: 'combustible',   label: 'Combustible' },
   { id: 'mantenimiento', label: 'Mantenimiento' },
   { id: 'vehiculo',      label: 'Vehículo' },
+  { id: 'choferes',      label: 'Choferes' },
   { id: 'nomina',        label: 'Nómina' },
   { id: 'finanzas',      label: 'Finanzas' },
   { id: 'contactos',     label: 'Contactos' },
@@ -279,15 +280,9 @@ export default function Usuarios() {
                 <Input value={form.password} onChange={e => setF('password', e.target.value)} placeholder="Contraseña" style={{ flex: 1 }} />
                 <button
                   onClick={() => setF('password', genPassword())}
+                  className="btn-ghost"
                   title="Generar contraseña aleatoria"
-                  style={{
-                    padding: '0 12px', borderRadius: 'var(--radius)',
-                    border: '1px solid var(--border)', background: 'var(--bg-elevated)',
-                    color: 'var(--text-2)', cursor: 'pointer', flexShrink: 0,
-                    transition: 'border-color 150ms, color 150ms',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.color = ACCENT }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}
+                  style={{ padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}
                 >
                   <RefreshCw size={14} />
                 </button>

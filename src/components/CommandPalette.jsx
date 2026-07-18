@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, MapPin, Contact, Truck } from 'lucide-react'
+import { Search, MapPin, Contact, Truck, IdCard } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../store/useStore'
 import { ROUTES, rutaDe, puedeAcceder } from '../routes'
@@ -117,6 +117,24 @@ function buildResults({ q, auth, data, nav }) {
     }
   }
 
+  // ── Choferes ── también los archivados, marcados (igual criterio que Flota).
+  if (puede('choferes')) {
+    const choferes = (data.choferes || [])
+      .filter(r => norm(r.nombre).includes(query) || norm(r.dni).includes(query) || norm(r.celular).includes(query))
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+      .slice(0, MAX_POR_GRUPO)
+    for (const r of choferes) {
+      acc.push({
+        key: `ch:${r.id}`,
+        grupo: 'Choferes',
+        icon: IdCard,
+        label: r.nombre || r.dni || 'Sin nombre',
+        detail: [r.dni ? `DNI ${r.dni}` : '', r.celular, r.activo === false ? 'Archivado' : ''].filter(Boolean).join(' · '),
+        run: () => nav('choferes', { registro: r.id }),
+      })
+    }
+  }
+
   return acc
 }
 
@@ -204,7 +222,7 @@ export default function CommandPalette({ open, onOpen, onClose }) {
             value={q}
             onChange={e => { setQ(e.target.value); setSel(0) }}
             onKeyDown={onInputKey}
-            placeholder="Buscar módulos, viajes, contactos, vehículos…"
+            placeholder="Buscar módulos, viajes, contactos, vehículos, choferes…"
             role="combobox"
             aria-expanded="true"
             aria-controls="cp-list"

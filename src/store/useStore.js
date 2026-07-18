@@ -3,7 +3,9 @@ import { supabase } from '../lib/supabase'
 import { genId } from '../utils/format'
 
 // Tablas que se manejan como arrays (vehiculo principal se deriva de la flota)
-const ARRAY_TABLES = ['combustible', 'mantenimiento', 'contactos', 'nomina', 'ingresos', 'gastos', 'marketing', 'viajes']
+// `choferes` puede NO existir todavía (migración 20260718130000 sin aplicar):
+// la carga la tolera como vacía y se la excluye de Realtime hasta que exista.
+const ARRAY_TABLES = ['combustible', 'mantenimiento', 'contactos', 'nomina', 'ingresos', 'gastos', 'marketing', 'viajes', 'choferes']
 
 // Ventana temporal: las tablas de movimientos cargan solo los ultimos N meses
 // (created_at es TEXT 'YYYY-MM-DD HH:mm:ss', compara bien como string).
@@ -37,8 +39,15 @@ const defaultData = {
   gastos: [],
   marketing: [],
   viajes: [],
+  choferes: [],
   orgSettings: {},           // configuracion de la empresa (org_settings, fila unica)
 }
+
+// Tablas que la carga detectó como inexistentes (42P01, migración sin aplicar):
+// se tratan como vacías y NO se suscriben a Realtime — un binding a una tabla
+// fuera de la publicación pone el canal entero en error y mata los eventos de
+// las demás tablas.
+let _tablasAusentes = new Set()
 
 let _data = { ...defaultData }
 let _loading = true
@@ -127,7 +136,11 @@ async function loadFromSupabase() {
         }
         return q
           .order('created_at', { ascending: t === 'combustible' })
-          .then(r => r.data || [])
+          .then(r => {
+            if (r.error?.code === '42P01') _tablasAusentes.add(t)
+            else _tablasAusentes.delete(t)
+            return r.data || []
+          })
       })
     )
 
@@ -206,7 +219,7 @@ function reloadDebounced() {
 function suscribirRealtime(orgId) {
   if (_channel || !orgId) return
   let ch = supabase.channel(`org-data-${orgId}`)
-  for (const t of ['vehiculos', ...ARRAY_TABLES, 'org_settings']) {
+  for (const t of ['vehiculos', ...ARRAY_TABLES.filter(t => !_tablasAusentes.has(t)), 'org_settings']) {
     ch = ch.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: t, filter: `organization_id=eq.${orgId}` },
@@ -312,7 +325,9 @@ export function useStore() {
         supabase.from(t).select('*').eq('organization_id', orgId).order('created_at', { ascending: t === 'combustible' })
       ),
     ])
-    if (resto.some(r => r.error)) {
+    // 42P01 = tabla de una migración sin aplicar (ej. choferes): se exporta
+    // vacía en vez de abortar el backup entero.
+    if (resto.some(r => r.error && r.error.code !== '42P01')) {
       emitSaveError('No se pudo generar el backup completo. Reintentá.')
       return
     }

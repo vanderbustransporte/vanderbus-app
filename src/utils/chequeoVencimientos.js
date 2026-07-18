@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase'
 import { useStore } from '../store/useStore'
 import { crearNotificacion } from './crearNotificacion'
 import { daysDiff, formatDate, todayISO } from './format'
+import { CAMPOS_VENC_CHOFER, nombreChofer } from './choferes'
 
 // ── Configuración (editable por cliente) ─────────────────────────────────────
 export const CONFIG_VENCIMIENTOS = {
@@ -71,7 +72,10 @@ function firma(data) {
     .map((v) => `${v.id}:${v.vtv || ''}:${v.seguro || ''}:${v.habilitacion || ''}:${v.kilometraje || ''}`)
   const mant = (data?.mantenimiento || [])
     .map((m) => `${m.id}:${m.vehiculo_id || ''}:${m.proximo_fecha || ''}:${m.proximo_km || ''}`)
-  return `${todayISO()}|${veh.join(',')}|${mant.join(',')}`
+  const chof = (data?.choferes || [])
+    .filter((c) => c.activo !== false)
+    .map((c) => `${c.id}:${c.licencia_venc || ''}:${c.habilitacion_venc || ''}:${c.psicofisico_venc || ''}`)
+  return `${todayISO()}|${veh.join(',')}|${mant.join(',')}|${chof.join(',')}`
 }
 
 // Estado de un vencimiento según los días restantes (null = fuera de ventana).
@@ -191,6 +195,30 @@ export function recolectarVencimientos(data) {
           km: restan,
         })
       }
+    }
+  }
+
+  // 3) Legajo de choferes: licencia, habilitación (LNH/CNRT) y psicofísico.
+  //    Mismo tipo 'vencimiento' que la documentación del vehículo (el CHECK de
+  //    notificaciones.tipo ya lo permite); el link lleva a la fila del chofer.
+  for (const c of (data?.choferes || []).filter((x) => x.activo !== false)) {
+    const entidad = nombreChofer(c)
+    for (const { campo, label } of CAMPOS_VENC_CHOFER) {
+      const fecha = c[campo]
+      if (!fecha) continue
+      const dias = daysDiff(fecha)
+      const estado = estadoPorDias(dias)
+      if (!estado) continue
+      const cuando =
+        dias < 0 ? `venció hace ${Math.abs(dias)} días`
+        : dias === 0 ? 'vence hoy'
+        : `vence en ${dias} días`
+      items.push(armarNotif({
+        tipo: 'vencimiento',
+        estado, concepto: label, entidad, fecha, dias,
+        mensaje: `${label} de ${entidad} ${cuando} (${formatDate(fecha)}).`,
+        link: `choferes:${c.id}`,
+      }))
     }
   }
 
