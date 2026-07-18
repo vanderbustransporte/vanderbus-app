@@ -550,6 +550,133 @@ button:active { transform: scale(0.97); }
   }
 }
 
+/* ── Estados interactivos en CSS (nunca en JS) ───────────
+   Los hovers con onMouseEnter/onMouseLeave dejaban el estilo PEGADO cuando el
+   elemento se re-renderizaba o se abría un modal con el puntero encima (el
+   mouseleave nunca llega). :hover no puede quedar pegado. El patrón es el
+   mismo del Sidebar: @media (hover:hover) para no ensuciar touch. */
+
+/* Botón de ícono en filas de tabla y tarjetas (editar/borrar/archivar/ficha) */
+.icon-btn {
+  padding: 6px;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  transition: background 140ms ease, color 140ms ease;
+}
+.icon-btn-danger   { color: var(--danger); }
+.icon-btn-warning  { color: var(--warning); }
+.icon-btn-positive { color: var(--positive); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover          { background: var(--hover-tint-md); color: var(--text-1); }
+  .icon-btn-accent:hover   { background: var(--accent-dim);    color: var(--accent); }
+  .icon-btn-danger:hover   { background: var(--danger-dim);    color: var(--danger); }
+  .icon-btn-warning:hover  { background: var(--warning-dim);   color: var(--warning); }
+  .icon-btn-positive:hover { background: var(--positive-dim);  color: var(--positive); }
+}
+
+/* Control segmentado (tabs de vista, filtros Todos/Ingresos/Gastos, períodos) */
+.seg {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.seg-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-overlay);
+  color: var(--text-2);
+  border-right: 1px solid var(--border);
+  transition: background 140ms ease, color 140ms ease;
+  white-space: nowrap;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn.is-active  { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+@media (hover: hover) and (pointer: fine) {
+  .seg-btn:not(.is-active):hover { background: var(--hover-tint); color: var(--text-1); }
+}
+
+/* Inputs / selects / textareas (Field.jsx, SearchBar, selects sueltos) */
+.input-base {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.input-base:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+@media (hover: hover) and (pointer: fine) {
+  .input-base:hover:not(:focus) { border-color: var(--border-hi); }
+}
+select.input-base { cursor: pointer; }
+
+/* Fila de tabla */
+.table-row { transition: background 150ms ease-out; }
+@media (hover: hover) and (pointer: fine) {
+  .table-row:hover { background: var(--hover-tint); }
+}
+
+/* Botón secundario / fantasma (Cancelar, paginación, toggles) */
+.btn-ghost {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: var(--radius);
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.btn-ghost-danger {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: var(--radius);
+  transition: border-color 140ms ease, color 140ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-ghost:hover:not(:disabled) { border-color: var(--border-hi); color: var(--text-1); }
+  .btn-ghost-danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+}
+
+/* Botón primario sólido (BtnPrimary de Field.jsx) */
+.btn-solid {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: filter 150ms ease, box-shadow 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-solid:hover { filter: brightness(1.08); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28); }
+}
+
+/* Botón "silencioso": fondo transparente que se tiñe al hover (campana,
+   menú de cuenta, filas de notificación, botones de texto) */
+.quiet-btn { background: none; transition: background 140ms ease, color 140ms ease; }
+.quiet-btn-danger { background: none; transition: background 140ms ease; }
+.hover-dim { transition: opacity 140ms ease; }
+.hover-bright { transition: filter 150ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .quiet-btn:hover        { background: var(--hover-tint); }
+  .quiet-btn-danger:hover { background: var(--danger-dim); }
+  .hover-dim:hover        { opacity: 0.7; }
+  .hover-bright:hover     { filter: brightness(1.1); }
+  .hover-underline:hover  { text-decoration: underline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn, .seg-btn, .input-base, .table-row, .btn-ghost, .btn-solid,
+  .quiet-btn, .quiet-btn-danger, .hover-dim { transition: none; }
+}
+
 /* ── Registro destacado (deep link a una fila/tarjeta) ─── */
 @keyframes row-flash {
   0%, 55% { background-color: var(--accent-dim); }

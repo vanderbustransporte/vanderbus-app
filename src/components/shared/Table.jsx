@@ -54,10 +54,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros', high
               <tr
                 key={row.id || i}
                 ref={row.id === highlightId ? flashRef : null}
-                className={row.id === highlightId ? 'row-flash' : undefined}
-                style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms ease-out' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                className={row.id === highlightId ? 'table-row row-flash' : 'table-row'}
+                style={{ borderTop: '1px solid var(--border)' }}
               >
                 {columns.map(c => (
                   <td key={c.key} className="px-4 py-3 whitespace-nowrap" style={{ color: 'var(--text-1)' }}>
@@ -82,10 +80,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros', high
                 key={i}
                 onClick={action}
                 disabled={disabled}
-                className="p-1.5 disabled:opacity-30"
-                style={{ border: '1px solid var(--border)', background: 'var(--bg-overlay)', borderRadius: 'var(--radius-sm)', color: 'var(--text-2)', transition: 'background 150ms ease-out' }}
-                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'var(--accent-glow)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-overlay)' }}
+                className="btn-ghost p-1.5 disabled:opacity-30"
+                style={{ borderRadius: 'var(--radius-sm)' }}
               >
                 {label}
               </button>

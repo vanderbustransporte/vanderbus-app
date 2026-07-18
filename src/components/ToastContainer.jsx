@@ -30,27 +30,24 @@ export default function ToastContainer({ toasts, onRemove }) {
           {t.action && (
             <button
               onClick={() => { t.action.onClick(); onRemove(t.id) }}
+              className="hover-underline"
               style={{
                 color: 'var(--accent)', background: 'none', border: 'none',
                 cursor: 'pointer', padding: '0 2px', flexShrink: 0,
                 fontSize: 12, fontWeight: 700,
               }}
-              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
-              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
             >
               {t.action.label}
             </button>
           )}
           <button
             onClick={() => onRemove(t.id)}
+            className="hover-dim"
             style={{
               color: 'var(--text-3)', background: 'none', border: 'none',
               cursor: 'pointer', padding: '0 2px', lineHeight: 1,
               fontSize: 15, flexShrink: 0,
-              transition: 'color 120ms ease-out',
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-3)' }}
             aria-label="Cerrar notificación"
           >
             ✕

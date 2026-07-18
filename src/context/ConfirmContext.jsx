@@ -93,23 +93,18 @@ export function ConfirmProvider({ children }) {
               <button
                 ref={cancelRef}
                 onClick={() => cerrar(false)}
-                className="px-4 py-2 text-sm font-medium"
-                style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-2)', borderRadius: 'var(--radius)', cursor: 'pointer' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)'; e.currentTarget.style.color = 'var(--text-1)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = 'var(--text-2)' }}
+                className="btn-ghost px-4 py-2 text-sm font-medium"
+                style={{ cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => cerrar(true)}
-                className="px-4 py-2 text-sm font-semibold"
+                className="hover-bright px-4 py-2 text-sm font-semibold"
                 style={{
                   background: color, color: '#fff', border: 'none',
                   borderRadius: 'var(--radius)', cursor: 'pointer',
-                  transition: 'filter 150ms',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)' }}
-                onMouseLeave={e => { e.currentTarget.style.filter = '' }}
               >
                 {dialogo.accion ?? 'Eliminar'}
               </button>

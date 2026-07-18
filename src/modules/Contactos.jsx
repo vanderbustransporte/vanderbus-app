@@ -107,21 +107,13 @@ export default function Contactos() {
     {
       key: 'acciones', label: '', render: r => editable ? (
         <div className="flex gap-1">
-          <button
-            onClick={() => openEdit(r)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--text-2)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)'; e.currentTarget.style.color = 'var(--text-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
-          >
+          <button onClick={() => openEdit(r)} className="icon-btn" aria-label="Editar contacto">
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => handleDelete(r.id)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--danger)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+            className="icon-btn icon-btn-danger"
+            aria-label="Eliminar contacto"
           >
             <Trash2 size={14} />
           </button>
@@ -160,10 +152,8 @@ export default function Contactos() {
           <select
             value={filtroTipo}
             onChange={e => setFiltroTipo(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
-            onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
-            onBlur={e => { e.target.style.borderColor = '' }}
+            className="input-base"
+            style={{ width: 'auto' }}
           >
             <option value="">Todos los tipos</option>
             {TIPOS.map(t => <option key={t}>{t}</option>)}

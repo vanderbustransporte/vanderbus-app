@@ -290,9 +290,8 @@ function Combustible() {
                   return (
                     <tr
                       key={r.id}
-                      style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms cubic-bezier(0.23,1,0.32,1)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '' }}
+                      className="table-row"
+                      style={{ borderTop: '1px solid var(--border)' }}
                     >
                       <td className="py-3 px-3" style={{ color: 'var(--text-1)' }}>{formatDate(r.fecha)}</td>
                       <td className="py-3 px-3 text-right num" style={{ color: 'var(--text-2)', fontSize: 12 }}>
@@ -319,21 +318,15 @@ function Combustible() {
                           <div className="flex gap-1">
                             <button
                               onClick={() => openEdit(r)}
-                              className="p-1.5 rounded-lg"
-                              style={{ color: 'var(--text-2)' }}
+                              className="icon-btn"
                               aria-label={`Editar carga del ${formatDate(r.fecha)}`}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
-                              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
                             >
                               <Edit2 size={14} />
                             </button>
                             <button
                               onClick={() => handleDelete(r.id)}
-                              className="p-1.5 rounded-lg"
-                              style={{ color: 'var(--danger)' }}
+                              className="icon-btn icon-btn-danger"
                               aria-label={`Eliminar carga del ${formatDate(r.fecha)}`}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-                              onMouseLeave={e => { e.currentTarget.style.background = '' }}
                             >
                               <Trash2 size={14} />
                             </button>

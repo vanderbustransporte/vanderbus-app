@@ -163,21 +163,15 @@ export default function Mantenimiento() {
         <div className="flex gap-1">
           <button
             onClick={() => openEdit(r)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--text-2)' }}
+            className="icon-btn"
             aria-label={`Editar registro del ${formatDate(r.fecha)}`}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => handleDelete(r.id)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--danger)' }}
+            className="icon-btn icon-btn-danger"
             aria-label={`Eliminar registro del ${formatDate(r.fecha)}`}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <Trash2 size={14} />
           </button>
@@ -233,10 +227,8 @@ export default function Mantenimiento() {
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm"
-            style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-1)', cursor: 'pointer', borderRadius: 'var(--radius)' }}
-            onFocus={e => { e.target.style.borderColor = 'var(--accent)' }}
-            onBlur={e => { e.target.style.borderColor = '' }}
+            className="input-base"
+            style={{ width: 'auto' }}
           >
             <option value="">Todos los estados</option>
             <option>Realizado</option>

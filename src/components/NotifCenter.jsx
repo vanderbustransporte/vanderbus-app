@@ -14,16 +14,14 @@ function NotifRow({ notif, onAction }) {
   return (
     <button
       onClick={() => onAction(notif)}
+      className="quiet-btn"
       style={{
         width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: '10px 16px 10px 13px',
-        background: 'none', border: 'none', cursor: 'pointer',
+        border: 'none', cursor: 'pointer',
         borderLeft: `3px solid ${notif.leida ? 'transparent' : cfg.color}`,
         textAlign: 'left',
-        transition: 'background 120ms ease-out',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
     >
       <Icon size={14} style={{ color: cfg.color, flexShrink: 0, marginTop: 2 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -156,19 +154,11 @@ export default function NotifCenter({ unreadCount, onNav }) {
       <button
         ref={btnRef}
         onClick={togglePanel}
+        className="icon-btn"
         style={{
           position: 'relative', display: 'flex', alignItems: 'center',
-          color: 'var(--text-2)', background: 'none', border: '1px solid transparent',
-          cursor: 'pointer', padding: '4px 6px', borderRadius: 6,
-          transition: 'color 120ms ease-out, background 120ms ease-out',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.color = 'var(--text-1)'
-          e.currentTarget.style.background = 'var(--hover-tint)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.color = 'var(--text-2)'
-          e.currentTarget.style.background = 'none'
+          border: '1px solid transparent',
+          cursor: 'pointer', padding: '4px 6px',
         }}
         title="Notificaciones"
       >
@@ -217,13 +207,11 @@ export default function NotifCenter({ unreadCount, onNav }) {
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
+                className="hover-dim"
                 style={{
                   fontSize: 11, color: 'var(--accent)',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  transition: 'opacity 120ms ease-out',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '0.7' }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
               >
                 Marcar todas como leídas
               </button>
@@ -270,15 +258,13 @@ export default function NotifCenter({ unreadCount, onNav }) {
           {notifs.length > 0 && (
             <button
               onClick={verTodas}
+              className="quiet-btn"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '11px 16px', flexShrink: 0,
-                background: 'none', border: 'none', borderTop: '1px solid var(--border)',
+                border: 'none', borderTop: '1px solid var(--border)',
                 color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                transition: 'background 120ms ease-out',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
             >
               Ver todas las notificaciones <ArrowRight size={13} />
             </button>

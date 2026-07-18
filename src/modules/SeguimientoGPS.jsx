@@ -1242,7 +1242,6 @@ function VistaDispositivos() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function VehicleRow({ v, estado, esSel, onClick }) {
-  const [hover, setHover] = useState(false)
   const activo   = estado === 'activo'
   const sinSenal = estado === 'sinsenal'
 
@@ -1255,16 +1254,14 @@ function VehicleRow({ v, estado, esSel, onClick }) {
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      className={esSel ? undefined : 'quiet-btn'}
       style={{
         width: '100%', textAlign: 'left', display: 'block',
         padding: '11px 16px 11px 13px',
         borderTop: 'none', borderRight: 'none', borderBottom: `1px solid ${C.border}`,
         borderLeft: `3px solid ${accentL}`,
-        background: esSel ? 'var(--accent-dim)' : hover ? 'var(--hover-tint)' : 'transparent',
+        background: esSel ? 'var(--accent-dim)' : undefined,
         cursor: 'pointer', outline: 'none',
-        transition: 'background 100ms ease-out',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -1366,20 +1363,17 @@ function PopupContent({ v, vehiculo }) {
 }
 
 function TripRow({ viaje, color, selected, compact, onClick }) {
-  const [hover, setHover] = useState(false)
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      className={selected ? undefined : 'quiet-btn'}
       style={{
         width: '100%', textAlign: 'left', display: 'block',
         padding: compact ? '9px 14px 9px 11px' : '11px 16px 11px 13px',
         borderTop: 'none', borderRight: 'none', borderBottom: `1px solid ${C.border}`,
         borderLeft: `3px solid ${selected ? color : 'transparent'}`,
-        background: selected ? `${color}12` : hover ? 'var(--hover-tint)' : 'transparent',
+        background: selected ? `${color}12` : undefined,
         cursor: 'pointer', outline: 'none',
-        transition: 'background 100ms ease-out',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: compact ? 2 : 4 }}>

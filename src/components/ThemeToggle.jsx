@@ -9,21 +9,13 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
+      className="icon-btn"
       title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 6,
-        background: 'none', border: '1px solid transparent',
-        cursor: 'pointer', color: 'var(--text-2)',
-        transition: 'color 120ms ease-out, background 120ms ease-out',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = 'var(--hover-tint-md)'
-        e.currentTarget.style.color = 'var(--text-1)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = 'none'
-        e.currentTarget.style.color = 'var(--text-2)'
+        width: 28, height: 28,
+        border: '1px solid transparent',
+        cursor: 'pointer',
       }}
     >
       {isDark ? <Sun size={14} /> : <Moon size={14} />}

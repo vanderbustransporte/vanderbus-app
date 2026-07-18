@@ -130,10 +130,9 @@ function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = fal
           </button>
           <button
             onClick={() => onArchive(v)}
+            className="btn-ghost-danger"
             title="Archivar"
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 11px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', color: 'var(--text-2)', background: 'var(--bg-overlay)', cursor: 'pointer' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 11px', cursor: 'pointer' }}
           >
             <Archive size={13} />
           </button>

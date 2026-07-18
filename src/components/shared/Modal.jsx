@@ -34,11 +34,8 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md transition-colors"
-            style={{ color: 'var(--text-2)' }}
+            className="icon-btn"
             aria-label="Cerrar"
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
           >
             <X size={16} />
           </button>

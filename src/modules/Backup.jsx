@@ -41,10 +41,7 @@ export default function BackupBar() {
     fontSize: '12px',
     fontWeight: 500,
     cursor: 'pointer',
-    border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)',
-    color: 'var(--text-2)',
-    transition: 'background 0.15s',
+    // borde/fondo/hover los pone .btn-ghost (CSS); acá solo forma y tipografía
   }
 
   if (pendiente) {
@@ -64,11 +61,12 @@ export default function BackupBar() {
             <button
               onClick={confirmarImport}
               disabled={importando}
+              className="btn-ghost"
               style={{ ...btnBase, color: 'var(--warning)', opacity: importando ? 0.6 : 1 }}
             >
               <Upload size={13} /> {importando ? 'Importando…' : 'Sí, reemplazar todo'}
             </button>
-            <button onClick={() => setPendiente(null)} disabled={importando} style={btnBase}>
+            <button onClick={() => setPendiente(null)} disabled={importando} className="btn-ghost" style={btnBase}>
               Cancelar
             </button>
           </div>
@@ -94,19 +92,17 @@ export default function BackupBar() {
       )}
       <button
         onClick={exportData}
+        className="btn-ghost"
         style={btnBase}
         title="Exportar datos como JSON"
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
       >
         <Download size={13} /> Exportar
       </button>
       <button
         onClick={() => fileRef.current.click()}
+        className="btn-ghost"
         style={btnBase}
         title="Importar datos desde JSON"
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
       >
         <Upload size={13} /> Importar
       </button>

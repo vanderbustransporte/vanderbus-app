@@ -114,21 +114,13 @@ export default function Marketing() {
     {
       key: 'acciones', label: '', render: r => editable ? (
         <div className="flex gap-1">
-          <button
-            onClick={() => openEdit(r)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--text-2)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint-md)'; e.currentTarget.style.color = 'var(--text-1)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-2)' }}
-          >
+          <button onClick={() => openEdit(r)} className="icon-btn" aria-label="Editar campaña">
             <Edit2 size={14} />
           </button>
           <button
             onClick={() => handleDelete(r.id)}
-            className="p-1.5 rounded-lg"
-            style={{ color: 'var(--danger)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '' }}
+            className="icon-btn icon-btn-danger"
+            aria-label="Eliminar campaña"
           >
             <Trash2 size={14} />
           </button>

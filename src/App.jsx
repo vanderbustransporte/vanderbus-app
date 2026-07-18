@@ -81,10 +81,8 @@ function UserMenu() {
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-md"
-        style={{ padding: '4px 6px', background: 'none', border: '1px solid transparent', cursor: 'pointer' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-tint)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+        className="quiet-btn flex items-center gap-2 rounded-md"
+        style={{ padding: '4px 6px', border: '1px solid transparent', cursor: 'pointer' }}
         title="Cuenta"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -114,10 +112,8 @@ function UserMenu() {
           <button
             onClick={signOut}
             role="menuitem"
-            className="w-full flex items-center gap-2"
-            style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-dim)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+            className="quiet-btn-danger w-full flex items-center gap-2"
+            style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--danger)', border: 'none', cursor: 'pointer', textAlign: 'left' }}
           >
             <LogOut size={15} /> Cerrar sesión
           </button>
@@ -251,12 +247,10 @@ export default function App() {
           {/* Buscador global: mismo destino que Ctrl+K. En mobile queda solo la lupa. */}
           <button
             onClick={() => setPaletteOpen(true)}
-            className="flex items-center gap-2 rounded-lg"
-            style={{ padding: '6px 10px', background: 'var(--bg-overlay)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer', marginRight: 4 }}
+            className="btn-ghost flex items-center gap-2"
+            style={{ padding: '6px 10px', cursor: 'pointer', marginRight: 4 }}
             title="Buscar (Ctrl+K)"
             aria-label="Buscar"
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hi)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
           >
             <Search size={14} />
             <span className="hidden sm:block" style={{ fontSize: 12 }}>Buscar</span>
