@@ -6,7 +6,7 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnCancel } from '../components/shared/Field'
-import { TrendingUp, Trash2, Pencil, Download, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
+import { TrendingUp, Trash2, Pencil, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightLeft, Contact, Truck } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -566,7 +566,14 @@ export default function Finanzas() {
               <Download size={15} /> Exportar CSV
             </button>
           </div>
-          <Table columns={colsMovimientos} data={filtered} emptyText="Sin movimientos registrados" />
+          <Table
+            columns={colsMovimientos} data={filtered}
+            emptyIcon={ArrowRightLeft}
+            emptyText={search || tab !== 'todos' || mesFiltro ? 'Sin resultados' : 'Todavía no hay movimientos'}
+            emptyHint={search || tab !== 'todos' || mesFiltro
+              ? 'Probá con otros términos o quitá los filtros.'
+              : 'Registrá ingresos y gastos con los botones de arriba; los viajes realizados generan su ingreso solos.'}
+          />
         </div>
       )}
 
@@ -576,7 +583,14 @@ export default function Finanzas() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <SearchBar value={buscaCliente} onChange={setBuscaCliente} placeholder="Buscar cliente..." />
           </div>
-          <Table columns={colsClientes} data={cuentasFiltradas} emptyText="Sin clientes con movimientos" />
+          <Table
+            columns={colsClientes} data={cuentasFiltradas}
+            emptyIcon={Contact}
+            emptyText={buscaCliente ? 'Sin resultados' : 'Todavía no hay clientes'}
+            emptyHint={buscaCliente
+              ? 'Probá con otro nombre.'
+              : 'La cuenta de cada cliente aparece acá a medida que cargás viajes e ingresos.'}
+          />
         </div>
       )}
 
@@ -593,7 +607,12 @@ export default function Finanzas() {
               color={totFlota.ingresos - totFlota.costos >= 0 ? C_ING : C_GAS} delay={4} />
           </div>
           <div className="surface db-in db-d5" style={{ padding: 20 }}>
-            <Table columns={colsFlota} data={rentabilidad} emptyText="Sin actividad en el período" />
+            <Table
+              columns={colsFlota} data={rentabilidad}
+              emptyIcon={Truck}
+              emptyText="Sin actividad en el período"
+              emptyHint="Cargá viajes realizados, combustible y mantenimiento para ver la rentabilidad por vehículo."
+            />
             <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 10 }}>
               Ingresos = viajes realizados asignados al vehículo. Costos = cargas de combustible y mantenimientos del período. La nómina y los gastos generales no se prorratean por vehículo.
             </p>

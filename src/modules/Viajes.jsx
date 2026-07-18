@@ -423,7 +423,15 @@ export default function Viajes() {
             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin viajes registrados" highlightId={destacadoId} />
+        <Table
+          columns={cols} data={filtered} highlightId={destacadoId}
+          emptyIcon={MapPin}
+          emptyText={search || estadoFilter ? 'Sin resultados' : 'Todavía no hay viajes'}
+          emptyHint={search || estadoFilter
+            ? 'Probá con otros términos o quitá los filtros.'
+            : 'Cargá tu primer viaje o esperá a que lleguen desde el formulario de carga.'}
+          emptyAction={!search && !estadoFilter && editable ? { label: 'Nuevo viaje', Icon: Plus, onClick: openNew } : null}
+        />
       </div>
 
       {/* ── Modal ── */}

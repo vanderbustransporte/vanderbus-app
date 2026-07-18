@@ -159,7 +159,15 @@ export default function Contactos() {
             {TIPOS.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin contactos registrados" highlightId={destacadoId} />
+        <Table
+          columns={cols} data={filtered} highlightId={destacadoId}
+          emptyIcon={Contact}
+          emptyText={search || filtroTipo ? 'Sin resultados' : 'Todavía no hay contactos'}
+          emptyHint={search || filtroTipo
+            ? 'Probá con otro nombre o quitá el filtro.'
+            : 'Sumá clientes, proveedores y empresas de custodia para tenerlos a mano en viajes y finanzas.'}
+          emptyAction={!search && !filtroTipo && editable ? { label: 'Nuevo contacto', Icon: Plus, onClick: openNew } : null}
+        />
       </div>
 
       {/* ── Modal ── */}

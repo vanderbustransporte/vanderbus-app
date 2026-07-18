@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import EmptyState from './EmptyState'
 
 const PAGE_SIZE = 10
 
-export default function Table({ columns, data, emptyText = 'Sin registros', highlightId = null }) {
+export default function Table({
+  columns, data, emptyText = 'Sin registros', highlightId = null,
+  emptyIcon = null, emptyHint = null, emptyAction = null,
+}) {
   const [page, setPage] = useState(0)
   useEffect(() => { setPage(0) }, [data])
 
@@ -46,8 +50,8 @@ export default function Table({ columns, data, emptyText = 'Sin registros', high
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-sm" style={{ color: 'var(--text-2)' }}>
-                  {emptyText}
+                <td colSpan={columns.length}>
+                  <EmptyState Icon={emptyIcon} title={emptyText} hint={emptyHint} action={emptyAction} />
                 </td>
               </tr>
             ) : rows.map((row, i) => (

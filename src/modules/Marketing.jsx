@@ -176,7 +176,15 @@ export default function Marketing() {
         <div style={{ marginBottom: 16 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar campaña, canal..." />
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin campañas registradas" />
+        <Table
+          columns={cols} data={filtered}
+          emptyIcon={Megaphone}
+          emptyText={search ? 'Sin resultados' : 'Todavía no hay campañas'}
+          emptyHint={search
+            ? 'Probá con otro título o tipo.'
+            : 'Cargá tus acciones de marketing para medir presupuesto, gasto y resultado.'}
+          emptyAction={!search && editable ? { label: 'Nueva campaña', Icon: Plus, onClick: openNew } : null}
+        />
       </div>
 
       {modal && (

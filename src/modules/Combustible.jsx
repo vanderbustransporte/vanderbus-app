@@ -5,6 +5,7 @@ import { toISO, fechaMes } from '../utils/fecha'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { Fuel, Plus, Trash2, Edit2 } from 'lucide-react'
+import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirm } from '../context/ConfirmContext'
@@ -270,7 +271,12 @@ function Combustible() {
       <div className="surface db-in db-d7" style={{ padding: 20 }}>
         <p className="db-slabel">Historial de cargas</p>
         {withConsumo.length === 0 ? (
-          <div className="db-empty">Sin registros aún</div>
+          <EmptyState
+            Icon={Fuel}
+            title="Todavía no hay cargas"
+            hint="Registrá las cargas de combustible para seguir el consumo (L/100km) y el gasto por vehículo."
+            action={editable ? { label: 'Nueva carga', Icon: Plus, onClick: openNew } : null}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

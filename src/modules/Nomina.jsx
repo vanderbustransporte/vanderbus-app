@@ -183,7 +183,15 @@ export default function Nomina() {
         <div style={{ marginBottom: 16 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar empleado, concepto..." />
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin pagos registrados" />
+        <Table
+          columns={cols} data={filtered}
+          emptyIcon={Users}
+          emptyText={search ? 'Sin resultados' : 'Todavía no hay pagos'}
+          emptyHint={search
+            ? 'Probá con otro empleado o concepto.'
+            : 'Registrá sueldos, adelantos y extras para llevar la nómina del mes.'}
+          emptyAction={!search && editable ? { label: 'Nuevo pago', Icon: Plus, onClick: openNew } : null}
+        />
       </div>
 
       {modal && (

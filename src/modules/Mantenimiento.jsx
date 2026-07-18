@@ -236,7 +236,15 @@ export default function Mantenimiento() {
             <option>En proceso</option>
           </select>
         </div>
-        <Table columns={cols} data={filtered} emptyText="Sin registros de mantenimiento" highlightId={destacadoId} />
+        <Table
+          columns={cols} data={filtered} highlightId={destacadoId}
+          emptyIcon={Wrench}
+          emptyText={search || filtroEstado ? 'Sin resultados' : 'Todavía no hay mantenimientos'}
+          emptyHint={search || filtroEstado
+            ? 'Probá con otros términos o quitá los filtros.'
+            : 'Registrá services y reparaciones para que la app te avise del próximo por fecha o kilometraje.'}
+          emptyAction={!search && !filtroEstado && editable ? { label: 'Nuevo registro', Icon: Plus, onClick: openNew } : null}
+        />
       </div>
 
       {modal && (

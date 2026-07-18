@@ -226,7 +226,17 @@ export default function Choferes() {
                 ))}
               </div>
             </div>
-            <Table columns={cols} data={filtered} emptyText="Sin choferes cargados" highlightId={destacadoId} />
+            <Table
+              columns={cols} data={filtered} highlightId={destacadoId}
+              emptyIcon={IdCard}
+              emptyText={search ? 'Sin resultados' : filtro === 'archivados' ? 'Sin choferes archivados' : 'Todavía no hay choferes'}
+              emptyHint={search
+                ? 'Probá con otro nombre o DNI.'
+                : filtro === 'archivados'
+                  ? 'Los choferes que archives van a aparecer acá.'
+                  : 'Cargá el legajo de tus choferes para controlar los vencimientos de licencia, habilitación y psicofísico.'}
+              emptyAction={!search && filtro !== 'archivados' && editable ? { label: 'Nuevo chofer', Icon: Plus, onClick: openNew } : null}
+            />
           </div>
         </>
       )}

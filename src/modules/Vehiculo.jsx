@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
 import { faltantesVehiculo } from '../utils/chequeoVencimientos'
 import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
 
 const ACCENT = 'var(--accent)'
@@ -279,14 +280,13 @@ export default function Vehiculo() {
       </div>
 
       {flota.length === 0 ? (
-        <div className="surface db-in db-d4" style={{ padding: 48, textAlign: 'center', borderRadius: 'var(--radius)' }}>
-          <Truck size={32} style={{ color: 'var(--text-3)', margin: '0 auto 12px' }} />
-          <p style={{ color: 'var(--text-2)', fontSize: 14, marginBottom: 16 }}>Todavía no cargaste ningún vehículo.</p>
-          {editable && (
-            <button className="glass-btn-primary" onClick={handleNew}>
-              <Plus size={15} /> Agregar el primero
-            </button>
-          )}
+        <div className="surface db-in db-d4" style={{ borderRadius: 'var(--radius)' }}>
+          <EmptyState
+            Icon={Truck}
+            title="Todavía no hay vehículos"
+            hint="Cargá tu flota para seguir vencimientos (VTV, seguro, habilitación), consumo y mantenimiento de cada unidad."
+            action={editable ? { label: 'Agregar el primero', Icon: Plus, onClick: handleNew } : null}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
