@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { HashRouter, useLocation } from 'react-router-dom'
 import App from './App.jsx'
 import Login from './components/Login.jsx'
 import CuentaSuspendida from './components/CuentaSuspendida.jsx'
@@ -10,9 +10,26 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import './index.css'
 
+// Página pública de seguimiento de un viaje (#/track/<token>). Se baja en lazy
+// para que Leaflet no lo pague quien entra a la app normal.
+const TrackPublico = lazy(() => import('./components/TrackPublico.jsx'))
+
 // Decide qué mostrar según haya o no sesión iniciada
 function AuthGate() {
   const { user, loading, estadoSub } = useAuth()
+  const { pathname } = useLocation()
+
+  // Ruta pública: NO requiere sesión y no espera al auth. Va antes que todo para
+  // que el link compartido funcione deslogueado (usa solo la función pública
+  // tracking_publico, no las tablas). El token es lo que sigue a /track/.
+  if (pathname.startsWith('/track/')) {
+    const token = pathname.slice('/track/'.length)
+    return (
+      <Suspense fallback={null}>
+        <TrackPublico token={token} />
+      </Suspense>
+    )
+  }
 
   if (loading) {
     return (

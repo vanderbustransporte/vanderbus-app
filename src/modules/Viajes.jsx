@@ -8,7 +8,7 @@ import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { MapPin, Plus, Trash2, Edit2, Calculator, FileText, ChevronRight, ChevronDown, Copy } from 'lucide-react'
+import { MapPin, Plus, Trash2, Edit2, Calculator, FileText, ChevronRight, ChevronDown, Copy, Share2, Power, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirm } from '../context/ConfirmContext'
@@ -19,6 +19,7 @@ import {
   CAMPOS_DESPACHO, CARGA_TIPOS, CUSTODIA_TIPOS,
   emptyDespacho, despachoDisponible, armarFichaDespacho,
 } from '../utils/despacho'
+import { trackingDisponible, generarTokenTracking, linkTracking } from '../utils/tracking'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
@@ -88,9 +89,12 @@ export default function Viajes() {
   const [errors, setErrors]           = useState({})
   const [calc, setCalc]               = useState({ horas: '', conPeon: false })
   const [ficha, setFicha]             = useState(null)   // viaje cuya ficha de despacho se muestra
+  const [share, setShare]             = useState(null)   // viaje cuyo link de seguimiento se comparte
   const [showDespacho, setShowDespacho] = useState(false)
   const [despachoOn, setDespachoOn]   = useState(false)
+  const [trackingOn, setTrackingOn]   = useState(false)
   useEffect(() => { let vivo = true; despachoDisponible().then(ok => { if (vivo) setDespachoOn(ok) }); return () => { vivo = false } }, [])
+  useEffect(() => { let vivo = true; trackingDisponible().then(ok => { if (vivo) setTrackingOn(ok) }); return () => { vivo = false } }, [])
 
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
@@ -346,6 +350,16 @@ export default function Viajes() {
           >
             <FileText size={14} />
           </button>
+          {editable && trackingOn && (
+            <button
+              onClick={() => setShare(r)}
+              className={`icon-btn${r.tracking_activo ? ' icon-btn-accent' : ''}`}
+              aria-label={`Compartir seguimiento del viaje de ${r.cliente || 'sin cliente'}`}
+              title={r.tracking_activo ? 'Link de seguimiento activo' : 'Compartir seguimiento'}
+            >
+              <Share2 size={14} />
+            </button>
+          )}
           {editable && <>
           <button
             onClick={() => openEdit(r)}
@@ -662,6 +676,71 @@ export default function Viajes() {
               </a>
               <BtnPrimary onClick={copiar}><Copy size={14} /> Copiar</BtnPrimary>
             </div>
+          </Modal>
+        )
+      })()}
+
+      {/* ── Compartir seguimiento (link público por viaje) ── */}
+      {share && (() => {
+        // El viaje fresco del store: refleja el token/activo tras generar o apagar.
+        const v      = (data.viajes || []).find(x => x.id === share.id) || share
+        const activo = !!v.tracking_activo && !!v.tracking_token
+        const link   = v.tracking_token ? linkTracking(v.tracking_token) : ''
+
+        const guardar = campos =>
+          update('viajes', (data.viajes || []).map(x => x.id === v.id ? { ...x, ...campos } : x))
+        const activar   = () => guardar({ tracking_token: v.tracking_token || generarTokenTracking(), tracking_activo: true })
+        const desactivar = () => guardar({ tracking_activo: false })
+        const regenerar  = () => guardar({ tracking_token: generarTokenTracking(), tracking_activo: true })
+        const copiar = async () => {
+          try {
+            await navigator.clipboard.writeText(link)
+            addToast({ message: 'Link copiado al portapapeles.', Icon: Copy, color: 'var(--accent)' })
+          } catch {
+            addToast({ message: 'No se pudo copiar. Seleccioná el texto a mano.', color: 'var(--danger)' })
+          }
+        }
+        const msgWa = `Seguí tu viaje${v.destino ? ` a ${v.destino}` : ''} en tiempo real: ${link}`
+
+        return (
+          <Modal title="Compartir seguimiento" onClose={() => setShare(null)}>
+            <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 16 }}>
+              Un link para que el cliente vea el <strong>estado y la ubicación</strong> de este viaje
+              sin entrar al sistema. No expone montos ni datos internos. Podés desactivarlo cuando
+              quieras y el link deja de funcionar al instante.
+            </p>
+
+            {activo ? (
+              <>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                  <input
+                    readOnly value={link}
+                    onFocus={e => e.target.select()}
+                    className="input-base"
+                    style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 12 }}
+                  />
+                  <BtnPrimary onClick={copiar}><Copy size={14} /> Copiar</BtnPrimary>
+                </div>
+                <div className="flex justify-between items-center mt-5">
+                  <button onClick={desactivar} className="quiet-btn" style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                    <Power size={14} /> Desactivar link
+                  </button>
+                  <div className="flex gap-3">
+                    <button onClick={regenerar} className="quiet-btn" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} title="Invalida el link anterior y genera uno nuevo">
+                      <RefreshCw size={14} /> Generar nuevo
+                    </button>
+                    <a className="glass-btn-primary" href={`https://wa.me/?text=${encodeURIComponent(msgWa)}`} target="_blank" rel="noopener noreferrer">
+                      Enviar por WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-end gap-3 mt-2">
+                <BtnCancel onClick={() => setShare(null)}>Cerrar</BtnCancel>
+                <BtnPrimary onClick={activar}><Share2 size={14} /> Generar link</BtnPrimary>
+              </div>
+            )}
           </Modal>
         )
       })()}
