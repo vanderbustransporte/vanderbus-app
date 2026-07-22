@@ -776,3 +776,21 @@ select.input-base { cursor: pointer; }
   color: #475569 !important;
 }
 [data-theme="dark"] .leaflet-control-attribution a { color: #64748b !important; }
+
+/* ── Split del mapa GPS (SeguimientoGPS.jsx): mapa + panel lateral ────────────
+   Lado a lado en desktop; en pantalla angosta (driver terminal tipo TC56)
+   colapsa a mapa arriba + panel abajo, cada uno con su propio scroll. Los
+   colores/bordes del mapa y el panel siguen inline (salen del objeto C). */
+.gps-split { flex: 1; min-height: 0; display: flex; gap: 12px; }
+.gps-split-map { flex: 7; min-width: 0; position: relative; }
+.gps-split-panel {
+  flex: 3; min-width: 220px; max-width: 320px;
+  display: flex; flex-direction: column;
+}
+@media (max-width: 760px) {
+  .gps-split { flex-direction: column; }
+  /* Altura fija del mapa: dentro de un flex column, dejarlo en flex crecería
+     hasta aplastar la lista; 46vh deja mapa usable y lista visible a la vez. */
+  .gps-split-map { flex: none; height: 46vh; min-height: 240px; }
+  .gps-split-panel { flex: 1; min-height: 160px; min-width: 0; max-width: none; }
+}

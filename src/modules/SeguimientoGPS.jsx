@@ -598,11 +598,10 @@ function VistaRealtime() {
       )}
 
       {/* Mapa (70%) + Panel (30%) */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12 }}>
+      <div className="gps-split">
 
         {/* Mapa */}
-        <div style={{
-          flex: 7, minWidth: 0, position: 'relative',
+        <div className="gps-split-map" style={{
           borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.borderHi}`,
         }}>
           <MapContainer center={CENTER_ARG} zoom={ZOOM_DEFAULT}
@@ -666,9 +665,7 @@ function VistaRealtime() {
         </div>
 
         {/* Panel lateral */}
-        <aside style={{
-          flex: 3, minWidth: 220, maxWidth: 320,
-          display: 'flex', flexDirection: 'column',
+        <aside className="gps-split-panel" style={{
           background: C.surface, border: `1px solid ${C.borderHi}`,
           borderRadius: 12, overflow: 'hidden',
         }}>
@@ -844,11 +841,10 @@ function VistaHistorial() {
       )}
 
       {/* Mapa (70%) + Panel (30%) */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12 }}>
+      <div className="gps-split">
 
         {/* Mapa */}
-        <div style={{
-          flex: 7, minWidth: 0, position: 'relative',
+        <div className="gps-split-map" style={{
           borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.borderHi}`,
         }}>
           <MapContainer center={CENTER_ARG} zoom={ZOOM_DEFAULT}
@@ -925,9 +921,7 @@ function VistaHistorial() {
         </div>
 
         {/* Panel lateral */}
-        <aside style={{
-          flex: 3, minWidth: 220, maxWidth: 320,
-          display: 'flex', flexDirection: 'column',
+        <aside className="gps-split-panel" style={{
           background: C.surface, border: `1px solid ${C.borderHi}`,
           borderRadius: 12, overflow: 'hidden',
         }}>
