@@ -1,10 +1,15 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId, monthName } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
 import Modal from '../components/shared/Modal'
 import { Field, Input, Select, BtnPrimary, BtnCancel } from '../components/shared/Field'
-import { Fuel, Plus, Trash2, Edit2 } from 'lucide-react'
+import { Fuel, Plus, Trash2, Edit2, Ticket, Wallet, Check } from 'lucide-react'
+import {
+  FORMAS_PAGO, CAMPOS_VALE, valesDisponible, mesLabel,
+  rendicionesPendientes, rendicionesPagadas, totalPorPagar,
+  valePendiente, valePagado,
+} from '../utils/vales'
 import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -42,6 +47,8 @@ const TIPOS = ['Gasoil', 'Diésel Premium', 'GNC', 'Nafta']
 const empty = () => ({
   id: genId(), fecha: todayISO(), litros: '', importe: '', km: '', proveedor: '', tipo: 'Gasoil',
   vehiculo_id: '',
+  // Forma de pago / vale (solo se envían si la migración de vales está aplicada).
+  forma_pago: 'Contado', vale_numero: '', vale_estado: '',
 })
 
 function consumoColor(c) {
@@ -65,6 +72,25 @@ function getPrecioLitro(r) {
   return null
 }
 
+// Badge de forma de pago para el historial: Contado (neutro) vs Vale por
+// rendir (warning) / pagado (positive).
+function BadgePago({ r }) {
+  if (r.forma_pago !== 'Vale') return <span style={{ color: 'var(--text-3)', fontSize: 12 }}>Contado</span>
+  const pagado = r.vale_estado === 'Pagado'
+  return (
+    <span
+      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+      style={{
+        background: pagado ? 'var(--positive-dim)' : 'var(--warning-dim)',
+        color:      pagado ? 'var(--positive)'     : 'var(--warning)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      Vale{r.vale_numero ? ` ${r.vale_numero}` : ''} · {pagado ? 'pagado' : 'por rendir'}
+    </span>
+  )
+}
+
 function Combustible() {
   const { data, update } = useStore()
   const ct = useChartTheme()
@@ -76,12 +102,23 @@ function Combustible() {
   const [form, setForm]     = useState(empty())
   const [errors, setErrors] = useState({})
 
+  // ¿Está aplicada la migración de vales? (columna combustible.forma_pago)
+  const [valesOn, setValesOn] = useState(false)
+  useEffect(() => { let vivo = true; valesDisponible().then(ok => { if (vivo) setValesOn(ok) }); return () => { vivo = false } }, [])
+
+  // Rendición que se está por pagar + campos del pago + ver historial de pagadas.
+  const [rendPagar, setRendPagar] = useState(null)
+  const [rendForm, setRendForm]   = useState({ fecha: todayISO(), comprobante: '' })
+  const [verPagadas, setVerPagadas] = useState(false)
+  const [filtroPago, setFiltroPago] = useState('todos') // 'todos' | 'pendientes' | 'pagados'
+
   const { puedeEditar } = useAuth()
   const editable = puedeEditar('combustible')
   const { addToast } = useToast()
   const confirmar = useConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const setRend = (k, v) => setRendForm(f => ({ ...f, [k]: v }))
 
   // Opciones preservando valores legacy y el vehículo asignado aunque esté
   // archivado (ver utils/form.js).
@@ -96,6 +133,9 @@ function Combustible() {
     if (!form.fecha)                     e.fecha   = 'Requerido'
     if (!form.litros || isNaN(form.litros)) e.litros = 'Requerido'
     if (!form.importe || isNaN(form.importe)) e.importe = 'Requerido'
+    // La estación es la que rinde el vale: sin ella no se puede agrupar.
+    if (valesOn && form.forma_pago === 'Vale' && !form.proveedor?.trim())
+      e.proveedor = 'Indicá la estación para poder rendir el vale'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -123,9 +163,64 @@ function Combustible() {
     // vehiculo_id es uuid: el Select manda '' en "Sin asignar" y Postgres lo
     // rechaza; uuid vacío se representa con NULL (mismo bug que tenía Viajes).
     const registro = { ...form, fecha: toISO(form.fecha), vehiculo_id: form.vehiculo_id || null }
+
+    if (valesOn) {
+      if (registro.forma_pago === 'Vale') {
+        // Un vale nuevo (o que venía sin estado) nace 'Pendiente'. Un vale ya
+        // pagado conserva su estado y su lote de rendición al editarlo.
+        registro.vale_estado = registro.vale_estado || 'Pendiente'
+      } else {
+        // Contado: no arrastra datos de vale (por si venía de un vale editado).
+        registro.forma_pago = 'Contado'
+        registro.vale_numero = ''
+        registro.vale_estado = null
+        registro.rendicion_id = null
+        registro.rendicion_fecha = null
+        registro.rendicion_comprobante = null
+      }
+    } else {
+      // Migración sin aplicar: no mandar las columnas de vale (un INSERT contra
+      // una columna inexistente falla ENTERO — mismo patrón que despacho).
+      for (const k of CAMPOS_VALE) delete registro[k]
+    }
+
     if (editId) update('combustible', list.map(r => r.id === editId ? registro : r))
     else        update('combustible', [registro, ...list])
     setModal(false)
+  }
+
+  // ── Rendiciones (vales por rendir / pagados) ────────────────────────────────
+  const pendientes = useMemo(() => valesOn ? rendicionesPendientes(list) : [], [valesOn, list])
+  const pagadas    = useMemo(() => valesOn ? rendicionesPagadas(list)    : [], [valesOn, list])
+  const porPagar   = useMemo(() => valesOn ? totalPorPagar(list)         : 0,  [valesOn, list])
+
+  const abrirPago = (g) => { setRendForm({ fecha: todayISO(), comprobante: '' }); setRendPagar(g) }
+
+  // Registrar el pago de una rendición: marca todos sus vales 'Pagado' y les
+  // estampa un rendicion_id común (para poder deshacer el lote entero después).
+  const confirmarPago = () => {
+    if (!rendPagar) return
+    const id = genId()
+    const fecha = toISO(rendForm.fecha)
+    const comprobante = rendForm.comprobante?.trim() || ''
+    const ids = new Set(rendPagar.vales.map(v => v.id))
+    update('combustible', list.map(r => ids.has(r.id)
+      ? { ...r, vale_estado: 'Pagado', rendicion_id: id, rendicion_fecha: fecha, rendicion_comprobante: comprobante }
+      : r))
+    setRendPagar(null)
+    addToast({
+      message: `Rendición de ${rendPagar.estacion} registrada como pagada.`,
+      Icon: Check,
+      color: 'var(--positive)',
+      duration: 6000,
+      action: {
+        label: 'Deshacer',
+        onClick: () => update('combustible', (getData().combustible || []).map(r =>
+          r.rendicion_id === id
+            ? { ...r, vale_estado: 'Pendiente', rendicion_id: null, rendicion_fecha: null, rendicion_comprobante: null }
+            : r)),
+      },
+    })
   }
 
   const handleDelete = async id => {
@@ -164,6 +259,14 @@ function Combustible() {
       const c = (parseFloat(r.litros) / kmDiff) * 100
       return { ...r, consumo: c > 0 ? c : null }
     }).reverse(), [sortedByKm])
+
+  // Historial filtrado por forma de pago (solo con la migración de vales aplicada).
+  const withConsumoFiltrado = useMemo(() => {
+    if (!valesOn || filtroPago === 'todos') return withConsumo
+    if (filtroPago === 'pendientes') return withConsumo.filter(valePendiente)
+    if (filtroPago === 'pagados')    return withConsumo.filter(valePagado)
+    return withConsumo
+  }, [withConsumo, filtroPago, valesOn])
 
   const totalMes    = list.reduce((s, r) => s + (parseFloat(r.importe) || 0), 0)
   const litrosMes   = list.reduce((s, r) => s + (parseFloat(r.litros)  || 0), 0)
@@ -267,9 +370,99 @@ function Combustible() {
         </div>
       </div>
 
+      {/* ── Vales por rendir (cuenta corriente con estaciones) ── */}
+      {valesOn && (pendientes.length > 0 || pagadas.length > 0) && (
+        <div className="surface db-in db-d7" style={{ padding: 20, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Wallet size={16} style={{ color: 'var(--warning)' }} />
+              <p className="db-slabel" style={{ margin: 0 }}>Vales por rendir</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="db-slabel" style={{ display: 'block', marginBottom: 2 }}>Por pagar a estaciones</span>
+              <span className="num" style={{ fontSize: 15, fontWeight: 700, color: porPagar > 0 ? 'var(--warning)' : 'var(--positive)' }}>
+                {formatARS(porPagar)}
+              </span>
+            </div>
+          </div>
+
+          {pendientes.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--text-2)' }}>
+              No hay vales pendientes de rendir. <Check size={13} style={{ display: 'inline', verticalAlign: '-2px', color: 'var(--positive)' }} />
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {pendientes.map(g => (
+                <div key={g.key} className="surface" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Ticket size={14} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-1)', fontWeight: 600, fontSize: 13 }}>{g.estacion}</span>
+                      <span style={{ color: 'var(--text-3)', fontSize: 12 }}>· {mesLabel(g.mes)}</span>
+                    </div>
+                    <div className="num" style={{ color: 'var(--text-2)', fontSize: 12, marginTop: 3 }}>
+                      {g.vales.length} vale{g.vales.length !== 1 ? 's' : ''} · {g.litros.toFixed(1)} L
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="num" style={{ fontSize: 14, fontWeight: 700, color: 'var(--warning)' }}>{formatARS(g.total)}</span>
+                    {editable && (
+                      <button className="glass-btn-primary" style={{ padding: '7px 12px', fontSize: 12 }} onClick={() => abrirPago(g)}>
+                        <Check size={13} /> Registrar pago
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {pagadas.length > 0 && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              <button
+                onClick={() => setVerPagadas(v => !v)}
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--text-2)', fontFamily: MONO, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                {verPagadas ? '▾' : '▸'} Rendiciones pagadas ({pagadas.length})
+              </button>
+              {verPagadas && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                  {pagadas.map(g => (
+                    <div key={g.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 12, padding: '6px 4px', flexWrap: 'wrap' }}>
+                      <span style={{ color: 'var(--text-1)' }}>
+                        {g.estacion}
+                        <span style={{ color: 'var(--text-3)' }}> · pagado {g.fecha ? formatDate(g.fecha) : '—'}</span>
+                        {g.comprobante && <span style={{ color: 'var(--text-3)' }}> · comp. {g.comprobante}</span>}
+                      </span>
+                      <span className="num" style={{ color: 'var(--positive)', fontWeight: 600 }}>{formatARS(g.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Historial ── */}
-      <div className="surface db-in db-d7" style={{ padding: 20 }}>
-        <p className="db-slabel">Historial de cargas</p>
+      <div className="surface db-in db-d8" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <p className="db-slabel" style={{ margin: 0 }}>Historial de cargas</p>
+          {valesOn && withConsumo.some(r => r.forma_pago === 'Vale') && (
+            <select
+              value={filtroPago}
+              onChange={e => setFiltroPago(e.target.value)}
+              className="input-base"
+              style={{ width: 'auto', fontSize: 12, padding: '4px 8px' }}
+              aria-label="Filtrar por forma de pago"
+            >
+              <option value="todos">Todas las cargas</option>
+              <option value="pendientes">Solo vales por rendir</option>
+              <option value="pagados">Solo vales pagados</option>
+            </select>
+          )}
+        </div>
         {withConsumo.length === 0 ? (
           <EmptyState
             Icon={Fuel}
@@ -282,15 +475,22 @@ function Combustible() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-base)' }}>
-                  {['Fecha', 'KM', 'Litros', 'Importe', '$/Litro', 'L/100km', ''].map(h => (
-                    <th key={h} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: 'var(--text-2)', fontFamily: MONO }}>
+                  {['Fecha', 'KM', 'Litros', 'Importe', '$/Litro', 'L/100km', ...(valesOn ? ['Pago'] : []), ''].map((h, i) => (
+                    <th key={h || `col-${i}`} className={`pb-3 pt-3 px-3 text-xs font-semibold uppercase tracking-wider ${h === '' ? '' : 'text-left'}`} style={{ color: 'var(--text-2)', fontFamily: MONO }}>
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {withConsumo.map(r => {
+                {withConsumoFiltrado.length === 0 && (
+                  <tr>
+                    <td colSpan={valesOn ? 8 : 7} className="py-6 px-3 text-center text-sm" style={{ color: 'var(--text-3)' }}>
+                      No hay cargas para este filtro.
+                    </td>
+                  </tr>
+                )}
+                {withConsumoFiltrado.map(r => {
                   const precio = getPrecioLitro(r)
                   const { bg, color } = consumoBg(r.consumo)
                   return (
@@ -319,6 +519,9 @@ function Combustible() {
                           </span>
                         ) : <span style={{ color: 'var(--text-3)' }}>—</span>}
                       </td>
+                      {valesOn && (
+                        <td className="py-3 px-3"><BadgePago r={r} /></td>
+                      )}
                       <td className="py-3 px-3">
                         {editable && (
                           <div className="flex gap-1">
@@ -384,15 +587,73 @@ function Combustible() {
                 </Select>
               </Field>
             </div>
+
+            {/* Forma de pago: Contado o Vale (cuenta corriente con la estación). */}
+            {valesOn && (
+              <>
+                <Field label="Forma de pago">
+                  <Select value={form.forma_pago} onChange={e => set('forma_pago', e.target.value)}>
+                    {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
+                  </Select>
+                </Field>
+                {form.forma_pago === 'Vale' ? (
+                  <Field label="N° de vale">
+                    <Input value={form.vale_numero} onChange={e => set('vale_numero', e.target.value)} placeholder="Ej: 0012345" />
+                  </Field>
+                ) : <div />}
+              </>
+            )}
+
             <div className="col-span-2">
-              <Field label="Proveedor / Estación">
+              <Field label={valesOn && form.forma_pago === 'Vale' ? 'Estación de servicio' : 'Proveedor / Estación'} required={valesOn && form.forma_pago === 'Vale'}>
                 <Input value={form.proveedor} onChange={e => set('proveedor', e.target.value)} placeholder="Ej: YPF Autopista Norte" />
+                {errors.proveedor && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.proveedor}</p>}
               </Field>
             </div>
+
+            {valesOn && form.forma_pago === 'Vale' && (
+              <div className="col-span-2">
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  El vale queda <strong style={{ color: 'var(--warning)' }}>por rendir</strong> hasta que registres el pago a la estación desde el panel “Vales por rendir”.
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <BtnCancel onClick={() => setModal(false)} />
             <BtnPrimary onClick={handleSave}>Guardar</BtnPrimary>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Modal: registrar pago de una rendición ── */}
+      {rendPagar && (
+        <Modal title="Registrar pago de rendición" onClose={() => setRendPagar(null)}>
+          <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 8, background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Ticket size={14} style={{ color: 'var(--warning)' }} />
+              <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{rendPagar.estacion}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: 13 }}>· {mesLabel(rendPagar.mes)}</span>
+            </div>
+            <div className="num" style={{ color: 'var(--text-2)', fontSize: 13 }}>
+              {rendPagar.vales.length} vale{rendPagar.vales.length !== 1 ? 's' : ''} · {rendPagar.litros.toFixed(1)} L ·{' '}
+              <strong style={{ color: 'var(--warning)' }}>{formatARS(rendPagar.total)}</strong>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Fecha de pago" required>
+              <Input type="date" value={rendForm.fecha} onChange={e => setRend('fecha', e.target.value)} />
+            </Field>
+            <Field label="Comprobante / resumen">
+              <Input value={rendForm.comprobante} onChange={e => setRend('comprobante', e.target.value)} placeholder="N° de factura o resumen" />
+            </Field>
+          </div>
+          <p className="text-xs mt-4" style={{ color: 'var(--text-3)' }}>
+            Marca los {rendPagar.vales.length} vale{rendPagar.vales.length !== 1 ? 's' : ''} como pagados. No genera un gasto nuevo: el combustible ya está contado como costo.
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <BtnCancel onClick={() => setRendPagar(null)} />
+            <BtnPrimary onClick={confirmarPago}>Confirmar pago</BtnPrimary>
           </div>
         </Modal>
       )}
