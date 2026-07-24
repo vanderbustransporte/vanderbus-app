@@ -6,6 +6,7 @@ Si algo acá contradice lo que hacías antes, gana este documento.
 - **Arquitectura, modelo de datos y convenciones de código:** `.claude/skills/vanderbus-app.md` (leerlo antes de tocar nada).
 - **Reglas duras para agentes de IA:** `CLAUDE.md`.
 - **Estado actual y quién está en qué:** `docs/estado-proyecto.md`.
+- **Arrancar con un asistente de IA:** `docs/onboarding-ia.md` (prompt listo para pegar).
 
 ---
 
