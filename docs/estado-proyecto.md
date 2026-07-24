@@ -35,16 +35,32 @@ migración esté aplicada: por eso el código tiene que tolerar el esquema viejo
 (ver `CONTRIBUTING.md` §5).
 
 Al 2026-07-24 estaban todas aplicadas (despacho, choferes, tracking público,
-tracking público org fix, vales de combustible). Después de eso se sumó una:
+tracking público org fix, vales de combustible). Después de eso se sumaron tres,
+todas del estimador de consumo y **todas pendientes**. Se aplican en orden:
 
-| Migración | ¿Aplicada en Supabase? |
-|---|---|
-| `20260724120000_consumo_estimado.sql` | ❌ **NO** — pendiente de aplicar en el SQL editor |
+| Migración | ¿Aplicada? | Qué prende |
+|---|---|---|
+| `20260724120000_consumo_estimado.sql` | ❌ **NO** | Estimador base: consumo urbano/ruta, tara, carga útil, distancia y tipo de recorrido del viaje |
+| `20260724130000_consumo_ficha_extendida.sql` | ❌ **NO** | Ficha técnica completa (clase, motor, fuente del consumo, PBT, carrocería, tanque, ralentí), topografía y horas de ralentí del viaje, y `combustible.tanque_lleno` (el insumo del motor de calibración) |
+| `20260724140000_vehiculo_docs.sql` | ❌ **NO** | Tabla `vehiculo_docs` + bucket privado `vehiculo-docs`: subir y consultar el manual / ficha técnica de cada unidad |
 
-Mientras no esté aplicada, la app funciona igual que hoy: el estimador de consumo
-se oculta solo (`consumoDisponible()` en `src/utils/consumo.js`) y ni Viajes ni
-Flota mandan esas columnas al guardar. Aplicarla es lo único que hace falta para
-prenderlo — no hay que tocar código.
+Cada una se detecta por separado y la app tolera cualquier combinación: sin
+ninguna funciona exactamente como hoy, con la primera sola estima igual que
+antes, y así. Lo que falta se oculta solo y **no se manda al guardar** — mandar
+una columna inexistente haría fallar el guardado entero (`consumoDisponible()` /
+`fichaExtDisponible()` en `src/utils/consumo.js`, `docsDisponible()` en
+`src/utils/docsVehiculo.js`). Aplicarlas es lo único que hace falta: no hay que
+tocar código.
+
+**Edge Function `extraer-ficha-tecnica`** (lectura asistida del PDF): además de
+la migración `...140000`, hay que
+1. cargar el secreto: `supabase secrets set ANTHROPIC_API_KEY=sk-ant-... --project-ref <ref>`
+2. desplegarla: `supabase functions deploy extraer-ficha-tecnica --project-ref <ref>`
+
+Sin eso el botón “Leer datos” devuelve un error legible y todo lo demás anda
+igual. La lógica pura (qué páginas se mandan al modelo, qué valores se aceptan)
+se prueba sin desplegar nada y sin gastar una llamada a la API:
+`node --experimental-strip-types supabase/checks/extraccion_ficha_check.mjs`.
 
 ---
 
@@ -66,7 +82,9 @@ prenderlo — no hay que tocar código.
 Plan completo en `docs/plan-producto-tms.md`. Lo inmediato:
 
 - **Documentos adjuntos (Supabase Storage)** — la mitad pendiente de la Fase D:
-  adjuntar remitos/fotos a un viaje. Es lo que sigue.
+  adjuntar remitos/fotos a un **viaje**. El patrón de Storage ya está resuelto y
+  probado en `vehiculo-docs` (bucket privado particionado por empresa + RLS sobre
+  `storage.objects`, migración `20260724140000`): copiarlo.
 - Tarifas por empresa desde `org_settings` (hoy hay valores hardcodeados).
 - Onboarding self-service para empresas nuevas.
 
