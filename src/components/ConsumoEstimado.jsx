@@ -57,9 +57,12 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible }) {
     pesoKg:      viaje.carga_peso_kg,
     volumenM3:   viaje.carga_volumen_m3,
     rutaTipo:    viaje.ruta_tipo,
+    topografia:  viaje.topografia,
+    horasRalenti: viaje.horas_ralenti,
     precioLitro: precio.precio,
     l100Real:    real.l100,
-  }), [vehiculo, viaje.distancia_km, viaje.carga_peso_kg, viaje.carga_volumen_m3, viaje.ruta_tipo, precio.precio, real.l100])
+  }), [vehiculo, viaje.distancia_km, viaje.carga_peso_kg, viaje.carga_volumen_m3, viaje.ruta_tipo,
+       viaje.topografia, viaje.horas_ralenti, precio.precio, real.l100])
 
   const marco = {
     padding: 14, borderRadius: 'var(--radius)',

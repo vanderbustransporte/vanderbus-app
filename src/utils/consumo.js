@@ -6,81 +6,139 @@
 // carga (datos de despacho del viaje) y el precio del litro de la última carga
 // real de combustible.
 //
-// Las columnas viven en `vehiculos` y `viajes` (migración 20260724120000).
-// Hasta que esa migración se aplique, `consumoDisponible()` devuelve false y los
-// módulos NO mandan estos campos al guardar: un INSERT/UPDATE con una columna
-// inexistente falla ENTERO en Postgres (mismo patrón que despacho.js y vales.js).
+// Las columnas viven en `vehiculos`, `viajes` y `combustible`, repartidas en dos
+// migraciones:
+//   20260724120000 — lo mínimo para estimar (consumo urbano/ruta, tara, carga
+//                    útil, distancia, tipo de recorrido)  → consumoDisponible()
+//   20260724130000 — ficha técnica extendida, factores y el flag de tanque lleno
+//                                                         → fichaExtDisponible()
+// Hasta que cada una se aplique, los módulos NO mandan esos campos al guardar:
+// un INSERT/UPDATE con una columna inexistente falla ENTERO en Postgres (mismo
+// patrón que despacho.js y vales.js). Las dos se chequean por separado a
+// propósito: con la primera aplicada y la segunda no, la app tiene que seguir
+// estimando igual que antes.
 //
 // ── El modelo ───────────────────────────────────────────────────────────────
 //
 // Es deliberadamente simple y explícito. Prefiere quedarse corto y DECIR qué no
 // está modelando antes que inventar precisión:
 //
-//   L/100km = base(tipoRuta) × factorCarga
+//   L/100km = base(tipoRuta) × factorCarga × factorCarroceria × factorTopografia
 //   factorCarga = (1 − s) + s × (tara + peso) / tara
+//   litros = L/100km × km / 100 + ralentí(L/h) × horas de motor detenido
 //
 // `base` es el consumo con la unidad vacía, interpolado entre el valor urbano y
-// el de ruta según el tipo de recorrido. `s` es la fracción del consumo que
-// depende de la masa (rodadura + inercia); el resto (aerodinámica, auxiliares,
-// ralentí) no cambia por llevar carga. Con peso 0 el factor da 1 y el estimado
-// es el consumo en vacío, como corresponde.
+// el de ruta según el tipo de recorrido, CORREGIDO por la fuente del dato (un
+// homologado es optimista; ver data/clases.js). `s` es la fracción del consumo
+// que depende de la masa (rodadura + inercia); el resto (aerodinámica,
+// auxiliares) no cambia por llevar carga. Con peso 0 el factor da 1 y el
+// estimado es el consumo en vacío, como corresponde.
 //
 // `s` baja a medida que la unidad es más pesada: en un semi a 90 km/h manda la
 // aerodinámica, así que sumar toneladas pesa relativamente menos que en un
-// furgón. Por eso SENSIBILIDAD está partida por clase y no es una constante.
+// furgón. Por eso está partida por clase y no es una constante.
+//
+// La carrocería NO entra por masa sino como factor, y sólo sobre el tramo de
+// ruta: por debajo de ~70 km/h la diferencia aerodinámica entre un playo y un
+// furgón cerrado es ruido.
 //
 // ── Lo que este modelo NO hace ──────────────────────────────────────────────
 //
 // - **Volumen.** En un furgón cerrado el volumen de la carga no cambia el
 //   consumo: la sección frontal es la misma vaya lleno o vacío. Se calcula y se
 //   muestra como APROVECHAMIENTO (cuánto del espacio útil se usa), que es lo que
-//   de verdad informa, y no entra en la fórmula. El día que la ficha diga el
-//   tipo de carrocería (playo, con lona, portacontenedor) ahí sí tiene sentido
-//   un término aerodinámico — hoy sería un número inventado.
-// - Altimetría, viento, temperatura, tipo de caja, relación de diferencial,
-//   presión de neumáticos, estilo de manejo, ralentí en carga y descarga.
+//   de verdad informa, y no entra en la fórmula.
+// - Clima y viento, aire acondicionado, presión de neumáticos, estilo de
+//   conducción, estado del tren rodante, retorno en vacío.
+// Todo eso está listado como supuesto no modelado en `SUPUESTOS_NO_MODELADOS` y
+// la UI lo muestra: un estimado sin sus límites a la vista es una mentira
+// prolija.
 //
-// Todo lo anterior es exactamente el motivo por el que `consumoRealVehiculo()`
-// existe: el historial de cargas de combustible ya trae ese ruido incorporado.
-// Cuando hay historial suficiente, el estimador lo muestra al lado del teórico
-// para que el número de manual no se lea como si fuera la verdad.
+// Y es exactamente el motivo por el que existe el motor de calibración
+// (utils/calibracion.js): el historial de cargas a tanque lleno ya trae todo ese
+// ruido incorporado. A medida que se acumulan cargas, el estimador migra del
+// número teórico al medido.
 
 import { supabase } from '../lib/supabase'
 import { toISO } from './fecha'
+import {
+  CLASES, claseInfo, claseDesdeTara,
+  fuenteInfo, FUENTE_DEFAULT,
+  carroceriaInfo, topografiaInfo, TOPOGRAFIA_DEFAULT,
+  ralentiEstimado,
+} from '../data/clases'
 
 export const RUTA_TIPOS = ['Urbano', 'Mixto', 'Ruta']
 
+// ── Columnas por migración ──────────────────────────────────────────────────
+// Se strippean del payload cuando la migración correspondiente no está aplicada.
 export const CAMPOS_CONSUMO_VEHICULO = [
   'motor_desc', 'consumo_urbano_l100', 'consumo_ruta_l100', 'tara_kg', 'carga_max_kg',
 ]
 export const CAMPOS_CONSUMO_VIAJE = ['distancia_km', 'ruta_tipo']
 
+export const CAMPOS_FICHA_VEHICULO = [
+  'clase',
+  'motor_cilindrada_l', 'motor_potencia_cv', 'motor_torque_nm', 'motor_combustible',
+  'norma_emision', 'transmision', 'relacion_diferencial',
+  'consumo_mixto_l100', 'fuente_consumo',
+  'pbt_kg', 'carroceria', 'tanque_l',
+  'consumo_ralenti_lh', 'consumo_ralenti_est',
+]
+export const CAMPOS_FICHA_VIAJE = ['topografia', 'horas_ralenti']
+export const CAMPOS_FICHA_COMBUSTIBLE = ['tanque_lleno']
+
 export const emptyConsumoVehiculo = () => Object.fromEntries(CAMPOS_CONSUMO_VEHICULO.map(k => [k, '']))
+export const emptyFichaVehiculo   = () => Object.fromEntries(CAMPOS_FICHA_VEHICULO.map(k => [k, '']))
+
+export const SUPUESTOS_NO_MODELADOS = [
+  'Clima, viento y temperatura',
+  'Aire acondicionado y equipos auxiliares',
+  'Presión de neumáticos y estado del tren rodante',
+  'Estilo de conducción del chofer',
+  'Retorno en vacío (se estima sólo el tramo cargado)',
+]
 
 // ── Detección de esquema ────────────────────────────────────────────────────
-// Se consulta UNA vez por sesión (promesa cacheada a nivel módulo). Las dos
-// tablas se chequean juntas porque las columnas vienen en la misma migración:
-// si una está y la otra no, no alcanza para prender la función. 42703 = columna
-// inexistente → false definitivo. Cualquier otro error (red, sesión) no es
-// concluyente: devuelve false SIN cachear, para reintentar en el próximo montaje.
-let _check = null
-export function consumoDisponible() {
-  if (!_check) {
-    const sonda = (tabla, columna) =>
-      supabase.from(tabla).select(columna).limit(1).then(({ error }) => {
-        if (!error) return true
-        if (error.code === '42703') return false
-        return null   // no concluyente
-      })
-    _check = Promise.all([sonda('vehiculos', 'consumo_ruta_l100'), sonda('viajes', 'distancia_km')])
-      .then(res => {
-        if (res.some(r => r === null)) { _check = null; return false }
-        return res.every(Boolean)
-      })
-      .catch(() => { _check = null; return false })
-  }
-  return _check
+// Se consulta UNA vez por sesión (promesa cacheada a nivel módulo). Las columnas
+// de una misma migración se chequean juntas porque vienen juntas: si una está y
+// la otra no, no alcanza para prender la función. 42703 = columna inexistente →
+// false definitivo. Cualquier otro error (red, sesión) no es concluyente:
+// devuelve false SIN cachear, para reintentar en el próximo montaje.
+function sonda(tabla, columna) {
+  return supabase.from(tabla).select(columna).limit(1).then(({ error }) => {
+    if (!error) return true
+    if (error.code === '42703') return false
+    return null   // no concluyente
+  })
 }
+
+function chequeo(pares) {
+  let cache = null
+  return () => {
+    if (!cache) {
+      cache = Promise.all(pares.map(([t, c]) => sonda(t, c)))
+        .then(res => {
+          if (res.some(r => r === null)) { cache = null; return false }
+          return res.every(Boolean)
+        })
+        .catch(() => { cache = null; return false })
+    }
+    return cache
+  }
+}
+
+// Migración 20260724120000 (estimador base).
+export const consumoDisponible = chequeo([
+  ['vehiculos', 'consumo_ruta_l100'],
+  ['viajes', 'distancia_km'],
+])
+
+// Migración 20260724130000 (ficha extendida + calibración).
+export const fichaExtDisponible = chequeo([
+  ['vehiculos', 'fuente_consumo'],
+  ['combustible', 'tanque_lleno'],
+])
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -93,59 +151,74 @@ export function num(x) {
   return Number.isFinite(n) ? n : null
 }
 
-// Clase por tara, y no una columna nueva: la tara ya separa perfectamente los
-// tres grupos y es un dato que el usuario carga igual para el cálculo.
-export function claseDe(taraKg) {
-  if (taraKg == null) return 'liviano'
-  if (taraKg < 3500)  return 'liviano'   // furgones, pickups
-  if (taraKg < 12000) return 'mediano'   // camiones livianos y medianos
-  return 'pesado'                        // tractores con semi
-}
-
-// Fracción del consumo que depende de la masa, por clase y tipo de recorrido.
-//
-// Calibrado contra el salto vacío→cargado que se observa en cada clase, no
-// elegido a ojo. Un furgón que duplica su masa gasta ~30% más en ruta; un semi
-// que TRIPLICA la suya (15 t de tara a 45 t) gasta sólo ~40% más, porque a 90
-// km/h el que manda es el aire y ese no se entera de la carga. De ahí que `s`
-// baje tan fuerte con el tamaño: (1−s)+s·3 = 1.40 → s ≈ 0.20 para el pesado.
-const SENSIBILIDAD = {
-  liviano: { urbano: 0.55, ruta: 0.45 },
-  mediano: { urbano: 0.45, ruta: 0.32 },
-  pesado:  { urbano: 0.38, ruta: 0.20 },
+// Clase de la unidad: gana la declarada en la ficha; si no hay, se deduce de la
+// tara (grueso, ver data/clases.js).
+export function claseDe(vehiculoOTara) {
+  if (vehiculoOTara && typeof vehiculoOTara === 'object') {
+    const declarada = vehiculoOTara.clase
+    if (declarada && CLASES[declarada]) return declarada
+    return claseDesdeTara(num(vehiculoOTara.tara_kg))
+  }
+  return claseDesdeTara(vehiculoOTara == null ? null : Number(vehiculoOTara))
 }
 
 // Peso del componente urbano en la mezcla: 1 = todo ciudad, 0 = todo ruta.
 const MEZCLA = { Urbano: 1, Mixto: 0.5, Ruta: 0 }
 const mezclaDe = t => MEZCLA[t] ?? MEZCLA.Mixto
 
-// Si sólo se cargó uno de los dos consumos, el otro se deriva con esta relación
-// (el ciclo urbano gasta ~25% más que el de ruta). Es un supuesto y el estimador
-// lo declara en `supuestos`.
+// Si sólo se cargó uno de los consumos, el otro se deriva con esta relación (el
+// ciclo urbano gasta ~25% más que el de ruta). Es un supuesto y se declara.
 const RATIO_URBANO_RUTA = 1.25
+
+// Factor de carga por masa. Extraído para que la calibración pueda usar el mismo
+// número al normalizar el consumo medido (utils/calibracion.js).
+export function factorCarga(taraKg, pesoKg, s) {
+  if (!(taraKg > 0) || !(pesoKg > 0)) return 1
+  return (1 - s) + s * ((taraKg + pesoKg) / taraKg)
+}
+
+// Sensibilidad a la masa para una mezcla urbano/ruta dada.
+export function sensibilidadDe(claseId, mezclaUrbana) {
+  const s = (claseInfo(claseId) || CLASES.furgon).s
+  return s.ruta + mezclaUrbana * (s.urbano - s.ruta)
+}
 
 // ── Specs de la unidad ──────────────────────────────────────────────────────
 //
-// `l100Real` (opcional) es el promedio del historial de cargas: se usa como base
+// `l100Real` (opcional) es el consumo medido del historial: se usa como base
 // SÓLO si la ficha no tiene specs cargadas. Es peor dato para separar vacío de
-// cargado (el promedio ya trae carga adentro) pero es infinitamente mejor que
-// no poder estimar nada, y `fuente` deja claro de dónde salió el número.
+// cargado (el promedio ya trae carga adentro) pero es infinitamente mejor que no
+// poder estimar nada, y `fuente` deja claro de dónde salió el número.
 export function specsVehiculo(vehiculo, { l100Real = null } = {}) {
   const v = vehiculo || {}
   const supuestos = []
 
+  const tara = num(v.tara_kg)
+  const clase = claseDe(v)
+  if (!v.clase) supuestos.push(`No se declaró la clase de la unidad: se dedujo "${claseInfo(clase).label}" por la tara.`)
+
   let urbano = num(v.consumo_urbano_l100)
   let ruta   = num(v.consumo_ruta_l100)
+  const mixto = num(v.consumo_mixto_l100)
   let fuente = 'ficha'
+  let fuenteDato = v.fuente_consumo || FUENTE_DEFAULT
+  const info = fuenteInfo(fuenteDato)
+
+  if (urbano == null && ruta == null && mixto != null) {
+    // Sólo el mixto: se abre hacia los extremos con la relación de arriba.
+    ruta   = mixto / ((1 + RATIO_URBANO_RUTA) / 2)
+    urbano = ruta * RATIO_URBANO_RUTA
+    supuestos.push('La ficha sólo tiene el consumo mixto: se derivaron el urbano y el de ruta a partir de él.')
+  }
 
   if (urbano == null && ruta == null) {
-    if (l100Real == null) return { ok: false, fuente: 'ninguna', supuestos }
+    if (l100Real == null) return { ok: false, fuente: 'ninguna', clase, tara, supuestos }
     // El histórico es un promedio de todo tipo de recorrido: se toma como el
-    // punto medio y se abre hacia los extremos con la misma relación de arriba.
-    const medio = l100Real
-    ruta   = medio / ((1 + RATIO_URBANO_RUTA) / 2)
+    // punto medio y se abre hacia los extremos con la misma relación.
+    ruta   = l100Real / ((1 + RATIO_URBANO_RUTA) / 2)
     urbano = ruta * RATIO_URBANO_RUTA
     fuente = 'historico'
+    fuenteDato = null
     supuestos.push('Sin specs en la ficha: se usa el consumo real promedio del historial de cargas.')
   } else if (urbano == null) {
     urbano = ruta * RATIO_URBANO_RUTA
@@ -155,28 +228,70 @@ export function specsVehiculo(vehiculo, { l100Real = null } = {}) {
     supuestos.push('Falta el consumo en ruta en la ficha: se estimó un 25% por debajo del urbano.')
   }
 
-  const tara = num(v.tara_kg)
+  // Corrección por fuente del dato. Sólo aplica a valores de ficha: el histórico
+  // ya es consumo real medido y corregirlo sería contarlo dos veces.
+  let factorFuente = 1
+  if (fuente === 'ficha') {
+    factorFuente = info.factor
+    if (factorFuente !== 1) {
+      urbano *= factorFuente
+      ruta   *= factorFuente
+      supuestos.push(`Consumo declarado como "${info.label}". ${info.nota}`)
+    } else if (!info.confiable) {
+      supuestos.push(`Consumo declarado como "${info.label}". ${info.nota}`)
+    }
+  }
+
   // `capacidad` es texto libre viejo de la ficha ("2000 kg"): sirve de fallback,
   // parseFloat se queda con el número del principio.
-  const cargaMax = num(v.carga_max_kg) ?? num(v.capacidad)
+  const cargaMaxDirecta = num(v.carga_max_kg) ?? num(v.capacidad)
+  const pbt = num(v.pbt_kg)
+  // Si hay PBT y tara pero no carga útil, la carga útil es la resta.
+  const cargaMax = cargaMaxDirecta ?? ((pbt != null && tara != null && pbt > tara) ? pbt - tara : null)
+  if (cargaMaxDirecta == null && cargaMax != null) {
+    supuestos.push('La carga útil se calculó como PBT menos tara.')
+  }
 
-  return { ok: true, urbano, ruta, tara, cargaMax, clase: claseDe(tara), fuente, supuestos }
+  const carroceria = v.carroceria || 'n_a'
+
+  const ralentiFicha = num(v.consumo_ralenti_lh)
+  const ralenti = ralentiFicha ?? ralentiEstimado(clase, num(v.motor_cilindrada_l))
+  const ralentiEsEstimado = ralentiFicha == null || v.consumo_ralenti_est === 'si'
+
+  return {
+    ok: true,
+    urbano, ruta, tara, cargaMax, pbt,
+    clase, claseLabel: claseInfo(clase).label,
+    fuente, fuenteDato, fuenteLabel: fuente === 'historico' ? 'Historial de cargas' : info.label,
+    factorFuente,
+    carroceria, carroceriaLabel: carroceriaInfo(carroceria).label,
+    ralenti, ralentiEsEstimado,
+    tanqueL: num(v.tanque_l),
+    supuestos,
+  }
 }
 
 // ── El cálculo ──────────────────────────────────────────────────────────────
 //
 // Devuelve SIEMPRE un objeto: `faltan` dice qué datos hacen falta para que haya
 // un número, y `supuestos` qué se dio por sentado para el número que hay. La UI
-// muestra las dos listas — un estimado sin sus supuestos a la vista es una
-// mentira prolija.
+// muestra las dos listas.
 export function estimarConsumo({
   vehiculo, distanciaKm, pesoKg, volumenM3, rutaTipo,
+  topografia, horasRalenti,
   precioLitro = null, l100Real = null,
+  // Consumo ya calibrado contra el historial (utils/calibracion.js). Si viene,
+  // reemplaza al de la ficha como base del cálculo.
+  calibracion = null,
 } = {}) {
-  const dist   = num(distanciaKm)
-  const peso   = num(pesoKg)
+  const dist    = num(distanciaKm)
+  // Un peso 0 o negativo (dato mal cargado) es "sin carga", no una carga que
+  // resta: si no, el aprovechamiento sale en negativo y el factor baja de 1.
+  const pesoCrudo = num(pesoKg)
+  const peso    = (pesoCrudo != null && pesoCrudo > 0) ? pesoCrudo : null
   const volumen = num(volumenM3)
-  const specs  = specsVehiculo(vehiculo, { l100Real })
+  const horasR  = num(horasRalenti)
+  const specs   = specsVehiculo(vehiculo, { l100Real })
   const supuestos = [...(specs.supuestos || [])]
   const faltan = []
 
@@ -186,25 +301,50 @@ export function estimarConsumo({
   if (faltan.length) return { ok: false, faltan, supuestos, specs }
 
   const w    = mezclaDe(rutaTipo)
-  const sens = SENSIBILIDAD[specs.clase]
-  const base = specs.ruta + w * (specs.urbano - specs.ruta)
-  const s    = sens.ruta + w * (sens.urbano - sens.ruta)
+  const s    = sensibilidadDe(specs.clase, w)
+  const baseFicha = specs.ruta + w * (specs.urbano - specs.ruta)
 
-  let factorCarga = 1
-  let masaTotal = specs.tara
-  if (peso != null && peso > 0) {
-    if (specs.tara != null && specs.tara > 0) {
-      masaTotal   = specs.tara + peso
-      factorCarga = (1 - s) + s * (masaTotal / specs.tara)
-    } else {
-      supuestos.push('Falta la tara de la unidad: el peso de la carga no se pudo aplicar al cálculo.')
-    }
-  } else {
+  // Base efectiva: la calibrada si la hay, la de la ficha si no.
+  let base = baseFicha
+  if (calibracion && calibracion.ok && calibracion.usadoBase != null) {
+    base = calibracion.usadoBase
+    supuestos.push(calibracion.explicacion)
+  }
+
+  const fCarga = factorCarga(specs.tara, peso, s)
+  if (peso != null && !(specs.tara > 0)) {
+    supuestos.push('Falta la tara de la unidad: el peso de la carga no se pudo aplicar al cálculo.')
+  }
+  if (peso == null) {
     supuestos.push('Sin peso de carga cargado: el estimado es el de la unidad vacía.')
   }
 
-  const l100   = base * factorCarga
-  const litros = l100 * dist / 100
+  // Carrocería: sólo sobre el tramo de ruta (por debajo de ~70 km/h no pesa).
+  const carr = carroceriaInfo(specs.carroceria)
+  const fCarroceria = 1 + (carr.factor - 1) * (1 - w)
+  if (carr.factor !== 1 && fCarroceria !== 1) {
+    supuestos.push(`Carrocería "${carr.label}": ${carr.factor > 1 ? '+' : ''}${Math.round((fCarroceria - 1) * 100)}% sobre el tramo de ruta (coeficiente de referencia, no medido).`)
+  }
+
+  const topo = topografiaInfo(topografia || TOPOGRAFIA_DEFAULT)
+  const fTopografia = topo.factor
+  if (fTopografia !== 1) {
+    supuestos.push(`Topografía "${topo.label}": +${Math.round((fTopografia - 1) * 100)}% (coeficiente de referencia).`)
+  }
+
+  const l100        = base * fCarga * fCarroceria * fTopografia
+  const litrosRodar = l100 * dist / 100
+  const l100Vacio   = base * fCarroceria * fTopografia
+  const litrosVacio = l100Vacio * dist / 100
+
+  // Ralentí: motor en marcha con el vehículo detenido (esperas de carga y
+  // descarga, frío, aduana). No escala con los km: son litros por hora.
+  const litrosRalenti = (horasR > 0) ? specs.ralenti * horasR : 0
+  if (litrosRalenti > 0) {
+    supuestos.push(`Ralentí: ${horasR} h × ${specs.ralenti.toFixed(1)} L/h${specs.ralentiEsEstimado ? ' (consumo en ralentí estimado por clase y cilindrada, no está en la ficha)' : ''}.`)
+  }
+
+  const litros = litrosRodar + litrosRalenti
   const precio = num(precioLitro)
   const costo  = precio != null ? litros * precio : null
 
@@ -218,26 +358,30 @@ export function estimarConsumo({
     supuestos,
     specs,
     l100, litros, costo, precioLitro: precio,
-    base, factorCarga, masaTotal, mezclaUrbana: w,
+    base, baseFicha, factorCarga: fCarga, fCarroceria, fTopografia,
+    masaTotal: (specs.tara || 0) + (peso || 0),
+    pesoKg: peso,
+    mezclaUrbana: w,
+    litrosRodar, litrosRalenti, horasRalenti: horasR,
     sobrepeso: aprovPeso != null && aprovPeso > 1,
     aprovechamiento: { peso: aprovPeso, volumen },
     // El extra que le cuesta la carga a este viaje, que es lo que se cotiza.
-    litrosVacio: base * dist / 100,
-    litrosPorCarga: litros - base * dist / 100,
+    litrosVacio,
+    litrosPorCarga: litrosRodar - litrosVacio,
   }
 }
 
-// ── Contraste con la realidad ───────────────────────────────────────────────
+// ── Contraste con la realidad (versión simple, sin flag de tanque lleno) ────
 //
-// Consumo real de una unidad a partir del historial de cargas: entre dos cargas
+// Consumo de una unidad a partir del historial de cargas: entre dos cargas
 // consecutivas, litros / km recorridos. Se ordena por ODÓMETRO y no por fecha —
 // las fechas de esta base vienen en formatos mezclados y hay filas cargadas
 // fuera de orden; el km es monótono y no miente.
 //
-// Sólo cuenta si la carga es a tanque lleno, cosa que la app no registra: por
-// eso se descartan los intervalos con consumos absurdos (una carga parcial da un
-// L/100km ridículamente bajo y la siguiente uno altísimo) en vez de promediarlos
-// como si fueran válidos.
+// OJO: esta función NO mira `tanque_lleno` y por eso mezcla cargas parciales.
+// Sigue existiendo para las bases donde la migración 20260724130000 todavía no
+// está aplicada (y como respaldo cuando no hay ninguna carga declarada a tanque
+// lleno). El cálculo bueno es `consumoCalibrado()` en utils/calibracion.js.
 const L100_MIN = 2
 const L100_MAX = 120
 
@@ -286,3 +430,5 @@ export const fmtL100 = n => n == null ? '—' : `${n.toFixed(1)} L/100km`
 export const fmtLitros = n => n == null ? '—' : `${n.toFixed(1)} L`
 export const fmtKm = n => n == null ? '—' : `${Math.round(n).toLocaleString('es-AR')} km`
 export const fmtPct = n => n == null ? '—' : `${Math.round(n * 100)}%`
+// Rango: "38 – 46 L". Se usa para la banda de error del estimado.
+export const fmtRangoL = (a, b) => (a == null || b == null) ? '—' : `${a.toFixed(1)} – ${b.toFixed(1)} L`

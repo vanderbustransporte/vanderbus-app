@@ -20,7 +20,11 @@ import {
   emptyDespacho, despachoDisponible, armarFichaDespacho,
 } from '../utils/despacho'
 import { trackingDisponible, generarTokenTracking, linkTracking } from '../utils/tracking'
-import { CAMPOS_CONSUMO_VIAJE, RUTA_TIPOS, consumoDisponible } from '../utils/consumo'
+import {
+  CAMPOS_CONSUMO_VIAJE, CAMPOS_FICHA_VIAJE, RUTA_TIPOS,
+  consumoDisponible, fichaExtDisponible,
+} from '../utils/consumo'
+import { TOPOGRAFIAS, TOPOGRAFIA_DEFAULT } from '../data/clases'
 import ConsumoEstimado from '../components/ConsumoEstimado'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
@@ -45,6 +49,8 @@ const empty = () => ({
   // Igual que los de despacho: van siempre en el form pero handleSave los saca
   // del payload si la migración 20260724120000 no está aplicada.
   distancia_km: '', ruta_tipo: 'Mixto',
+  // Ficha extendida (migración 20260724130000), mismo tratamiento.
+  topografia: TOPOGRAFIA_DEFAULT, horas_ralenti: '',
   ...emptyDespacho(),
 })
 
@@ -99,9 +105,11 @@ export default function Viajes() {
   const [despachoOn, setDespachoOn]   = useState(false)
   const [trackingOn, setTrackingOn]   = useState(false)
   const [consumoOn, setConsumoOn]     = useState(false)
+  const [fichaExtOn, setFichaExtOn]   = useState(false)
   useEffect(() => { let vivo = true; despachoDisponible().then(ok => { if (vivo) setDespachoOn(ok) }); return () => { vivo = false } }, [])
   useEffect(() => { let vivo = true; trackingDisponible().then(ok => { if (vivo) setTrackingOn(ok) }); return () => { vivo = false } }, [])
   useEffect(() => { let vivo = true; consumoDisponible().then(ok => { if (vivo) setConsumoOn(ok) }); return () => { vivo = false } }, [])
+  useEffect(() => { let vivo = true; fichaExtDisponible().then(ok => { if (vivo) setFichaExtOn(ok) }); return () => { vivo = false } }, [])
 
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
@@ -159,6 +167,7 @@ export default function Viajes() {
       // El null de la columna nueva pasó a '' arriba y dejaría el Select en
       // blanco: sin valor guardado, el recorrido se asume mixto.
       ruta_tipo: RUTA_TIPOS.includes(r.ruta_tipo) ? r.ruta_tipo : 'Mixto',
+      topografia: TOPOGRAFIAS[r.topografia] ? r.topografia : TOPOGRAFIA_DEFAULT,
     })
     setErrors({})
     setCalc({ horas: '', conPeon: false })
@@ -243,6 +252,7 @@ export default function Viajes() {
     // base y mandarlas haría fallar el guardado ENTERO del viaje.
     if (!despachoOn) for (const k of CAMPOS_DESPACHO) delete viaje[k]
     if (!consumoOn)  for (const k of CAMPOS_CONSUMO_VIAJE) delete viaje[k]
+    if (!fichaExtOn) for (const k of CAMPOS_FICHA_VIAJE)   delete viaje[k]
     if (editId) {
       update('viajes', list.map(r => r.id === editId ? viaje : r))
       sincronizarIngreso(viaje)
@@ -537,6 +547,20 @@ export default function Viajes() {
                 <Select value={form.ruta_tipo} onChange={e => set('ruta_tipo', e.target.value)}>
                   {RUTA_TIPOS.map(t => <option key={t}>{t}</option>)}
                 </Select>
+              </Field>
+            </>}
+            {consumoOn && fichaExtOn && <>
+              <Field label="Topografía">
+                <Select value={form.topografia} onChange={e => set('topografia', e.target.value)}>
+                  {Object.entries(TOPOGRAFIAS).map(([id, t]) => <option key={id} value={id}>{t.label}</option>)}
+                </Select>
+              </Field>
+              {/* Horas de motor detenido: esperas de carga/descarga, frío, aduana.
+                  Se carga a mano — el módulo GPS está en pausa y el estimador NO
+                  depende de él (el hook para alimentarlo desde GPS queda para
+                  cuando el tracking vuelva a ser confiable). */}
+              <Field label="Horas de ralentí previstas">
+                <Input type="number" step="0.5" min="0" value={form.horas_ralenti} onChange={e => set('horas_ralenti', e.target.value)} placeholder="Motor en marcha detenido" />
               </Field>
             </>}
             <Field label="Monto seña ($)">

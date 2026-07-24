@@ -10,9 +10,15 @@ import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock
 import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import {
-  CAMPOS_CONSUMO_VEHICULO, emptyConsumoVehiculo, consumoDisponible,
+  CAMPOS_CONSUMO_VEHICULO, CAMPOS_FICHA_VEHICULO,
+  emptyConsumoVehiculo, emptyFichaVehiculo,
+  consumoDisponible, fichaExtDisponible,
   claseDe, num, consumoRealVehiculo, fmtL100,
 } from '../utils/consumo'
+import {
+  CLASES, CLASE_IDS, FUENTES_CONSUMO, CARROCERIAS,
+  COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
+} from '../data/clases'
 import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
 
 const ACCENT = 'var(--accent)'
@@ -22,15 +28,10 @@ const emptyVehiculo = {
   kilometraje: '', combustible: 'Gasoil', vtv: '', seguro: '',
   aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: '', activo: true,
   // Specs del estimador de consumo. Van SIEMPRE en el form (inputs controlados),
-  // pero handleSave las saca del payload si la migración 20260724120000 no está
-  // aplicada (ver utils/consumo.js).
+  // pero handleSave las saca del payload si la migración correspondiente no está
+  // aplicada (20260724120000 / 20260724130000, ver utils/consumo.js).
   ...emptyConsumoVehiculo(),
-}
-
-const CLASE_LABEL = {
-  liviano: 'Liviano (furgón / pickup)',
-  mediano: 'Mediano (camión)',
-  pesado:  'Pesado (tractor + semi)',
+  ...emptyFichaVehiculo(),
 }
 
 // Estado de un vencimiento (color + texto)
@@ -162,14 +163,18 @@ function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = fal
 // Se cargan una vez por unidad. El catálogo de motores (data/motores.js) sólo
 // PRECARGA valores de referencia: lo que queda guardado es lo que el usuario
 // deja en los campos, y esos son los que manda el cálculo.
-function ConsumoSpecs({ form, set, setForm, combustible }) {
+function ConsumoSpecs({ form, set, setForm, combustible, fichaExt }) {
   const tara  = num(form.tara_kg)
-  const clase = claseDe(tara)
+  const clase = claseDe(form)
   const real  = consumoRealVehiculo(combustible, form.id)
+  // Ralentí: si la ficha no lo trae se estima por clase y cilindrada, y se dice
+  // que es estimado. Nunca se muestra un número inventado como si fuera del manual.
+  const ralentiFicha = num(form.consumo_ralenti_lh)
+  const ralentiUsado = ralentiFicha ?? ralentiEstimado(clase, num(form.motor_cilindrada_l))
 
   const precargar = (id) => {
     const m = motorPorId(id)
-    if (m) setForm(f => ({ ...f, ...specsDesdeMotor(m) }))
+    if (m) setForm(f => ({ ...f, ...specsDesdeMotor(m, { fichaExt }) }))
   }
 
   return (
@@ -183,6 +188,13 @@ function ConsumoSpecs({ form, set, setForm, combustible }) {
         antes de salir, según los km y el peso de la carga. Los valores del manual
         son <strong style={{ color: 'var(--text-1)' }}>con la unidad vacía</strong>: el
         peso de la carga lo suma el cálculo.
+        {fichaExt && <>
+          {' '}Todo es opcional: lo que falte se cae al valor de referencia de la clase.
+          Decir <strong style={{ color: 'var(--text-1)' }}>de dónde salió el consumo</strong> importa
+          — un homologado de liviano es optimista y el cálculo lo corrige; los pesados
+          no tienen homologación publicada, así que ahí el número siempre es un
+          benchmark o lo que declare el transportista.
+        </>}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -204,31 +216,106 @@ function ConsumoSpecs({ form, set, setForm, combustible }) {
           </Field>
         </div>
 
-        <div className="sm:col-span-2">
+        {fichaExt && (
+          <Field label="Clase de unidad">
+            <Select value={form.clase} onChange={e => set('clase', e.target.value)}>
+              <option value="">— Deducir de la tara —</option>
+              {CLASE_IDS.map(id => <option key={id} value={id}>{CLASES[id].label} · {CLASES[id].hint}</option>)}
+            </Select>
+          </Field>
+        )}
+        <div className={fichaExt ? '' : 'sm:col-span-2'}>
           <Field label="Motorización">
             <Input value={form.motor_desc} onChange={e => set('motor_desc', e.target.value)} placeholder="Ej: 2.3 dCi (G9U/M9T) 130 cv" />
           </Field>
         </div>
 
+        {fichaExt && <>
+          <Field label="Cilindrada (L)">
+            <Input type="number" step="0.1" min="0" value={form.motor_cilindrada_l} onChange={e => set('motor_cilindrada_l', e.target.value)} placeholder="Ej: 2.3" />
+          </Field>
+          <Field label="Potencia (CV)">
+            <Input type="number" step="1" min="0" value={form.motor_potencia_cv} onChange={e => set('motor_potencia_cv', e.target.value)} placeholder="Ej: 130" />
+          </Field>
+          <Field label="Torque (Nm)">
+            <Input type="number" step="1" min="0" value={form.motor_torque_nm} onChange={e => set('motor_torque_nm', e.target.value)} placeholder="Ej: 320" />
+          </Field>
+          <Field label="Combustible del motor">
+            <Select value={form.motor_combustible} onChange={e => set('motor_combustible', e.target.value)}>
+              <option value="">— Sin declarar —</option>
+              {COMBUSTIBLES_MOTOR.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Norma de emisión">
+            <Input value={form.norma_emision} onChange={e => set('norma_emision', e.target.value)} list="normas-emision" placeholder="Ej: Euro V" />
+            <datalist id="normas-emision">{NORMAS_EMISION.map(n => <option key={n} value={n} />)}</datalist>
+          </Field>
+          <Field label="Transmisión">
+            <Select value={form.transmision} onChange={e => set('transmision', e.target.value)}>
+              <option value="">— Sin declarar —</option>
+              {TRANSMISIONES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Relación de diferencial">
+            <Input value={form.relacion_diferencial} onChange={e => set('relacion_diferencial', e.target.value)} placeholder="Ej: 3.42" />
+          </Field>
+        </>}
+
+        <div className="sm:col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Consumo declarado</p></div>
         <Field label="Consumo urbano vacío (L/100km)">
           <Input type="number" step="0.1" min="0" value={form.consumo_urbano_l100} onChange={e => set('consumo_urbano_l100', e.target.value)} placeholder="Ej: 12.5" />
         </Field>
         <Field label="Consumo en ruta vacío (L/100km)">
           <Input type="number" step="0.1" min="0" value={form.consumo_ruta_l100} onChange={e => set('consumo_ruta_l100', e.target.value)} placeholder="Ej: 9.5" />
         </Field>
+        {fichaExt && <>
+          <Field label="Consumo mixto (L/100km)">
+            <Input type="number" step="0.1" min="0" value={form.consumo_mixto_l100} onChange={e => set('consumo_mixto_l100', e.target.value)} placeholder="Se usa sólo si faltan los dos de arriba" />
+          </Field>
+          <Field label="¿De dónde salió ese consumo?">
+            <Select value={form.fuente_consumo} onChange={e => set('fuente_consumo', e.target.value)}>
+              <option value="">— Sin declarar (se trata como estimado) —</option>
+              {Object.entries(FUENTES_CONSUMO).map(([id, f]) => <option key={id} value={id}>{f.label}</option>)}
+            </Select>
+          </Field>
+        </>}
+
+        <div className="sm:col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Pesos y carrocería</p></div>
         <Field label="Tara — peso de la unidad vacía (kg)">
           <Input type="number" step="1" min="0" value={form.tara_kg} onChange={e => set('tara_kg', e.target.value)} placeholder="Ej: 2150" />
         </Field>
         <Field label="Carga útil máxima (kg)">
           <Input type="number" step="1" min="0" value={form.carga_max_kg} onChange={e => set('carga_max_kg', e.target.value)} placeholder="Ej: 1550" />
         </Field>
+        {fichaExt && <>
+          <Field label="PBT — peso bruto total (kg)">
+            <Input type="number" step="1" min="0" value={form.pbt_kg} onChange={e => set('pbt_kg', e.target.value)} placeholder="Ej: 3500" />
+          </Field>
+          <Field label="Tipo de carrocería">
+            <Select value={form.carroceria} onChange={e => set('carroceria', e.target.value)}>
+              {Object.entries(CARROCERIAS).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Capacidad del tanque (L)">
+            <Input type="number" step="1" min="0" value={form.tanque_l} onChange={e => set('tanque_l', e.target.value)} placeholder="Ej: 80" />
+          </Field>
+          <Field label="Consumo en ralentí (L/h)">
+            <Input type="number" step="0.1" min="0" value={form.consumo_ralenti_lh} onChange={e => set('consumo_ralenti_lh', e.target.value)} placeholder={`Si falta: ${ralentiUsado.toFixed(1)} estimado`} />
+          </Field>
+        </>}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16, fontSize: 11, color: 'var(--text-2)' }}>
         <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
-          Clase para el cálculo: <strong style={{ color: 'var(--text-1)' }}>{CLASE_LABEL[clase]}</strong>
-          {tara == null && ' (se afina al cargar la tara)'}
+          Clase para el cálculo: <strong style={{ color: 'var(--text-1)' }}>{CLASES[clase].label}</strong>
+          {!form.clase && (tara == null ? ' (sin tara ni clase declarada)' : ' (deducida de la tara)')}
         </span>
+        {fichaExt && (
+          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
+            Ralentí usado: <strong className="num" style={{ color: 'var(--text-1)' }}>{ralentiUsado.toFixed(1)} L/h</strong>
+            {ralentiFicha == null ? ' · estimado por clase y cilindrada' : ' · de la ficha'}
+          </span>
+        )}
         {real.l100 != null && (
           <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
             Consumo real medido: <strong className="num" style={{ color: 'var(--text-1)' }}>{fmtL100(real.l100)}</strong>
@@ -251,9 +338,13 @@ export default function Vehiculo() {
   const [editingId, setEditingId] = useState(null)   // null | 'new' | id
   const [form, setForm] = useState(emptyVehiculo)
 
-  // ¿Está aplicada la migración del estimador de consumo?
+  // ¿Están aplicadas las migraciones del estimador? Son dos y se chequean por
+  // separado: con la primera aplicada y la segunda no, la ficha muestra los
+  // campos básicos y esconde los extendidos.
   const [consumoOn, setConsumoOn] = useState(false)
+  const [fichaExtOn, setFichaExtOn] = useState(false)
   useEffect(() => { let vivo = true; consumoDisponible().then(ok => { if (vivo) setConsumoOn(ok) }); return () => { vivo = false } }, [])
+  useEffect(() => { let vivo = true; fichaExtDisponible().then(ok => { if (vivo) setFichaExtOn(ok) }); return () => { vivo = false } }, [])
 
   const set = (k, val) => setForm(f => ({ ...f, [k]: val }))
 
@@ -274,9 +365,14 @@ export default function Vehiculo() {
 
   const handleSave = () => {
     const fila = { ...form }
+    // Marca de si el ralentí lo puso el usuario o lo estima la app. Se guarda
+    // para que la ficha no presente después un número estimado como si fuera del
+    // manual (lo lee specsVehiculo).
+    if (fichaExtOn) fila.consumo_ralenti_est = fila.consumo_ralenti_lh ? '' : 'si'
     // Sin la migración de consumo aplicada estas columnas no existen: mandarlas
     // haría fallar el guardado ENTERO del vehículo (mismo patrón que despacho).
-    if (!consumoOn) for (const k of CAMPOS_CONSUMO_VEHICULO) delete fila[k]
+    if (!consumoOn)  for (const k of CAMPOS_CONSUMO_VEHICULO) delete fila[k]
+    if (!fichaExtOn) for (const k of CAMPOS_FICHA_VEHICULO)   delete fila[k]
     const all = data.vehiculos || []
     const next = editingId === 'new'
       ? [...all, { ...fila, activo: true }]
@@ -366,7 +462,13 @@ export default function Vehiculo() {
           </div>
         </div>
 
-        {consumoOn && <ConsumoSpecs form={form} set={set} setForm={setForm} combustible={data.combustible} />}
+        {consumoOn && (
+          <ConsumoSpecs
+            form={form} set={set} setForm={setForm}
+            combustible={data.combustible}
+            fichaExt={fichaExtOn}
+          />
+        )}
       </div>
     )
   }
