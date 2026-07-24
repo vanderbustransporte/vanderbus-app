@@ -39,31 +39,48 @@ vanderbus-app\          ← raíz del repo (Frontend React, acá está package.j
 ## Cómo levantar en desarrollo
 
 ```bash
-cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo
+npm install
+cp .env.example .env      # PowerShell: Copy-Item .env.example .env
+# completar .env con los valores reales (pedírselos a quien ya los tenga)
 npm run dev
 ```
 
-Abrí `http://localhost:5173` en el navegador. **No hace falta levantar el server** — el Express fue eliminado. El frontend habla directo con Supabase.
+Abrí `http://localhost:5173` en el navegador (si el puerto está ocupado, Vite salta al 5174). **No hace falta levantar ningún server** — el Express fue eliminado. El frontend habla directo con Supabase.
 
-## Credenciales
+Sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` la app aborta el arranque con un error explícito, a propósito.
 
-- **Supabase URL:** `https://mrfwcfuddvexqixfjnuh.supabase.co`
-- **Supabase Key:** anon key (pública, en `src/lib/supabase.js`)
+## Antes de empezar a tocar código
+
+| Leer | Para qué |
+|---|---|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Cómo trabajamos: ramas, PRs, migraciones, cómo no pisarnos |
+| [`docs/estado-proyecto.md`](docs/estado-proyecto.md) | Qué está hecho, qué migraciones faltan aplicar, quién está en qué |
+| [`.claude/skills/vanderbus-app.md`](.claude/skills/vanderbus-app.md) | Arquitectura, modelo de datos y convenciones de código (las trampas de datos están acá) |
+| [`ARQUITECTURA.md`](ARQUITECTURA.md) | Esquema de la base |
+
+## Configuración
+
+- **Credenciales:** en `.env`, nunca en el código. Ver `.env.example`.
 - **GitHub repo:** `vanderbustransporte/vanderbus-app`
-- **Email owner:** `vanderbustransporte@gmail.com`
+- **Seguridad:** la anon key es pública por diseño (Vite la mete en el bundle); la barrera real es RLS. La `service_role` key **nunca** va en el frontend.
 
 ## Módulos actuales
+
+Los módulos se registran en un único lugar: `src/routes.jsx`. Esa tabla es la fuente de verdad (path, permisos, feature flag, lazy import); lo de abajo es un resumen.
 
 | Módulo | Archivo | Estado |
 |---|---|---|
 | Dashboard | Dashboard.jsx | Activo |
+| Viajes | Viajes.jsx | Activo (con despacho y tracking público) |
 | Flota | Vehiculo.jsx | Activo (multi-vehículo) |
-| Combustible | Combustible.jsx | Activo |
+| Choferes | Choferes.jsx | Activo (legajo + vencimientos) |
+| Combustible | Combustible.jsx | Activo (con vales / cuenta corriente) |
 | Mantenimiento | Mantenimiento.jsx | Activo |
 | Nómina | Nomina.jsx | Activo |
-| Finanzas | Finanzas.jsx | Activo |
-| Viajes | Viajes.jsx | Activo |
+| Finanzas | Finanzas.jsx | Activo (resumen, movimientos, clientes, rentabilidad) |
+| Contactos | Contactos.jsx | Activo |
 | Marketing | Marketing.jsx | Activo |
 | GPS | SeguimientoGPS.jsx | Activo |
+| Backup | BackupPage.jsx | Activo |
 | Usuarios | Usuarios.jsx | Activo (solo owner) |
 | Oportunidades | — | Eliminado en migración multi-tenant |

@@ -4,6 +4,12 @@
 Always read and apply the skill at .claude/skills/vanderbus-app.md before making any changes.
 This skill contains the complete architecture, conventions, data model, and roadmap of the project.
 
+## Trabajo compartido
+Este repo lo tocan dos personas en paralelo. Antes de commitear leer `CONTRIBUTING.md`:
+ramas cortas desde `main`, PR con review, **nunca commitear directo a `main`**.
+El estado compartido (migraciones pendientes de aplicar, quién está tocando qué)
+está en `docs/estado-proyecto.md` — actualizarlo es parte de terminar la tarea.
+
 ## Reglas generales
 - El backend Express (server/) está JUBILADO. No reactivarlo. El frontend habla directo a Supabase.
 - Nunca meter la service_role key de Supabase en el frontend.

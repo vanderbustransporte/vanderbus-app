@@ -419,20 +419,22 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 
 ## Comandos clave
 
+Todos se corren desde la **raíz del repo** (donde está `package.json`). La ruta
+local varía por máquina: en la de Diego es `C:\Users\diego\Desktop\vanderbus-app`.
+
 ```bash
-# Levantar en dev (UNA sola terminal)
-cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo (donde está package.json)
-npm run dev
-
-# Claude Code
-cd C:\Users\diego\Desktop\vanderbus-app   # raíz del repo (donde está package.json)
-claude --dangerously-skip-permissions
-
-# Git (usar ruta completa, Git no está en PATH)
-"C:\Program Files\Git\bin\git.exe" add .
-"C:\Program Files\Git\bin\git.exe" commit -m "feat: descripcion"
-"C:\Program Files\Git\bin\git.exe" push
+npm install     # primera vez, y cada vez que la otra persona sumó una dependencia
+npm run dev     # http://localhost:5173 (5174 si está ocupado) — UNA sola terminal
+npm run build   # tiene que pasar antes de abrir un PR
 ```
+
+**Git:** en algunas máquinas Git no está en el PATH y hay que invocarlo con la ruta
+completa (`"C:\Program Files\Git\bin\git.exe" …`). Probar `git --version` primero.
+
+**Flujo de trabajo (dos personas en paralelo):** rama corta desde `main` → PR →
+review → squash merge. Está todo en `CONTRIBUTING.md`; **no commitear a `main`
+directo.** El estado compartido (migraciones pendientes, quién toca qué) vive en
+`docs/estado-proyecto.md`.
 
 ---
 
