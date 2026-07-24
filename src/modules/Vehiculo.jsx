@@ -21,6 +21,8 @@ import {
   COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
 } from '../data/clases'
 import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
+import { docsDisponible } from '../utils/docsVehiculo'
+import DocsVehiculo from '../components/DocsVehiculo'
 
 const ACCENT = 'var(--accent)'
 
@@ -373,7 +375,7 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
 
 export default function Vehiculo() {
   const { data, update } = useStore()
-  const { puedeEditar } = useAuth()
+  const { puedeEditar, profile } = useAuth()
   const editable = puedeEditar('vehiculo')
   const { addToast } = useToast()
   const confirmar = useConfirm()
@@ -389,6 +391,10 @@ export default function Vehiculo() {
   const [fichaExtOn, setFichaExtOn] = useState(false)
   useEffect(() => { let vivo = true; consumoDisponible().then(ok => { if (vivo) setConsumoOn(ok) }); return () => { vivo = false } }, [])
   useEffect(() => { let vivo = true; fichaExtDisponible().then(ok => { if (vivo) setFichaExtOn(ok) }); return () => { vivo = false } }, [])
+
+  // ¿Y la de documentos por vehículo? (tabla vehiculo_docs + bucket)
+  const [docsOn, setDocsOn] = useState(false)
+  useEffect(() => { let vivo = true; docsDisponible().then(ok => { if (vivo) setDocsOn(ok) }); return () => { vivo = false } }, [])
 
   const set = (k, val) => setForm(f => ({ ...f, [k]: val }))
 
@@ -512,6 +518,17 @@ export default function Vehiculo() {
             combustible={data.combustible}
             viajes={data.viajes}
             fichaExt={fichaExtOn}
+          />
+        )}
+
+        {/* Sólo al editar una unidad que YA existe: la fila de `vehiculo_docs`
+            referencia `vehiculos.id` y con un vehículo sin guardar el insert
+            fallaría por la foreign key. */}
+        {docsOn && editingId !== 'new' && (
+          <DocsVehiculo
+            vehiculoId={form.id}
+            organizationId={profile?.organization_id}
+            editable={editable}
           />
         )}
       </div>
