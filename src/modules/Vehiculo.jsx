@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useStore, getData } from '../store/useStore'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { useToast } from '../context/ToastContext'
@@ -13,8 +13,9 @@ import {
   CAMPOS_CONSUMO_VEHICULO, CAMPOS_FICHA_VEHICULO,
   emptyConsumoVehiculo, emptyFichaVehiculo,
   consumoDisponible, fichaExtDisponible,
-  claseDe, num, consumoRealVehiculo, fmtL100,
+  claseDe, num, fmtL100, specsVehiculo, baseTeorica,
 } from '../utils/consumo'
+import { calibracionVehiculo } from '../utils/calibracion'
 import {
   CLASES, CLASE_IDS, FUENTES_CONSUMO, CARROCERIAS,
   COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
@@ -163,10 +164,19 @@ function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = fal
 // Se cargan una vez por unidad. El catálogo de motores (data/motores.js) sólo
 // PRECARGA valores de referencia: lo que queda guardado es lo que el usuario
 // deja en los campos, y esos son los que manda el cálculo.
-function ConsumoSpecs({ form, set, setForm, combustible, fichaExt }) {
+function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
   const tara  = num(form.tara_kg)
   const clase = claseDe(form)
-  const real  = consumoRealVehiculo(combustible, form.id)
+  // Los tres números de la unidad, sobre un recorrido mixto (acá no hay viaje
+  // que fije la mezcla urbano/ruta). El de Viajes usa la mezcla real de ese viaje.
+  const cal = useMemo(() => {
+    const specs = specsVehiculo(form)
+    if (!specs.ok) return null
+    return calibracionVehiculo({
+      combustible, viajes, vehiculoId: form.id, specs,
+      teoricoBase: baseTeorica(specs, 'Mixto'),
+    })
+  }, [form, combustible, viajes])
   // Ralentí: si la ficha no lo trae se estima por clase y cilindrada, y se dice
   // que es estimado. Nunca se muestra un número inventado como si fuera del manual.
   const ralentiFicha = num(form.consumo_ralenti_lh)
@@ -316,13 +326,47 @@ function ConsumoSpecs({ form, set, setForm, combustible, fichaExt }) {
             {ralentiFicha == null ? ' · estimado por clase y cilindrada' : ' · de la ficha'}
           </span>
         )}
-        {real.l100 != null && (
-          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
-            Consumo real medido: <strong className="num" style={{ color: 'var(--text-1)' }}>{fmtL100(real.l100)}</strong>
-            {' '}· {real.muestras} {real.muestras === 1 ? 'intervalo' : 'intervalos'} del historial de cargas
-          </span>
-        )}
       </div>
+
+      {/* Los tres números de la unidad. El teórico es de la ficha, el real sale
+          de las cargas a tanque lleno y el usado es la mezcla que estima: se
+          muestran juntos para que el desvío se vea, no sólo el resultado. */}
+      {cal && (
+        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+          {[
+            ['Teórico (ficha, mixto)', fmtL100(cal.teoricoBase), 'corregido por la fuente del dato', !cal.ok],
+            ['Real medido', cal.real != null ? fmtL100(cal.real) : '—',
+              cal.real != null
+                ? `${cal.n} ${cal.n === 1 ? 'carga medible' : 'cargas medibles'} a tanque lleno · ${Math.round(cal.kmCubiertos).toLocaleString('es-AR')} km`
+                : (fichaExt ? 'marcá las cargas hechas a tanque lleno para poder medirlo' : 'requiere la migración de la ficha extendida'),
+              false],
+            ['Usado por el estimador', fmtL100(cal.ok ? cal.usadoBase : cal.teoricoBase),
+              cal.ok ? `el medido pesa ${Math.round(cal.w * 100)}%` : 'todavía es el teórico', cal.ok],
+          ].map(([label, valor, sub, destacado]) => (
+            <div key={label} style={{
+              padding: '9px 11px', borderRadius: 'var(--radius-sm)',
+              background: destacado ? 'var(--accent-dim)' : 'var(--bg-overlay)',
+              border: `1px solid ${destacado ? 'transparent' : 'var(--border)'}`,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: destacado ? 'var(--accent)' : 'var(--text-3)' }}>{label}</div>
+              <div className="num" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginTop: 3 }}>{valor}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-2)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {cal?.ok && cal.desvio != null && Math.abs(cal.desvio) > 0.10 && (
+        <p style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 10, lineHeight: 1.5 }}>
+          Esta unidad consume un{' '}
+          <strong style={{ color: cal.desvio > 0 ? 'var(--warning)' : 'var(--positive)' }}>
+            {Math.round(Math.abs(cal.desvio) * 100)}% {cal.desvio > 0 ? 'más' : 'menos'}
+          </strong>{' '}
+          de lo que dice su ficha. Si el desvío se sostiene, el dato de la ficha está
+          mal cargado o la unidad tiene algo.
+        </p>
+      )}
+
     </div>
   )
 }
@@ -466,6 +510,7 @@ export default function Vehiculo() {
           <ConsumoSpecs
             form={form} set={set} setForm={setForm}
             combustible={data.combustible}
+            viajes={data.viajes}
             fichaExt={fichaExtOn}
           />
         )}

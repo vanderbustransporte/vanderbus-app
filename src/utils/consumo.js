@@ -469,5 +469,3 @@ export const fmtL100 = n => n == null ? '—' : `${n.toFixed(1)} L/100km`
 export const fmtLitros = n => n == null ? '—' : `${n.toFixed(1)} L`
 export const fmtKm = n => n == null ? '—' : `${Math.round(n).toLocaleString('es-AR')} km`
 export const fmtPct = n => n == null ? '—' : `${Math.round(n * 100)}%`
-// Rango: "38 – 46 L". Se usa para la banda de error del estimado.
-export const fmtRangoL = (a, b) => (a == null || b == null) ? '—' : `${a.toFixed(1)} – ${b.toFixed(1)} L`
