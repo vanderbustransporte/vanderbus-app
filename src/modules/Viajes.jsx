@@ -20,6 +20,8 @@ import {
   emptyDespacho, despachoDisponible, armarFichaDespacho,
 } from '../utils/despacho'
 import { trackingDisponible, generarTokenTracking, linkTracking } from '../utils/tracking'
+import { CAMPOS_CONSUMO_VIAJE, RUTA_TIPOS, consumoDisponible } from '../utils/consumo'
+import ConsumoEstimado from '../components/ConsumoEstimado'
 
 const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
@@ -40,6 +42,9 @@ const empty = () => ({
   id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
   origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
   vehiculo_id: '',
+  // Igual que los de despacho: van siempre en el form pero handleSave los saca
+  // del payload si la migración 20260724120000 no está aplicada.
+  distancia_km: '', ruta_tipo: 'Mixto',
   ...emptyDespacho(),
 })
 
@@ -93,8 +98,10 @@ export default function Viajes() {
   const [showDespacho, setShowDespacho] = useState(false)
   const [despachoOn, setDespachoOn]   = useState(false)
   const [trackingOn, setTrackingOn]   = useState(false)
+  const [consumoOn, setConsumoOn]     = useState(false)
   useEffect(() => { let vivo = true; despachoDisponible().then(ok => { if (vivo) setDespachoOn(ok) }); return () => { vivo = false } }, [])
   useEffect(() => { let vivo = true; trackingDisponible().then(ok => { if (vivo) setTrackingOn(ok) }); return () => { vivo = false } }, [])
+  useEffect(() => { let vivo = true; consumoDisponible().then(ok => { if (vivo) setConsumoOn(ok) }); return () => { vivo = false } }, [])
 
   const orgSettings  = data.orgSettings || {}
   const mostrarCalc  = tarifasConfiguradas(orgSettings)
@@ -149,6 +156,9 @@ export default function Viajes() {
       ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ?? ''])),
       fecha: toISO(r.fecha),
       hora: toHora(r.hora),
+      // El null de la columna nueva pasó a '' arriba y dejaría el Select en
+      // blanco: sin valor guardado, el recorrido se asume mixto.
+      ruta_tipo: RUTA_TIPOS.includes(r.ruta_tipo) ? r.ruta_tipo : 'Mixto',
     })
     setErrors({})
     setCalc({ horas: '', conPeon: false })
@@ -232,6 +242,7 @@ export default function Viajes() {
     // Sin la migración de despacho aplicada, estas columnas no existen en la
     // base y mandarlas haría fallar el guardado ENTERO del viaje.
     if (!despachoOn) for (const k of CAMPOS_DESPACHO) delete viaje[k]
+    if (!consumoOn)  for (const k of CAMPOS_CONSUMO_VIAJE) delete viaje[k]
     if (editId) {
       update('viajes', list.map(r => r.id === editId ? viaje : r))
       sincronizarIngreso(viaje)
@@ -518,6 +529,16 @@ export default function Viajes() {
               <Input value={form.destino} onChange={e => set('destino', e.target.value)} placeholder="Ciudad / Punto de llegada" />
               {errors.destino && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.destino}</p>}
             </Field>
+            {consumoOn && <>
+              <Field label="Distancia (km)">
+                <Input type="number" step="1" min="0" value={form.distancia_km} onChange={e => set('distancia_km', e.target.value)} placeholder="Ej: 340" />
+              </Field>
+              <Field label="Tipo de recorrido">
+                <Select value={form.ruta_tipo} onChange={e => set('ruta_tipo', e.target.value)}>
+                  {RUTA_TIPOS.map(t => <option key={t}>{t}</option>)}
+                </Select>
+              </Field>
+            </>}
             <Field label="Monto seña ($)">
               <Input type="number" step="0.01" min="0" value={form.monto_sena}  onChange={e => set('monto_sena', e.target.value)}  placeholder="0.00" />
             </Field>
@@ -627,6 +648,18 @@ export default function Viajes() {
                 <Input value={form.precintos} onChange={e => set('precintos', e.target.value)} placeholder="Números, separados por coma" />
               </Field>
             </>}
+            {/* Va al final, después del peso de la carga (sección de despacho):
+                así el número ya está completo cuando el ojo llega acá. Se
+                recalcula en vivo con lo que haya en el form. */}
+            {consumoOn && (
+              <div className="col-span-2">
+                <ConsumoEstimado
+                  vehiculo={(data.vehiculos || []).find(v => v.id === form.vehiculo_id) || null}
+                  viaje={form}
+                  combustible={data.combustible}
+                />
+              </div>
+            )}
             <div className="col-span-2">
               <Field label="Notas">
                 <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Observaciones adicionales..." />

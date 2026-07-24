@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useStore, getData } from '../store/useStore'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { useToast } from '../context/ToastContext'
@@ -6,16 +6,31 @@ import { useConfirm } from '../context/ConfirmContext'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
 import { faltantesVehiculo } from '../utils/chequeoVencimientos'
-import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock, Fuel } from 'lucide-react'
 import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
+import {
+  CAMPOS_CONSUMO_VEHICULO, emptyConsumoVehiculo, consumoDisponible,
+  claseDe, num, consumoRealVehiculo, fmtL100,
+} from '../utils/consumo'
+import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
 
 const ACCENT = 'var(--accent)'
 
 const emptyVehiculo = {
   alias: '', marca: '', modelo: '', anio: '', patente: '', motor: '', chasis: '',
   kilometraje: '', combustible: 'Gasoil', vtv: '', seguro: '',
-  aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: '', activo: true
+  aseguradora: '', poliza: '', habilitacion: '', capacidad: '', observaciones: '', activo: true,
+  // Specs del estimador de consumo. Van SIEMPRE en el form (inputs controlados),
+  // pero handleSave las saca del payload si la migración 20260724120000 no está
+  // aplicada (ver utils/consumo.js).
+  ...emptyConsumoVehiculo(),
+}
+
+const CLASE_LABEL = {
+  liviano: 'Liviano (furgón / pickup)',
+  mediano: 'Mediano (camión)',
+  pesado:  'Pesado (tractor + semi)',
 }
 
 // Estado de un vencimiento (color + texto)
@@ -143,6 +158,88 @@ function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = fal
   )
 }
 
+// Specs que alimentan el estimador de consumo por viaje (utils/consumo.js).
+// Se cargan una vez por unidad. El catálogo de motores (data/motores.js) sólo
+// PRECARGA valores de referencia: lo que queda guardado es lo que el usuario
+// deja en los campos, y esos son los que manda el cálculo.
+function ConsumoSpecs({ form, set, setForm, combustible }) {
+  const tara  = num(form.tara_kg)
+  const clase = claseDe(tara)
+  const real  = consumoRealVehiculo(combustible, form.id)
+
+  const precargar = (id) => {
+    const m = motorPorId(id)
+    if (m) setForm(f => ({ ...f, ...specsDesdeMotor(m) }))
+  }
+
+  return (
+    <div className="surface db-in db-d5" style={{ padding: 24, marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <Fuel size={15} style={{ color: ACCENT }} />
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>Consumo y pesos</h2>
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 18 }}>
+        Con esto la app estima cuántos litros va a gastar cada viaje de esta unidad
+        antes de salir, según los km y el peso de la carga. Los valores del manual
+        son <strong style={{ color: 'var(--text-1)' }}>con la unidad vacía</strong>: el
+        peso de la carga lo suma el cálculo.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
+          {/* Select-acción: elegir precarga los campos de abajo (que siguen
+              editables) y vuelve a vacío. Mismo patrón que "elegir chofer del
+              legajo" en Viajes. */}
+          <Field label="Precargar desde el catálogo (valores de referencia, ajustables)">
+            <Select value="" onChange={e => precargar(e.target.value)}>
+              <option value="">— Cargar a mano o elegir una unidad parecida —</option>
+              {GRUPOS_MOTOR.map(g => (
+                <optgroup key={g} label={g}>
+                  {MOTORES.filter(m => m.grupo === g).map(m => (
+                    <option key={m.id} value={m.id}>{etiquetaMotor(m)}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        <div className="sm:col-span-2">
+          <Field label="Motorización">
+            <Input value={form.motor_desc} onChange={e => set('motor_desc', e.target.value)} placeholder="Ej: 2.3 dCi (G9U/M9T) 130 cv" />
+          </Field>
+        </div>
+
+        <Field label="Consumo urbano vacío (L/100km)">
+          <Input type="number" step="0.1" min="0" value={form.consumo_urbano_l100} onChange={e => set('consumo_urbano_l100', e.target.value)} placeholder="Ej: 12.5" />
+        </Field>
+        <Field label="Consumo en ruta vacío (L/100km)">
+          <Input type="number" step="0.1" min="0" value={form.consumo_ruta_l100} onChange={e => set('consumo_ruta_l100', e.target.value)} placeholder="Ej: 9.5" />
+        </Field>
+        <Field label="Tara — peso de la unidad vacía (kg)">
+          <Input type="number" step="1" min="0" value={form.tara_kg} onChange={e => set('tara_kg', e.target.value)} placeholder="Ej: 2150" />
+        </Field>
+        <Field label="Carga útil máxima (kg)">
+          <Input type="number" step="1" min="0" value={form.carga_max_kg} onChange={e => set('carga_max_kg', e.target.value)} placeholder="Ej: 1550" />
+        </Field>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16, fontSize: 11, color: 'var(--text-2)' }}>
+        <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
+          Clase para el cálculo: <strong style={{ color: 'var(--text-1)' }}>{CLASE_LABEL[clase]}</strong>
+          {tara == null && ' (se afina al cargar la tara)'}
+        </span>
+        {real.l100 != null && (
+          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-overlay)' }}>
+            Consumo real medido: <strong className="num" style={{ color: 'var(--text-1)' }}>{fmtL100(real.l100)}</strong>
+            {' '}· {real.muestras} {real.muestras === 1 ? 'intervalo' : 'intervalos'} del historial de cargas
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Vehiculo() {
   const { data, update } = useStore()
   const { puedeEditar } = useAuth()
@@ -154,10 +251,19 @@ export default function Vehiculo() {
   const [editingId, setEditingId] = useState(null)   // null | 'new' | id
   const [form, setForm] = useState(emptyVehiculo)
 
+  // ¿Está aplicada la migración del estimador de consumo?
+  const [consumoOn, setConsumoOn] = useState(false)
+  useEffect(() => { let vivo = true; consumoDisponible().then(ok => { if (vivo) setConsumoOn(ok) }); return () => { vivo = false } }, [])
+
   const set = (k, val) => setForm(f => ({ ...f, [k]: val }))
 
   const handleNew    = () => { setForm({ ...emptyVehiculo, id: crypto.randomUUID() }); setEditingId('new') }
-  const handleEdit   = (v) => { setForm({ ...emptyVehiculo, ...v }); setEditingId(v.id) }
+  // null → '' : la base guarda null en las columnas nuevas de las filas viejas y
+  // React pasa el input a no controlado ("`value` prop should not be null").
+  const handleEdit   = (v) => {
+    setForm({ ...emptyVehiculo, ...Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x ?? ''])) })
+    setEditingId(v.id)
+  }
   const handleCancel = () => setEditingId(null)
 
   // Deep link a un vehículo (/#/vehiculo/:id): resalta la tarjeta. Un archivado
@@ -167,10 +273,14 @@ export default function Vehiculo() {
   })
 
   const handleSave = () => {
+    const fila = { ...form }
+    // Sin la migración de consumo aplicada estas columnas no existen: mandarlas
+    // haría fallar el guardado ENTERO del vehículo (mismo patrón que despacho).
+    if (!consumoOn) for (const k of CAMPOS_CONSUMO_VEHICULO) delete fila[k]
     const all = data.vehiculos || []
     const next = editingId === 'new'
-      ? [...all, { ...form, activo: true }]
-      : all.map(x => x.id === editingId ? { ...form } : x)
+      ? [...all, { ...fila, activo: true }]
+      : all.map(x => x.id === editingId ? fila : x)
     update('vehiculos', next)
     setEditingId(null)
   }
@@ -255,6 +365,8 @@ export default function Vehiculo() {
             </div>
           </div>
         </div>
+
+        {consumoOn && <ConsumoSpecs form={form} set={set} setForm={setForm} combustible={data.combustible} />}
       </div>
     )
   }

@@ -417,6 +417,40 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    de despacho tiene un select-acción "Elegir chofer del legajo" que copia nombre/DNI/cel
    a los campos de texto (siguen editables). La palette Ctrl+K también busca choferes.
 
+15. **Estimador de consumo de combustible por viaje** — código hecho (2026-07-24),
+   falta SOLO aplicar la migración `20260724120000_consumo_estimado.sql`
+   (`vehiculos`: motor_desc / consumo_urbano_l100 / consumo_ruta_l100 / tara_kg /
+   carga_max_kg; `viajes`: distancia_km / ruta_tipo — todas text nullable).
+   Detección runtime en `src/utils/consumo.js` (sonda a las DOS tablas, 42703 =
+   no aplicada); hasta entonces Flota y Viajes ocultan la sección y SACAN esos
+   campos del payload al guardar, mismo patrón que despacho y vales.
+   **Cómo funciona el cálculo:**
+   `L/100km = base(tipoRuta) × [(1−s) + s × (tara+peso)/tara]`, donde `base` es el
+   consumo **en vacío** interpolado entre urbano y ruta, y `s` es la fracción del
+   consumo que depende de la masa. `s` está partida por clase (`claseDe()` la
+   deduce de la tara: liviano <3500 kg, mediano <12000, pesado) porque un semi que
+   triplica su masa sube ~40% y un furgón que la duplica sube ~30%: a 90 km/h manda
+   la aerodinámica, no el peso. Con peso 0 el factor da 1 y el estimado es el de la
+   unidad vacía.
+   **Ojo al tocarlo:**
+   - Los consumos de la ficha son **en vacío**. Si alguien carga ahí el consumo
+     "cargado", el peso se cuenta dos veces.
+   - El **volumen NO entra en la fórmula** a propósito: en un furgón cerrado no
+     cambia la sección frontal. Se muestra como aprovechamiento. Un término
+     aerodinámico recién tiene sentido cuando la ficha diga el tipo de carrocería.
+   - `src/data/motores.js` es un catálogo de **valores de referencia** que sólo
+     PRECARGA la ficha; no son la ficha del manual de cada unidad y no se leen en
+     el cálculo. Lo que manda es lo que quedó guardado en `vehiculos`.
+   - `consumoRealVehiculo()` promedia el historial de `combustible` ordenando por
+     **odómetro, no por fecha** (las fechas vienen mezcladas y hay filas fuera de
+     orden), y descarta intervalos con L/100km fuera de [2, 120]: la app no
+     registra si la carga fue a tanque lleno y una carga parcial da un consumo
+     absurdo. Se usa como contraste en pantalla y como base de respaldo cuando la
+     ficha no tiene specs (`fuente: 'historico'`).
+   - `estimarConsumo()` devuelve `faltan` (qué datos hacen falta) y `supuestos`
+     (qué se dio por sentado). La UI muestra las dos: un estimado sin sus
+     supuestos a la vista es una mentira prolija.
+
 ## Comandos clave
 
 Todos se corren desde la **raíz del repo** (donde está `package.json`). La ruta

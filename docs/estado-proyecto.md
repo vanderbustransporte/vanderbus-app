@@ -9,7 +9,8 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 | Persona | Área que está tocando | Rama | Desde |
 |---|---|---|---|
-| Diego | — | — | — |
+| Diego | Notificaciones (todo a la campana, baja de la sección) | `notificaciones/centro-campana` | 2026-07-24 |
+| Diego | Estimador de consumo de combustible por viaje | `combustible/estimador-consumo` | 2026-07-24 |
 | Nico | — | — | — |
 
 > Completar antes de empezar a trabajar. Es el mecanismo barato para no pisarnos
@@ -33,15 +34,17 @@ La base es productiva y única. El código puede estar mergeado antes de que la
 migración esté aplicada: por eso el código tiene que tolerar el esquema viejo
 (ver `CONTRIBUTING.md` §5).
 
-**Al 2026-07-24 no hay migraciones pendientes: todas las de `supabase/migrations/`
-están aplicadas.** Las últimas cinco (despacho, choferes, tracking público,
-tracking público org fix, vales de combustible) se confirmaron aplicadas ese día.
-
-Cuando se sume una migración nueva, anotarla acá con estado hasta que se aplique:
+Al 2026-07-24 estaban todas aplicadas (despacho, choferes, tracking público,
+tracking público org fix, vales de combustible). Después de eso se sumó una:
 
 | Migración | ¿Aplicada en Supabase? |
 |---|---|
-| — | — |
+| `20260724120000_consumo_estimado.sql` | ❌ **NO** — pendiente de aplicar en el SQL editor |
+
+Mientras no esté aplicada, la app funciona igual que hoy: el estimador de consumo
+se oculta solo (`consumoDisponible()` en `src/utils/consumo.js`) y ni Viajes ni
+Flota mandan esas columnas al guardar. Aplicarla es lo único que hace falta para
+prenderlo — no hay que tocar código.
 
 ---
 
