@@ -10,8 +10,10 @@ import { Fuel, TriangleAlert, Info, Gauge } from 'lucide-react'
 import { formatARS, formatDate } from '../utils/format'
 import {
   estimarConsumo, consumoRealVehiculo, precioLitroReciente,
+  specsVehiculo, baseTeorica,
   fmtL100, fmtLitros, fmtPct,
 } from '../utils/consumo'
+import { calibracionVehiculo } from '../utils/calibracion'
 
 function Dato({ label, valor, color, sub }) {
   return (
@@ -41,7 +43,7 @@ function Barra({ label, pct, detalle }) {
   )
 }
 
-export default function ConsumoEstimado({ vehiculo, viaje, combustible }) {
+export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }) {
   const real = useMemo(
     () => consumoRealVehiculo(combustible, vehiculo?.id),
     [combustible, vehiculo?.id]
@@ -50,6 +52,20 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible }) {
     () => precioLitroReciente(combustible, vehiculo?.id),
     [combustible, vehiculo?.id]
   )
+
+  // Calibración: el consumo teórico de la ficha mezclado con el medido en las
+  // cargas a tanque lleno de ESTA unidad. `teoricoBase` depende de la mezcla
+  // urbano/ruta del viaje, por eso se calcula acá y no adentro del estimador.
+  const cal = useMemo(() => {
+    if (!vehiculo?.id) return null
+    const specs = specsVehiculo(vehiculo)
+    if (!specs.ok) return null
+    const c = calibracionVehiculo({
+      combustible, viajes, vehiculoId: vehiculo.id, specs,
+      teoricoBase: baseTeorica(specs, viaje.ruta_tipo),
+    })
+    return c.ok ? c : null
+  }, [vehiculo, combustible, viajes, viaje.ruta_tipo])
 
   const est = useMemo(() => estimarConsumo({
     vehiculo,
@@ -61,8 +77,9 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible }) {
     horasRalenti: viaje.horas_ralenti,
     precioLitro: precio.precio,
     l100Real:    real.l100,
+    calibracion: cal,
   }), [vehiculo, viaje.distancia_km, viaje.carga_peso_kg, viaje.carga_volumen_m3, viaje.ruta_tipo,
-       viaje.topografia, viaje.horas_ralenti, precio.precio, real.l100])
+       viaje.topografia, viaje.horas_ralenti, precio.precio, real.l100, cal])
 
   const marco = {
     padding: 14, borderRadius: 'var(--radius)',

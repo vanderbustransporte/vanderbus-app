@@ -681,6 +681,7 @@ export default function Viajes() {
                   vehiculo={(data.vehiculos || []).find(v => v.id === form.vehiculo_id) || null}
                   viaje={form}
                   combustible={data.combustible}
+                  viajes={data.viajes}
                 />
               </div>
             )}

@@ -271,6 +271,33 @@ export function specsVehiculo(vehiculo, { l100Real = null } = {}) {
   }
 }
 
+// Consumo teórico VACÍO para una mezcla de recorrido dada. Se expone aparte
+// porque el motor de calibración (utils/calibracion.js) necesita el mismo número
+// para mezclarlo con el medido, y no puede depender del resto del cálculo.
+export function baseTeorica(specs, rutaTipo) {
+  if (!specs?.ok) return null
+  const w = mezclaDe(rutaTipo)
+  return specs.ruta + w * (specs.urbano - specs.ruta)
+}
+
+// ¿La ficha de la unidad tiene lo necesario para no depender de valores de
+// clase? Define el piso de la banda de confianza.
+export const fichaCompleta = v => !!(
+  v && (v.consumo_ruta_l100 || v.consumo_urbano_l100 || v.consumo_mixto_l100) && v.tara_kg
+)
+
+// ── Banda de confianza ──────────────────────────────────────────────────────
+//
+// El estimado se muestra como RANGO, no como número puntual. No es cosmética:
+// si un transportista cotiza un flete con este número y le erra, es plata suya.
+// La banda se angosta con lo que el sistema realmente sabe de la unidad.
+export function bandaConfianza({ ficha = false, n = 0 } = {}) {
+  if (n >= 15) return { pct: 0.08, nivel: `${n} cargas reales medidas` }
+  if (n >= 5)  return { pct: 0.12, nivel: `${n} cargas reales medidas` }
+  if (ficha)   return { pct: 0.20, nivel: n > 0 ? `ficha completa y ${n} ${n === 1 ? 'carga medida' : 'cargas medidas'}` : 'ficha completa, sin cargas reales' }
+  return { pct: 0.30, nivel: 'estimado por clase, sin ficha de la unidad' }
+}
+
 // ── El cálculo ──────────────────────────────────────────────────────────────
 //
 // Devuelve SIEMPRE un objeto: `faltan` dice qué datos hacen falta para que haya
@@ -302,7 +329,7 @@ export function estimarConsumo({
 
   const w    = mezclaDe(rutaTipo)
   const s    = sensibilidadDe(specs.clase, w)
-  const baseFicha = specs.ruta + w * (specs.urbano - specs.ruta)
+  const baseFicha = baseTeorica(specs, rutaTipo)
 
   // Base efectiva: la calibrada si la hay, la de la ficha si no.
   let base = baseFicha
@@ -348,6 +375,13 @@ export function estimarConsumo({
   const precio = num(precioLitro)
   const costo  = precio != null ? litros * precio : null
 
+  // Banda de error. Se muestra SIEMPRE y a la vista, no en un tooltip.
+  const banda = bandaConfianza({
+    ficha: fichaCompleta(vehiculo),
+    n: (calibracion && calibracion.ok) ? calibracion.n : 0,
+  })
+  const rango = (x) => x == null ? null : { min: x * (1 - banda.pct), max: x * (1 + banda.pct) }
+
   // El volumen no entra en la fórmula (ver cabecera): sólo informa cuánto del
   // espacio útil se está usando frente a cuánto del peso útil.
   const aprovPeso = (peso != null && specs.cargaMax) ? peso / specs.cargaMax : null
@@ -358,7 +392,12 @@ export function estimarConsumo({
     supuestos,
     specs,
     l100, litros, costo, precioLitro: precio,
+    banda,
+    rangoLitros: rango(litros),
+    rangoCosto: rango(costo),
+    rangoL100: rango(l100),
     base, baseFicha, factorCarga: fCarga, fCarroceria, fTopografia,
+    calibracion,
     masaTotal: (specs.tara || 0) + (peso || 0),
     pesoKg: peso,
     mezclaUrbana: w,
