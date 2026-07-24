@@ -29,21 +29,19 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 ## Migraciones — estado de aplicación
 
-La base es productiva y única. El código está mergeado; la migración puede no
-estarlo. Confirmar con Nico antes de asumir que una columna existe.
+La base es productiva y única. El código puede estar mergeado antes de que la
+migración esté aplicada: por eso el código tiene que tolerar el esquema viejo
+(ver `CONTRIBUTING.md` §5).
+
+**Al 2026-07-24 no hay migraciones pendientes: todas las de `supabase/migrations/`
+están aplicadas.** Las últimas cinco (despacho, choferes, tracking público,
+tracking público org fix, vales de combustible) se confirmaron aplicadas ese día.
+
+Cuando se sume una migración nueva, anotarla acá con estado hasta que se aplique:
 
 | Migración | ¿Aplicada en Supabase? |
 |---|---|
-| `20260718120000_viajes_despacho.sql` | Sí |
-| `20260718130000_choferes.sql` | Sí |
-| `20260722120000_tracking_publico.sql` | Sí |
-| `20260722130000_tracking_publico_org_fix.sql` | **Confirmar** |
-| `20260722140000_combustible_vales.sql` | **Confirmar** |
-
-Las dos últimas se escribieron el 2026-07-22 y no hay registro de que se hayan
-aplicado. La de `tracking_publico_org_fix` **no es opcional**: cierra una fuga de
-datos entre organizaciones en el link público de seguimiento (detalle en
-`docs/auditoria-produccion-2026-07-22.md`).
+| — | — |
 
 ---
 
