@@ -23,6 +23,7 @@ import {
 import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
 import { docsDisponible } from '../utils/docsVehiculo'
 import DocsVehiculo from '../components/DocsVehiculo'
+import ExtraerFicha from '../components/ExtraerFicha'
 
 const ACCENT = 'var(--accent)'
 
@@ -529,6 +530,17 @@ export default function Vehiculo() {
             vehiculoId={form.id}
             organizationId={profile?.organization_id}
             editable={editable}
+            // La lectura asistida sólo aparece con la ficha extendida aplicada:
+            // sin esas columnas no habría dónde poner lo que se extraiga. Los
+            // valores propuestos van al FORM, nunca directo a la base — la
+            // confirmación humana es parte del flujo, no un extra.
+            extraAccion={(editable && fichaExtOn) ? (d => (
+              <ExtraerFicha
+                doc={d}
+                clase={claseDe(form)}
+                onAplicar={patch => setForm(f => ({ ...f, ...patch }))}
+              />
+            )) : null}
           />
         )}
       </div>
