@@ -21,6 +21,8 @@ import {
   COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
 } from '../data/clases'
 import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
+import { fuenteCatalogo } from '../utils/vehiculosRef'
+import PrecargaReferencia from '../components/PrecargaReferencia'
 import { docsDisponible } from '../utils/docsVehiculo'
 import DocsVehiculo from '../components/DocsVehiculo'
 import ExtraerFicha from '../components/ExtraerFicha'
@@ -190,6 +192,13 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
     if (m) setForm(f => ({ ...f, ...specsDesdeMotor(m, { fichaExt }) }))
   }
 
+  // Fuente del catálogo de precarga. 'referencia' = cascada marca→modelo→año→versión
+  // desde la tabla global (sólo si está aplicada Y sembrada); 'legacy' = el select
+  // plano de data/motores.js, como hasta hoy. Mientras resuelve, y ante cualquier
+  // duda, cae a 'legacy': la app no depende de la tabla nueva para funcionar.
+  const [fuenteCat, setFuenteCat] = useState('legacy')
+  useEffect(() => { let vivo = true; fuenteCatalogo().then(f => { if (vivo) setFuenteCat(f) }); return () => { vivo = false } }, [])
+
   return (
     <div className="surface db-in db-d5" style={{ padding: 24, marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -212,21 +221,32 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          {/* Select-acción: elegir precarga los campos de abajo (que siguen
-              editables) y vuelve a vacío. Mismo patrón que "elegir chofer del
-              legajo" en Viajes. */}
-          <Field label="Precargar desde el catálogo (valores de referencia, ajustables)">
-            <Select value="" onChange={e => precargar(e.target.value)}>
-              <option value="">— Cargar a mano o elegir una unidad parecida —</option>
-              {GRUPOS_MOTOR.map(g => (
-                <optgroup key={g} label={g}>
-                  {MOTORES.filter(m => m.grupo === g).map(m => (
-                    <option key={m.id} value={m.id}>{etiquetaMotor(m)}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </Select>
-          </Field>
+          {fuenteCat === 'referencia' ? (
+            // Rama referencia: cascada marca→modelo→año→versión desde la tabla
+            // global, con prellenado + trazabilidad (verificado / sin verificar).
+            // Lo que precarga va al form (per-tenant) y sigue editable abajo.
+            <PrecargaReferencia
+              fichaExt={fichaExt}
+              onPrecargar={specs => setForm(f => ({ ...f, ...specs }))}
+            />
+          ) : (
+            // Rama legacy (tabla ausente o sin sembrar): el select plano de
+            // data/motores.js, como hasta hoy. Elegir precarga los campos de abajo
+            // (que siguen editables) y vuelve a vacío. Mismo patrón que "elegir
+            // chofer del legajo" en Viajes.
+            <Field label="Precargar desde el catálogo (valores de referencia, ajustables)">
+              <Select value="" onChange={e => precargar(e.target.value)}>
+                <option value="">— Cargar a mano o elegir una unidad parecida —</option>
+                {GRUPOS_MOTOR.map(g => (
+                  <optgroup key={g} label={g}>
+                    {MOTORES.filter(m => m.grupo === g).map(m => (
+                      <option key={m.id} value={m.id}>{etiquetaMotor(m)}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Select>
+            </Field>
+          )}
         </div>
 
         {fichaExt && (

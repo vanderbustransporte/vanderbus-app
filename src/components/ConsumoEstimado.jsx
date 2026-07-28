@@ -168,18 +168,37 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }
     </div>
   )
 
-  // Sin datos suficientes: se dice exactamente qué falta y dónde se carga, en
-  // vez de un guión que no le enseña nada a nadie.
+  // Sin datos suficientes. Se separan los tres casos a propósito: la distancia
+  // es una acción real del usuario, pero el consumo NO hay que pedirlo a mano —
+  // para eso está la calibración por historial. Pedir "cargá el consumo" induce
+  // justo el error que queremos evitar (un número inventado en el campo portante).
   if (!est.ok) {
+    const faltaVehiculo = !vehiculo
+    const faltaDistancia = est.faltan.some(f => f.includes('distancia'))
+    const faltaConsumo = est.faltan.some(f => f.includes('unidad'))
     return (
       <div style={marco}>
         {titulo}
-        <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, margin: 0 }}>
-          Falta {est.faltan.join(' y ')} para poder estimarlo.
-          {est.faltan.some(f => f.includes('unidad')) && (
-            <> Las specs de consumo se cargan una sola vez por unidad en <strong style={{ color: 'var(--text-1)' }}>Flota → editar vehículo → Consumo y pesos</strong>, y se pueden precargar desde el catálogo de motores.</>
+        <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
+          {faltaVehiculo ? (
+            <p style={{ margin: 0 }}>Elegí un vehículo para estimar el consumo.</p>
+          ) : (
+            <>
+              {faltaDistancia && (
+                <p style={{ margin: 0 }}>Cargá la distancia del viaje para estimar el consumo.</p>
+              )}
+              {faltaConsumo && (
+                <p style={{ margin: faltaDistancia ? '8px 0 0' : 0 }}>
+                  Todavía no hay con qué estimar el consumo de esta unidad, y <strong style={{ color: 'var(--text-1)' }}>no hace falta cargarlo a mano</strong>.
+                  El estimado se va a afinar solo con las <strong style={{ color: 'var(--text-1)' }}>primeras cargas de combustible a tanque lleno y con odómetro</strong> de
+                  esta unidad: cuantas más cargas medibles, más preciso el número.
+                  {' '}Si tenés el <strong style={{ color: 'var(--text-1)' }}>consumo homologado de fábrica</strong> (el dato oficial, no un número a ojo),
+                  cargarlo en la ficha acelera el arranque — pero no es necesario.
+                </p>
+              )}
+            </>
           )}
-        </p>
+        </div>
       </div>
     )
   }
@@ -213,6 +232,19 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }
           {' '}· {fmtL100(est.l100)} en el viaje
         </div>
       </div>
+
+      {/* Cuando la base NO es la ficha sino el promedio del historial de cargas,
+          se dice a la vista (no colapsado): el usuario tiene que saber que este
+          número lo está aprendiendo de sus cargas reales, no de una spec de
+          fábrica, y que mejora a medida que suma cargas medibles. */}
+      {est.specs?.fuente === 'historico' && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)' }}>
+          <Gauge size={13} style={{ color: 'var(--text-2)', flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            Este número sale del <strong style={{ color: 'var(--text-1)' }}>historial de cargas</strong> de esta unidad, no de una spec de fábrica: todavía no tiene consumo en la ficha. Se va a ir afinando a medida que sumes cargas a tanque lleno con odómetro.
+          </span>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 14 }}>
         <Dato

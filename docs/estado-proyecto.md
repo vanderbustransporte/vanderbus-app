@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-07-24.
+Última actualización: 2026-07-28.
 
 ---
 
@@ -35,14 +35,26 @@ migración esté aplicada: por eso el código tiene que tolerar el esquema viejo
 (ver `CONTRIBUTING.md` §5).
 
 Al 2026-07-24 estaban todas aplicadas (despacho, choferes, tracking público,
-tracking público org fix, vales de combustible). Después de eso se sumaron tres,
-todas del estimador de consumo y **todas pendientes**. Se aplican en orden:
+tracking público org fix, vales de combustible). Después de eso se sumaron las tres
+del estimador de consumo, **aplicadas por Diego el 2026-07-27** en orden en el SQL editor:
 
 | Migración | ¿Aplicada? | Qué prende |
 |---|---|---|
-| `20260724120000_consumo_estimado.sql` | ❌ **NO** | Estimador base: consumo urbano/ruta, tara, carga útil, distancia y tipo de recorrido del viaje |
-| `20260724130000_consumo_ficha_extendida.sql` | ❌ **NO** | Ficha técnica completa (clase, motor, fuente del consumo, PBT, carrocería, tanque, ralentí), topografía y horas de ralentí del viaje, y `combustible.tanque_lleno` (el insumo del motor de calibración) |
-| `20260724140000_vehiculo_docs.sql` | ❌ **NO** | Tabla `vehiculo_docs` + bucket privado `vehiculo-docs`: subir y consultar el manual / ficha técnica de cada unidad |
+| `20260724120000_consumo_estimado.sql` | ✅ **SÍ** (2026-07-27) | Estimador base: consumo urbano/ruta, tara, carga útil, distancia y tipo de recorrido del viaje |
+| `20260724130000_consumo_ficha_extendida.sql` | ✅ **SÍ** (2026-07-27) | Ficha técnica completa (clase, motor, fuente del consumo, PBT, carrocería, tanque, ralentí), topografía y horas de ralentí del viaje, y `combustible.tanque_lleno` (el insumo del motor de calibración) |
+| `20260724140000_vehiculo_docs.sql` | ✅ **SÍ** (2026-07-27) | Tabla `vehiculo_docs` + bucket privado `vehiculo-docs`: subir y consultar el manual / ficha técnica de cada unidad |
+| `20260727120000_vehiculos_referencia.sql` | ✅ **SÍ** (2026-07-28) | Catálogo de referencia GLOBAL `vehiculos_referencia`: el usuario elige marca → modelo → año → versión y prellena la ficha de su unidad, gratis y sin llamar a ninguna API |
+
+**`vehiculos_referencia` es la EXCEPCIÓN al modelo por empresa:** no tiene
+`organization_id`. Un Scania R450 2019 es el mismo camión para todos los clientes.
+Lectura para cualquier `authenticated`, escritura SÓLO `service_role` — un dato malo
+de un tenant no lo ven todos. **Verificado en vivo el 2026-07-28**: como anónimo la
+consulta devuelve 0 filas, como autenticado devuelve las 7 sembradas.
+
+El **seed** (`supabase/seeds/vehiculos_referencia.sql`) también está corrido
+(2026-07-28, 7 filas). Es idempotente: reejecutarlo actualiza, no duplica. Se corre
+desde el SQL editor del dashboard o con la service_role key — desde el cliente con la
+anon key no se puede insertar, que es justamente el punto.
 
 Cada una se detecta por separado y la app tolera cualquier combinación: sin
 ninguna funciona exactamente como hoy, con la primera sola estima igual que
@@ -74,6 +86,53 @@ se prueba sin desplegar nada y sin gastar una llamada a la API:
    que la use. Hacerlo *después* de pasar el repo a privado.
 3. **Dar acceso de colaborador a la otra persona** en el repo (Settings →
    Collaborators), también desde la cuenta owner.
+
+---
+
+## Catálogo de referencia: cómo se carga y qué falta
+
+El estimador **no calcula** el consumo desde la mecánica: el consumo es una
+**ENTRADA** (`consumo_urbano/ruta/mixto_l100`). Si falta, el estimador cae al
+historial de cargas reales de esa unidad. De ahí las dos velocidades de carga:
+
+- **Camionetas y utilitarios** (Hilux, Amarok, Ranger, Master, Ducato, Sprinter,
+  Daily, Kangoo, Partner): ficha COMPLETA con `consumo_*` + `fuente_consumo`
+  homologado real y su fuente. **Es la prioridad**: es lo único que mueve el
+  estimador. **Todavía sin cargar.**
+- **Pesados y medianos** (Tector, Atego, Accelo, Actros, Scania, Volvo): sólo
+  ESQUELETO — `tara_kg`, clase declarada explícita, carrocería. `consumo_* = NULL`,
+  porque no hay homologación publicada y **no se inventa**. El número lo aprenden
+  del historial. Las 7 filas sembradas son todas de esta clase.
+
+Reglas que no se rompen al cargar filas nuevas:
+
+- Falta un dato → **NULL**. Consumo inventado en el campo portante es el peor error
+  posible: el estimador lo toma como verdad y deja de aprender del historial.
+- `anio` y `version` son parte de la clave única y **NOT NULL**: una fila por año y
+  versión, no por modelo.
+- En `tractor_semi`, `carroceria` va **NULL**, nunca el string `'n_a'`: el tractor no
+  tiene carrocería propia, la aporta el semi. Da el mismo número (`n_a` es factor
+  1.00) pero NULL dice "no se sabe" en vez de afirmar "no aplica".
+- `verificado = false` hasta que una segunda persona cruce la fila contra la ficha
+  oficial. Las 7 sembradas están todas en `false`.
+
+`src/data/motores.js` sigue como fallback cuando la tabla no responde, pero sus
+consumos son de rango genérico, no de ficha: es lo que este catálogo viene a
+reemplazar, no una fuente para copiar.
+
+### Loop verificado en la app (2026-07-28)
+
+Probado en el navegador contra la base real: Flota → editar unidad → **Scania →
+R450 → 2019 → "R450 A6x2 tractor"**. La cascada encadena bien y prellena clase,
+motorización, cilindrada, combustible, tanque, PBT y tara. Cada spec muestra su
+chip **`sin verificar`** y la tarjeta trae fuente con link y las `notas` de la fila.
+Lo importante: **los tres campos de consumo quedan VACÍOS** y `fuente_consumo` en
+"sin declarar" — la fila esqueleto no inyecta un consumo inventado.
+
+Sin probar todavía, porque necesita datos que aún no existen:
+- El banner de `fuente === 'historico'` en `ConsumoEstimado.jsx`: necesita una unidad
+  con ≥2 cargas a tanque lleno.
+- El camino "el catálogo prellena el consumo": necesita la tanda de camionetas.
 
 ---
 
