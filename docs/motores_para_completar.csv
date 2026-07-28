@@ -1,0 +1,32 @@
+# ⚠️ ADVERTENCIA — LEER ANTES DE USAR NADA DE ESTE ARCHIVO ⚠️
+#
+# Los consumos de este archivo son los REDONDEADOS GENERICOS del catalogo legacy
+# (src/data/motores.js). NO salieron de ninguna ficha oficial.
+#
+# Este archivo es una LISTA DE MODELOS A CARGAR, no datos para sembrar.
+#
+# Antes de cargar cualquier fila en `vehiculos_referencia` hay que reemplazar los
+# consumos con el homologado real de la ficha + su fuente, o dejarlos NULL.
+#
+# Ojo tambien con estas dos, que vienen del mismo lado y enganan igual:
+#   - fuente_consumo dice 'homologado' en TODAS las filas. Es mentira: ninguna fue
+#     cotejada contra un ciclo oficial, es el valor que ya traia motores.js.
+#   - anio y version estan casi todos VACIOS, y son NOT NULL y parte de la clave
+#     unica de la tabla: sin completarlos la fila no entra ni aunque se quiera.
+#
+# Por eso vive en docs/ y no en supabase/seeds/: no es material listo para correr.
+# Las lineas que empiezan con # no son CSV valido A PROPOSITO, para que ninguna
+# herramienta se lo trague de un saque sin que alguien lea esto primero.
+#
+marca,modelo,anio,version,clase,motor,cilindrada_l,tipo_combustible,consumo_urbano_l100,consumo_ruta_l100,tara_kg,carga_util_kg,fuente_consumo,carroceria
+Renault,Kangoo,,,auto,1.5 dCi,1.5,diesel,8.0,6.0,1350,650,homologado,furgon_cerrado
+Peugeot,Partner,,,auto,1.6 HDi,1.6,diesel,8.2,6.2,1400,800,homologado,furgon_cerrado
+Renault,Master,,,furgon,2.3 dCi (G9U/M9T),2.3,diesel,11.5,9.5,2150,1550,homologado,furgon_cerrado
+Mercedes-Benz,Sprinter,,415,furgon,2.1 CDI,2.1,diesel,11.0,9.0,2250,1600,homologado,furgon_cerrado
+Mercedes-Benz,Sprinter,,515,furgon,2.1 CDI,2.1,diesel,11.0,9.0,2250,1600,homologado,furgon_cerrado
+Fiat,Ducato,,,furgon,2.3 MultiJet,2.3,diesel,11.0,9.0,2100,1500,homologado,furgon_cerrado
+Peugeot,Boxer,,,furgon,2.2 HDi,2.2,diesel,11.2,9.2,2050,1400,homologado,furgon_cerrado
+Citroën,Jumper,,,furgon,2.2 HDi,2.2,diesel,11.2,9.2,2050,1400,homologado,furgon_cerrado
+Ford,Transit,,,furgon,2.2 TDCi,2.2,diesel,11.5,9.5,2200,1400,homologado,furgon_cerrado
+Volkswagen,Crafter,,,furgon,2.0 TDI,2.0,diesel,11.0,9.0,2200,1500,homologado,furgon_cerrado
+Iveco,Daily,,35S14,furgon,3.0 F1C,3.0,diesel,13.0,10.5,2500,1500,homologado,furgon_cerrado
