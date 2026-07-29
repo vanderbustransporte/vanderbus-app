@@ -28,6 +28,11 @@
 --       estimador): 'homologado' (livianos con ciclo oficial), 'fabricante',
 --       'benchmark_flota' (pesados, no hay homologación publicada), 'estimado_clase'.
 --       OJO: es distinto de `fuente` (de qué documento salió la ficha entera).
+--       REGLA: esos cuatro strings son los ÚNICOS válidos (src/data/clases.js:122).
+--       Escribir cualquier otro NO da error en ningún lado — ni la tabla tiene
+--       CHECK ni la app valida: `fuenteInfo()` lo cae en silencio a
+--       'estimado_clase' y la pantalla termina describiendo mal el dato. Se
+--       chequea a mano al cargar cada fila.
 --   clase → auto|pickup|furgon|chasis_liviano|chasis_mediano|camion_pesado|tractor_semi
 --   carroceria → playo|con_lona|furgon_cerrado|tanque|portacontenedor|volcador|n_a
 --       REGLA: en `tractor_semi` va SIEMPRE **NULL**, nunca el string 'n_a'. El
@@ -249,6 +254,68 @@ insert into public.vehiculos_referencia (
    NULL, 9380, NULL,
    'MotorMagazine análisis R410 6x2 tractor', 'https://motormagazine.com.ar/analisis-nuevo-scania-r-410-6x2-tractor/', NULL, current_date,
    'humano', false, NULL, NULL)
+
+on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
+  clase = excluded.clase,
+  motor = excluded.motor,
+  cilindrada_l = excluded.cilindrada_l,
+  potencia_cv = excluded.potencia_cv,
+  tipo_combustible = excluded.tipo_combustible,
+  consumo_urbano_l100 = excluded.consumo_urbano_l100,
+  consumo_ruta_l100 = excluded.consumo_ruta_l100,
+  consumo_mixto_l100 = excluded.consumo_mixto_l100,
+  fuente_consumo = excluded.fuente_consumo,
+  capacidad_tanque_l = excluded.capacidad_tanque_l,
+  carroceria = excluded.carroceria,
+  pbt_kg = excluded.pbt_kg,
+  tara_kg = excluded.tara_kg,
+  carga_util_kg = excluded.carga_util_kg,
+  fuente = excluded.fuente,
+  fuente_url = excluded.fuente_url,
+  pagina = excluded.pagina,
+  fecha_extraccion = excluded.fecha_extraccion,
+  extraido_por = excluded.extraido_por,
+  verificado = excluded.verificado,
+  verificado_por = excluded.verificado_por,
+  notas = excluded.notas;
+
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- TANDA 3 — CAMIONETAS. Primera fila del catálogo CON consumo cargado.
+--
+-- ⚠️ fuente_consumo = 'benchmark_flota', NO 'homologado'. Toyota no publica
+--    homologación de L/100km para la Hilux 2.8 en Argentina: estos números salen
+--    de pruebas de revista, que ya son de uso real. 'homologado' les aplicaría el
+--    factor 1.18 de corrección del ciclo oficial (src/data/clases.js:123) y
+--    contaría el castigo dos veces.
+-- ⚠️ Los únicos strings válidos de fuente_consumo son los CUATRO de
+--    src/data/clases.js:122 — homologado | fabricante | benchmark_flota |
+--    estimado_clase. Cualquier otro NO da error: fuenteInfo() lo cae en silencio
+--    a 'estimado_clase' y la pantalla miente sobre la calidad del dato. Ni la
+--    tabla ni la app validan este campo, así que se chequea a mano.
+-- ⚠️ tara_kg y carga_util_kg van NULL a propósito. Los valores que circulaban
+--    (2100 / 1000) son idénticos a los de src/data/motores.js:45, o sea el
+--    redondeado genérico del catálogo legacy, no la ficha de Toyota. NULL hasta
+--    tener la ficha real: el estimador resuelve el faltante por clase.
+-- ═════════════════════════════════════════════════════════════════════════════
+insert into public.vehiculos_referencia (
+  marca, modelo, anio, version,
+  clase, motor, cilindrada_l, potencia_cv, tipo_combustible,
+  consumo_urbano_l100, consumo_ruta_l100, consumo_mixto_l100,
+  fuente_consumo, capacidad_tanque_l, carroceria,
+  pbt_kg, tara_kg, carga_util_kg,
+  fuente, fuente_url, pagina, fecha_extraccion,
+  extraido_por, verificado, verificado_por, notas
+) values
+
+  ('Toyota', 'Hilux', 2021, '2.8 TDI 4x4 DC AT',
+   'pickup', '1GD 2.8 TDI', 2.8, 204, 'diesel',
+   12.5, 7.5, NULL,
+   'benchmark_flota', 80, NULL,
+   NULL, NULL, NULL,
+   'AutoTest/AutoEnAccion pruebas consumo Hilux 2.8', 'https://autotest.com.ar/noticias/toyota-hilux-prueba-de-consumo/', NULL, current_date,
+   'humano', false, NULL,
+   'consumo_urbano 12.5 / ruta 7.5 = mediana de pruebas de revista argentinas (ciudad 11,5-12,7 / ruta 6,9-7,5 según la fuente), NO homologado de fábrica: Toyota no lo publica. Por eso benchmark_flota y no homologado. PBT, tara y carga útil en NULL: ninguna fuente los dio limpios y los que circulaban eran los genéricos de motores.js, no de ficha. Confirmar contra la ficha de Toyota.')
 
 on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
   clase = excluded.clase,
