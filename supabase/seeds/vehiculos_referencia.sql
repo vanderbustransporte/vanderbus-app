@@ -340,3 +340,68 @@ on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
   verificado = excluded.verificado,
   verificado_por = excluded.verificado_por,
   notas = excluded.notas;
+
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- TANDA 4 — UTILITARIOS DE REPARTO. Primera fila con consumo HOMOLOGADO.
+--
+-- ⚠️ TODAVÍA SIN SEMBRAR (al 2026-07-29). Las tandas 1 a 3 ya están en la base
+--    (8 filas); ésta se corre aparte cuando se retome. Escribir el bloque acá NO
+--    lo aplica: la tabla es de escritura sólo para service_role.
+--
+-- ⚠️ Acá fuente_consumo = 'homologado', y NO es el mismo caso que la Hilux. La
+--    Hilux salió de pruebas de revista, que ya son de uso real → benchmark_flota
+--    y sin corrección. Ésta sale del ciclo oficial ECE, que es optimista, así
+--    que lleva 'homologado' y el estimador le aplica el ×1.18 de clases.js. Esa
+--    distinción es lo único que decide si el número se corrige: livianos con
+--    ciclo oficial SÍ, pesados NO (no tienen homologación publicada).
+--    Verificado en runtime: 8.9 → 10.50 y 7.0 → 8.26, factorFuente 1.18.
+--
+-- ⚠️ El consumo mixto NO entra al cálculo cuando están cargados urbano y ruta:
+--    specsVehiculo() lo usa sólo de respaldo si faltan los otros dos. Se carga
+--    igual, como trazabilidad de la ficha.
+-- ═════════════════════════════════════════════════════════════════════════════
+insert into public.vehiculos_referencia (
+  marca, modelo, anio, version,
+  clase, motor, cilindrada_l, potencia_cv, tipo_combustible,
+  consumo_urbano_l100, consumo_ruta_l100, consumo_mixto_l100,
+  fuente_consumo, capacidad_tanque_l, carroceria,
+  pbt_kg, tara_kg, carga_util_kg,
+  fuente, fuente_url, pagina, fecha_extraccion,
+  extraido_por, verificado, verificado_por, notas
+) values
+
+  ('Renault', 'Master', 2021, 'Furgón L2H2 2.3 dCi 135',
+   'furgon', 'M9T 2.3 dCi', 2.3, 135, 'diesel',
+   8.9, 7.0, 7.7,
+   'homologado', 80, 'furgon_cerrado',
+   NULL, NULL, NULL,
+   'Coches.net/Renault ficha ECE Master L2H2',
+   'https://www.coches.net/fichas_tecnicas/renault/master/industriales/4-puertas/furgon_t_l2h2_3500_bl_dci_100kw_135cv/95845/',
+   NULL, current_date,
+   'humano', false, NULL,
+   'consumo urbano 8.9 / ruta 7.0 / mixto 7.7 = ciclo homologado ECE 99/100 (europeo). Por eso fuente_consumo=homologado, que dispara la correccion x1.18. OJO: es homologado EUROPEO; el consumo real argentino tiende a ser mayor (usuarios reportan 11-12 en ruta cargado). El x1.18 lo acerca pero no lo iguala. Confirmar contra ficha Renault Argentina. tara/pbt/carga util en NULL: la ficha europea da peso con conductor (2066 kg), que no es tara limpia; carga util hasta 1593 kg segun Renault pero varia por version. Tanque 80 L tambien sale de la ficha europea. Carroceria furgon_cerrado: es furgon de fabrica, +3% aerodinamico sobre el tramo de ruta.')
+
+on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
+  clase = excluded.clase,
+  motor = excluded.motor,
+  cilindrada_l = excluded.cilindrada_l,
+  potencia_cv = excluded.potencia_cv,
+  tipo_combustible = excluded.tipo_combustible,
+  consumo_urbano_l100 = excluded.consumo_urbano_l100,
+  consumo_ruta_l100 = excluded.consumo_ruta_l100,
+  consumo_mixto_l100 = excluded.consumo_mixto_l100,
+  fuente_consumo = excluded.fuente_consumo,
+  capacidad_tanque_l = excluded.capacidad_tanque_l,
+  carroceria = excluded.carroceria,
+  pbt_kg = excluded.pbt_kg,
+  tara_kg = excluded.tara_kg,
+  carga_util_kg = excluded.carga_util_kg,
+  fuente = excluded.fuente,
+  fuente_url = excluded.fuente_url,
+  pagina = excluded.pagina,
+  fecha_extraccion = excluded.fecha_extraccion,
+  extraido_por = excluded.extraido_por,
+  verificado = excluded.verificado,
+  verificado_por = excluded.verificado_por,
+  notas = excluded.notas;

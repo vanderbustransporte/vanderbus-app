@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-07-28.
+Última actualización: 2026-07-29.
 
 ---
 
@@ -49,12 +49,20 @@ del estimador de consumo, **aplicadas por Diego el 2026-07-27** en orden en el S
 `organization_id`. Un Scania R450 2019 es el mismo camión para todos los clientes.
 Lectura para cualquier `authenticated`, escritura SÓLO `service_role` — un dato malo
 de un tenant no lo ven todos. **Verificado en vivo el 2026-07-28**: como anónimo la
-consulta devuelve 0 filas, como autenticado devuelve las 7 sembradas.
+consulta devuelve 0 filas, como autenticado devuelve las sembradas.
 
-El **seed** (`supabase/seeds/vehiculos_referencia.sql`) también está corrido
-(2026-07-28, 7 filas). Es idempotente: reejecutarlo actualiza, no duplica. Se corre
-desde el SQL editor del dashboard o con la service_role key — desde el cliente con la
-anon key no se puede insertar, que es justamente el punto.
+El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido hasta la TANDA 3:
+**8 filas en la base al 2026-07-29** (verificado con un `select` real, no con el
+archivo). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
+editor del dashboard o con la service_role key — desde el cliente con la anon key no se
+puede insertar, que es justamente el punto.
+
+> **Trampa que ya costó una vuelta:** escribir un bloque en `supabase/seeds/` **no lo
+> aplica**. El 2026-07-28 la TANDA 3 quedó escrita y sin correr, y al día siguiente la
+> base seguía en 7 filas mientras el archivo aparentaba 8. **Antes de dar una fila por
+> sembrada, verificar con un `select`.** Atajo: desde la consola de la app,
+> `const { supabase } = await import('/src/lib/supabase.js')` — en dev Vite sirve el
+> módulo y devuelve el cliente ya autenticado.
 
 Cada una se detecta por separado y la app tolera cualquier combinación: sin
 ninguna funciona exactamente como hoy, con la primera sola estima igual que
@@ -96,25 +104,59 @@ El estimador **no calcula** el consumo desde la mecánica: el consumo es una
 historial de cargas reales de esa unidad. De ahí las dos velocidades de carga:
 
 - **Camionetas y utilitarios** (Hilux, Amarok, Ranger, Master, Ducato, Sprinter,
-  Daily, Kangoo, Partner): ficha COMPLETA con `consumo_*` + `fuente_consumo`
-  homologado real y su fuente. **Es la prioridad**: es lo único que mueve el
-  estimador. **Todavía sin cargar.**
+  Daily, Kangoo, Partner): ficha COMPLETA con `consumo_*` + `fuente_consumo` y su
+  fuente. **Es la prioridad**: es lo único que mueve el estimador. **En curso.**
 - **Pesados y medianos** (Tector, Atego, Accelo, Actros, Scania, Volvo): sólo
   ESQUELETO — `tara_kg`, clase declarada explícita, carrocería. `consumo_* = NULL`,
   porque no hay homologación publicada y **no se inventa**. El número lo aprenden
-  del historial. Las 7 filas sembradas son todas de esta clase.
+  del historial. Las 7 primeras filas sembradas son todas de esta clase.
 
-Reglas que no se rompen al cargar filas nuevas:
+### Estado de la carga al 2026-07-29
 
+**Sembrado y commiteado (8 filas en la base):**
+
+| Tanda | Filas | Consumo |
+|---|---|---|
+| 1 y 2 | Sprinter 2020, Tector 2021 / 2019 ×2, Stralis 2013, Scania R450 2019, R410 2019 | NULL (esqueleto) |
+| 3 | **Toyota Hilux 2021 2.8 TDI 4x4 DC AT** | 12.5 urbano / 7.5 ruta, `benchmark_flota` |
+
+**En progreso — TANDA 4, utilitarios de reparto:**
+
+- **Renault Master 2021 Furgón L2H2 2.3 dCi 135** — bloque **escrito en el seed pero
+  SIN SEMBRAR**. Es la primera fila con `fuente_consumo = 'homologado'` (ciclo ECE):
+  8.9 urbano / 7.0 ruta / 7.7 mixto, `carroceria = 'furgon_cerrado'`, tanque 80 L,
+  tara/PBT/carga útil en NULL (la ficha europea da peso con conductor, que no es tara
+  limpia). Correrla en el SQL editor es lo primero al retomar.
+- **Pendientes de cargar** (los datos con fuente los trae Diego): **Fiat Ducato**,
+  **MB Sprinter** (ya existe la fila 2020, falta el consumo — el `ON CONFLICT` la
+  actualiza si coinciden marca+modelo+año+versión), **Iveco Daily**, **Ford Cargo**,
+  **VW**. Foco declarado: reparto y camiones, **no más pickups**.
+
+### Reglas de carga — decididas, no se re-discuten
+
+- **El consumo es una ENTRADA, no se calcula.** Y de los tres campos, **sólo urbano y
+  ruta entran al cálculo**: `specsVehiculo()` usa `consumo_mixto_l100` únicamente como
+  respaldo cuando faltan los otros dos. Cargar el mixto sirve de trazabilidad, no
+  mueve el número.
 - Falta un dato → **NULL**. Consumo inventado en el campo portante es el peor error
   posible: el estimador lo toma como verdad y deja de aprender del historial.
-- `anio` y `version` son parte de la clave única y **NOT NULL**: una fila por año y
-  versión, no por modelo.
+- **`fuente_consumo` válidos: `homologado` | `fabricante` | `benchmark_flota` |
+  `estimado_clase`.** Cualquier otro string **no da error en ningún lado** — ni la
+  tabla tiene CHECK ni la app valida: `fuenteInfo()` lo cae en silencio a
+  `estimado_clase` y la pantalla describe mal la calidad del dato. Se chequea a mano.
+- **`homologado` dispara ×1.18** (`fabricante` ×1.10; los otros dos no corrigen).
+  Usarlo **sólo con ciclo oficial**: el ciclo es optimista y el factor lo compensa.
+  Un número de prueba de revista o de experiencia de flota ya es de uso real — ahí va
+  `benchmark_flota`, o el castigo se cuenta dos veces.
+- **Los utilitarios livianos SÍ tienen homologación publicada; los pesados NO.** Para
+  pesados el consumo es benchmark o declaración del transportista, o directamente NULL.
 - En `tractor_semi`, `carroceria` va **NULL**, nunca el string `'n_a'`: el tractor no
   tiene carrocería propia, la aporta el semi. Da el mismo número (`n_a` es factor
   1.00) pero NULL dice "no se sabe" en vez de afirmar "no aplica".
+- `anio` y `version` son parte de la clave única y **NOT NULL**: una fila por año y
+  versión, no por modelo.
 - `verificado = false` hasta que una segunda persona cruce la fila contra la ficha
-  oficial. Las 7 sembradas están todas en `false`.
+  oficial. **Todas las sembradas están en `false`.**
 
 `src/data/motores.js` sigue como fallback cuando la tabla no responde, pero sus
 consumos son de rango genérico, no de ficha: es lo que este catálogo viene a
@@ -129,10 +171,31 @@ chip **`sin verificar`** y la tarjeta trae fuente con link y las `notas` de la f
 Lo importante: **los tres campos de consumo quedan VACÍOS** y `fuente_consumo` en
 "sin declarar" — la fila esqueleto no inyecta un consumo inventado.
 
+### Loop verificado en la app (2026-07-29) — la otra rama, la que SÍ trae consumo
+
+Con la Hilux ya sembrada se probó el camino que faltaba: **Toyota → Hilux → 2021 →
+"2.8 TDI 4x4 DC AT"**. Prellena 12.5 / 7.5 con los chips `sin verificar` y la fuente
+con link, y el panel muestra **"Usado por el estimador 10.0 L/100km · todavía es el
+teórico"**. Los 10.0 son el promedio de 12.5 y 7.5 **sin** el ×1.18: `benchmark_flota`
+no corrige, que es exactamente el punto de la distinción.
+
+`estimarConsumo()` sobre esa fila, 300 km mixto y sin peso, da **`ok: true`** → 30.0 L,
+rango **21.0–39.0 L (±30%)**. La banda es la más ancha porque la ficha está incompleta
+(sin tara) y no hay ninguna carga medida; se angosta sola cuando entren cargas a tanque
+lleno. Contraste con la fila esqueleto: el **R450 da `ok: false`** con
+`faltan: ["el consumo de la unidad (ficha de flota)"]` — nombra lo que falta en vez de
+inventar un número.
+
+> El cálculo con distancia **no se puede probar desde el form de Flota**: vive por viaje
+> y exigiría guardar la unidad. Se corrió el mismo código de la app importado del bundle
+> de dev, alimentado con la fila real traída de Supabase.
+
 Sin probar todavía, porque necesita datos que aún no existen:
 - El banner de `fuente === 'historico'` en `ConsumoEstimado.jsx`: necesita una unidad
-  con ≥2 cargas a tanque lleno.
-- El camino "el catálogo prellena el consumo": necesita la tanda de camionetas.
+  con ≥2 cargas a tanque lleno. La org de prueba sigue sin filas en `combustible`.
+- El ×1.18 de `homologado` **en la app**: la aritmética está verificada contra el código
+  (8.9 → 10.50, 7.0 → 8.26, `factorFuente` 1.18), pero la fila del Master todavía no
+  está en la base, así que la cascada no la ofrece.
 
 ---
 
