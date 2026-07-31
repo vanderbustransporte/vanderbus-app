@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-07-29.
+Última actualización: 2026-07-31.
 
 ---
 
@@ -51,9 +51,9 @@ Lectura para cualquier `authenticated`, escritura SÓLO `service_role` — un da
 de un tenant no lo ven todos. **Verificado en vivo el 2026-07-28**: como anónimo la
 consulta devuelve 0 filas, como autenticado devuelve las sembradas.
 
-El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido hasta la TANDA 3:
-**8 filas en la base al 2026-07-29** (verificado con un `select` real, no con el
-archivo). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
+El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido hasta la TANDA 4:
+**9 filas en la base al 2026-07-31** (la TANDA 4 la corrió Diego; las 8 anteriores
+se habían verificado con un `select` real, no con el archivo). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
 editor del dashboard o con la service_role key — desde el cliente con la anon key no se
 puede insertar, que es justamente el punto.
 
@@ -111,26 +111,46 @@ historial de cargas reales de esa unidad. De ahí las dos velocidades de carga:
   porque no hay homologación publicada y **no se inventa**. El número lo aprenden
   del historial. Las 7 primeras filas sembradas son todas de esta clase.
 
-### Estado de la carga al 2026-07-29
+### Estado de la carga al 2026-07-31
 
-**Sembrado y commiteado (8 filas en la base):**
+**Sembrado y commiteado (9 filas en la base):**
 
 | Tanda | Filas | Consumo |
 |---|---|---|
 | 1 y 2 | Sprinter 2020, Tector 2021 / 2019 ×2, Stralis 2013, Scania R450 2019, R410 2019 | NULL (esqueleto) |
 | 3 | **Toyota Hilux 2021 2.8 TDI 4x4 DC AT** | 12.5 urbano / 7.5 ruta, `benchmark_flota` |
+| 4 | **Renault Master 2021 Furgón L2H2 2.3 dCi 135** | 8.9 / 7.0 / 7.7, `homologado` (ECE) → ×1.18 |
 
-**En progreso — TANDA 4, utilitarios de reparto:**
+**Escrito y SIN SEMBRAR — TANDA 5, camiones (2026-07-31):**
 
-- **Renault Master 2021 Furgón L2H2 2.3 dCi 135** — bloque **escrito en el seed pero
-  SIN SEMBRAR**. Es la primera fila con `fuente_consumo = 'homologado'` (ciclo ECE):
-  8.9 urbano / 7.0 ruta / 7.7 mixto, `carroceria = 'furgon_cerrado'`, tanque 80 L,
-  tara/PBT/carga útil en NULL (la ficha europea da peso con conductor, que no es tara
-  limpia). Correrla en el SQL editor es lo primero al retomar.
-- **Pendientes de cargar** (los datos con fuente los trae Diego): **Fiat Ducato**,
-  **MB Sprinter** (ya existe la fila 2020, falta el consumo — el `ON CONFLICT` la
-  actualiza si coinciden marca+modelo+año+versión), **Iveco Daily**, **Ford Cargo**,
-  **VW**. Foco declarado: reparto y camiones, **no más pickups**.
+Dos esqueletos, ambos con fuente argentina (pruebas de MotorMagazine), ambos con
+`consumo_* = NULL`:
+
+- **Ford Cargo 2016 `1723 4x2 tractor AT`** — `tractor_semi`, Cummins ISBe6 6.7 / 230 cv,
+  tara 6357, PBT 16800, tanque 275 L, `carroceria` NULL. El PBTC 32000 va sólo en las
+  notas: `pbt_kg` es el peso propio de la unidad, no el del conjunto.
+- **Volkswagen Delivery 2019 `11.180 4x2 chasis cabina`** — `chasis_mediano`, Cummins
+  ISF 3.8 / 177 cv, tara 3400, PBT 10700, carga útil 7300, tanque 150 L, `carroceria`
+  NULL (sale como chasis pelado; **la tara sube al carrozarlo** y hay que corregirla en
+  la ficha de la unidad, o el factor de carga miente).
+
+**Buscados en la misma vuelta y NO cargados** — el motivo está escrito al pie del seed,
+porque es la parte que se olvida:
+
+- **Fiat Ducato** — la ficha argentina no publica consumo/tara/PBT en HTML legible (el
+  PDF oficial da 403). Lo único homologado que apareció es del Ducato **Panorama**
+  (minibús), no del furgón: atribuírselo al furgón sería inventar. Falta la ficha del
+  Furgón L2H2 / Maxicargo. Si de ahí sale **sólo el mixto, igual sirve**: con urbano y
+  ruta en NULL el estimador los deriva y lo dice en los supuestos (`consumo.js:207`).
+- **Iveco Daily** — lo indexado es de la generación EURO III, y las cifras que circulan
+  (9.64 / 8.20) no tienen año ni versión atribuibles. Sin `anio` + `version` no hay fila:
+  son parte de la clave única y NOT NULL.
+- **MB Sprinter 515** — probablemente se quede sin consumo para siempre: con 5 t de PBT
+  está por encima del límite de 3.5 t de la homologación de livianos. Lo que hay son
+  registros de spritmonitor (consumo real de dos usuarios) → `benchmark_flota`, jamás
+  `homologado`.
+
+Foco declarado: reparto y camiones, **no más pickups**.
 
 ### Reglas de carga — decididas, no se re-discuten
 
@@ -194,8 +214,9 @@ Sin probar todavía, porque necesita datos que aún no existen:
 - El banner de `fuente === 'historico'` en `ConsumoEstimado.jsx`: necesita una unidad
   con ≥2 cargas a tanque lleno. La org de prueba sigue sin filas en `combustible`.
 - El ×1.18 de `homologado` **en la app**: la aritmética está verificada contra el código
-  (8.9 → 10.50, 7.0 → 8.26, `factorFuente` 1.18), pero la fila del Master todavía no
-  está en la base, así que la cascada no la ofrece.
+  (8.9 → 10.50, 7.0 → 8.26, `factorFuente` 1.18). Desde el 2026-07-31 la fila del Master
+  **sí está en la base**, así que la cascada Renault → Master → 2021 ya la ofrece: falta
+  abrir el form de Flota y confirmar el número corregido en pantalla.
 
 ---
 

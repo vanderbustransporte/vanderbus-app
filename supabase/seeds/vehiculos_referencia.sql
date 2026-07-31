@@ -345,9 +345,7 @@ on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
 -- ═════════════════════════════════════════════════════════════════════════════
 -- TANDA 4 — UTILITARIOS DE REPARTO. Primera fila con consumo HOMOLOGADO.
 --
--- ⚠️ TODAVÍA SIN SEMBRAR (al 2026-07-29). Las tandas 1 a 3 ya están en la base
---    (8 filas); ésta se corre aparte cuando se retome. Escribir el bloque acá NO
---    lo aplica: la tabla es de escritura sólo para service_role.
+-- ✅ SEMBRADA el 2026-07-31 (confirmado por Diego). La base queda en 9 filas.
 --
 -- ⚠️ Acá fuente_consumo = 'homologado', y NO es el mismo caso que la Hilux. La
 --    Hilux salió de pruebas de revista, que ya son de uso real → benchmark_flota
@@ -405,3 +403,115 @@ on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
   verificado = excluded.verificado,
   verificado_por = excluded.verificado_por,
   notas = excluded.notas;
+
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- TANDA 5 — CAMIONES DE REPARTO Y DISTANCIA. ESQUELETO, como la TANDA 2.
+--
+-- ⚠️ TODAVÍA SIN SEMBRAR (al 2026-07-31). Escribir el bloque acá NO lo aplica:
+--    la tabla es de escritura sólo para service_role. Verificar con un select
+--    antes de dar estas filas por sembradas.
+--
+-- ⚠️ consumo_* = NULL y fuente_consumo = NULL en las DOS. No es que falte
+--    buscarlo: para pesados NO hay L/100km homologado publicado, y las únicas
+--    cifras que circulan son comentarios de usuarios (a un Cargo 1723 se le
+--    atribuyen 3,3 km/L en un comentario de lector, ≈30 L/100km, sin condiciones
+--    ni carga declaradas). Eso no es una fuente. El número lo aprende el
+--    historial de cargas a tanque lleno de cada unidad, que es más honesto.
+--    Lo que sí aportan estas filas: clase declarada, tara, PBT y specs de motor,
+--    que es justo lo que el estimador tiene que deducir mal cuando no están.
+--
+-- ⚠️ Las dos fuentes son pruebas de MotorMagazine sobre unidades del mercado
+--    ARGENTINO — no fichas europeas. Igual van verificado=false: falta cruzarlas
+--    contra la ficha oficial de Ford y de VW Camiones.
+-- ═════════════════════════════════════════════════════════════════════════════
+insert into public.vehiculos_referencia (
+  marca, modelo, anio, version,
+  clase, motor, cilindrada_l, potencia_cv, tipo_combustible,
+  consumo_urbano_l100, consumo_ruta_l100, consumo_mixto_l100,
+  fuente_consumo, capacidad_tanque_l, carroceria,
+  pbt_kg, tara_kg, carga_util_kg,
+  fuente, fuente_url, pagina, fecha_extraccion,
+  extraido_por, verificado, verificado_por, notas
+) values
+
+  -- carroceria NULL y no 'n_a': es tractor, la carrocería la aporta el semi.
+  ('Ford', 'Cargo', 2016, '1723 4x2 tractor AT',
+   'tractor_semi', 'Cummins ISBe6 6.7', 6.7, 230, 'diesel',
+   NULL, NULL, NULL,
+   NULL, 275, NULL,
+   16800, 6357, NULL,
+   'MotorMagazine prueba Ford Cargo 1723 4x2 tractor AT',
+   'https://motormagazine.com.ar/prueba-ford-cargo-1723-4x2-tractor-at/', NULL, current_date,
+   'humano', false, NULL,
+   'Tara 6357 y PBT 16800 son del TRACTOR SOLO. El PBTC (capacidad de traccion del conjunto) es 32000 kg y NO se carga en pbt_kg: el estimador toma pbt_kg como el peso propio de la unidad. Carga util en NULL a proposito: en un tractor la aporta el semi. Tanque 275 L = el principal; la prueba menciona un segundo tanque de 275 L (550 total) que es adicional y no viene en toda configuracion, asi que se carga el piso. Transmision automatizada Eaton Torqshift 10 vel. Consumo NO cargado: no hay medicion publicada, la prueba fue sin carga y en autodromo.'),
+
+  ('Volkswagen', 'Delivery', 2019, '11.180 4x2 chasis cabina',
+   'chasis_mediano', 'Cummins ISF 3.8', 3.8, 177, 'diesel',
+   NULL, NULL, NULL,
+   NULL, 150, NULL,
+   10700, 3400, 7300,
+   'MotorMagazine analisis VW Delivery 11.180',
+   'https://motormagazine.com.ar/al-volante-nuevo-volkswagen-delivery-11-180/', NULL, current_date,
+   'humano', false, NULL,
+   'Chasis con cabina simple 4x2, Euro 5 con SCR (tanque de urea 23 L, no se modela). Carroceria en NULL: sale de fabrica como chasis pelado y la carroceria la monta el cliente, asi que ese dato es de la UNIDAD, no del modelo. Tara 3400 = chasis sin carrozar; una vez carrozada la tara real sube y hay que corregirla en la ficha de la unidad, o el factor de carga miente. Carga util 7300 es tecnica + carroceria por la misma razon. Transmision Eaton manual 6 vel. Consumo NO cargado: la nota no lo declara ni lo mide.')
+
+on conflict (marca_norm, modelo_norm, anio, version_norm) do update set
+  clase = excluded.clase,
+  motor = excluded.motor,
+  cilindrada_l = excluded.cilindrada_l,
+  potencia_cv = excluded.potencia_cv,
+  tipo_combustible = excluded.tipo_combustible,
+  consumo_urbano_l100 = excluded.consumo_urbano_l100,
+  consumo_ruta_l100 = excluded.consumo_ruta_l100,
+  consumo_mixto_l100 = excluded.consumo_mixto_l100,
+  fuente_consumo = excluded.fuente_consumo,
+  capacidad_tanque_l = excluded.capacidad_tanque_l,
+  carroceria = excluded.carroceria,
+  pbt_kg = excluded.pbt_kg,
+  tara_kg = excluded.tara_kg,
+  carga_util_kg = excluded.carga_util_kg,
+  fuente = excluded.fuente,
+  fuente_url = excluded.fuente_url,
+  pagina = excluded.pagina,
+  fecha_extraccion = excluded.fecha_extraccion,
+  extraido_por = excluded.extraido_por,
+  verificado = excluded.verificado,
+  verificado_por = excluded.verificado_por,
+  notas = excluded.notas;
+
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- NO CARGADOS TODAVÍA — y por qué. (Al 2026-07-31.)
+--
+-- Estos tres se buscaron en esta misma vuelta y NO entraron. El motivo importa:
+-- no es que falte tiempo, es que la fuente que apareció no alcanza para la regla
+-- de "si el dato no está en la ficha, va NULL".
+--
+--  • FIAT DUCATO — la ficha argentina (fiat.com.ar MY20, fichastecnicas.org) da
+--    motor 2.3 Multijet 130 cv / 2287 cc pero NO publica consumo, ni tara, ni
+--    PBT en HTML legible; el PDF oficial responde 403 y los espejos son PDF
+--    binario ilegible sin poppler. Lo único con consumo homologado que apareció
+--    es km77 del Ducato **Panorama** Corto 2.3 Multijet 130 (7,0 L/100km mixto
+--    NEDC, tanque 90 L, tara 2290 kg): ése es el MINIBÚS de pasajeros, no el
+--    furgón. Cargarlo como furgón sería atribuirle a una versión un consumo que
+--    se midió en otra. Falta la ficha del Furgón L2H2 / Maxicargo.
+--    Nota útil: si de esa ficha sale SÓLO el mixto, igual es cargable. Con
+--    urbano y ruta en NULL, estimarConsumo() deriva los dos a partir del mixto
+--    y lo declara en los supuestos (src/utils/consumo.js:207).
+--
+--  • IVECO DAILY — mismo problema y peor. Lo indexado es de la generación
+--    EURO III (35S14 de 116 cv, tara 2070 / PBT 3500 / tanque 70 L, truck1.es),
+--    que no es el Daily que se vende hoy acá; y las cifras de consumo que
+--    circulan (9,64 urbano / 8,20 ruta) salen de una prueba de ruta —o sea
+--    benchmark_flota— sin año ni versión atribuibles. `anio` y `version` son
+--    parte de la clave única y NOT NULL: sin eso no hay fila que cargar.
+--
+--  • MERCEDES-BENZ SPRINTER 515 — la fila 2020 ya existe (TANDA 1) y sigue sin
+--    consumo, y es probable que se quede así: el 515 es de 5 t de PBT, arriba
+--    de los 3,5 t donde termina la homologación de L/100km para livianos. No
+--    hay ciclo oficial que citar. Lo que hay son registros de spritmonitor
+--    (12,77 y 13,15 L/100km) que son consumo REAL de dos usuarios sueltos: si
+--    algún día se cargan van 'benchmark_flota', NUNCA 'homologado', y con la
+--    nota de que son dos unidades, no una muestra.
+-- ═════════════════════════════════════════════════════════════════════════════
