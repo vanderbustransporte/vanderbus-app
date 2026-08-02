@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-07-24.
+Última actualización: 2026-08-01.
 
 ---
 
@@ -55,6 +55,13 @@ Cuando se sume una migración nueva, anotarla acá con estado hasta que se apliq
    que la use. Hacerlo *después* de pasar el repo a privado.
 3. **Dar acceso de colaborador a la otra persona** en el repo (Settings →
    Collaborators), también desde la cuenta owner.
+4. **Redeployar `Crear-Usuario` en el dashboard de Supabase.** El 2026-08-01 se
+   versionó en `supabase/functions/Crear-Usuario/index.ts` (antes vivía SOLO en
+   el dashboard) y se le cerró una escalada de privilegios: tomaba el `rol` crudo
+   del body, así que se podía crear un segundo owner armando el request a mano.
+   **La versión desplegada sigue siendo la vieja, con el agujero abierto**, hasta
+   que alguien pegue el archivo nuevo en el editor del dashboard. Rama:
+   `seguridad/crear-usuario-rol`.
 
 ---
 
