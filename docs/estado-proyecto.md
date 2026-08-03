@@ -55,12 +55,14 @@ Cuando se sume una migración nueva, anotarla acá con estado hasta que se apliq
    que la use. Hacerlo *después* de pasar el repo a privado.
 3. **Dar acceso de colaborador a la otra persona** en el repo (Settings →
    Collaborators), también desde la cuenta owner.
-4. ~~**Redeployar `Crear-Usuario` en el dashboard de Supabase.**~~ **HECHO por Diego
-   el 2026-08-01.** El 2026-08-01 esa función se versionó por primera vez en
-   `supabase/functions/Crear-Usuario/index.ts` (antes vivía SOLO en el dashboard)
-   y se le cerró una escalada de privilegios: tomaba el `rol` crudo del body, así
-   que un owner podía crear un segundo owner armando el request a mano. Diego pegó
-   la versión nueva en el editor del dashboard ese mismo día.
+4. ~~**Redeployar `Crear-Usuario` en el dashboard de Supabase.**~~ **HECHO el
+   2026-08-01: la Edge Function `Crear-Usuario` está desplegada en producción en
+   la versión 3, con el fix de escalada de rol activo y verificado.** Esa función
+   se versionó por primera vez en `supabase/functions/Crear-Usuario/index.ts`
+   (antes vivía SOLO en el dashboard) y se le cerró una escalada de privilegios:
+   tomaba el `rol` crudo del body, así que un owner podía crear un segundo owner
+   armando el request a mano. Diego pegó la versión nueva en el editor del
+   dashboard ese mismo día. **No queda nada pendiente de este punto.**
    **Ojo para la próxima:** esta función NO tiene deploy por CLI configurado. Si
    se toca `supabase/functions/Crear-Usuario/index.ts`, hay que pegarlo a mano en
    el dashboard o no tiene efecto — el repo y lo desplegado se desincronizan en

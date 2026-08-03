@@ -27,6 +27,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Cache local de la CLI de Supabase (link al proyecto, versiones) - no es del repo
+supabase/.temp/
+
 # Prompts y notas personales sueltas en la raiz (no son del proyecto)
 prompt.txt
 prompt-*.md
