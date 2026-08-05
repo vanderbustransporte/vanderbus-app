@@ -1,23 +1,28 @@
 {
+  // Este proyecto es JavaScript puro: src/ son .jsx y .js, no hay ni un .ts.
+  // Este archivo NO participa del build (npm run build es "vite build", tsc
+  // nunca corre); existe solo para que el TS server de VS Code entienda el
+  // frontend: JSX, import.meta.env y resolución de imports.
   "compilerOptions": {
     "target": "es2023",
     "module": "esnext",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    /* JS + JSX: sin esto "include": ["src"] no matchea ningún archivo */
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src", "vite.config.js"],
+  // Las Edge Functions corren en Deno y las maneja el LSP de Deno
+  // (ver .vscode/settings.json). El TS server no tiene que tocarlas.
+  "exclude": ["node_modules", "supabase", "server", "dist"]
 }
