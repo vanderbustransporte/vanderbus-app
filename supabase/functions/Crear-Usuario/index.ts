@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 // TODO(seguridad): restringir el origen al dominio de la app en vez de '*'.
 // Con '*' cualquier pagina puede invocar la funcion desde el browser de un owner
