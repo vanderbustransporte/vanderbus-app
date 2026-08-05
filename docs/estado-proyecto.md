@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-01.
+Última actualización: 2026-08-05.
 
 ---
 
@@ -63,10 +63,22 @@ Cuando se sume una migración nueva, anotarla acá con estado hasta que se apliq
    tomaba el `rol` crudo del body, así que un owner podía crear un segundo owner
    armando el request a mano. Diego pegó la versión nueva en el editor del
    dashboard ese mismo día. **No queda nada pendiente de este punto.**
-   **Ojo para la próxima:** esta función NO tiene deploy por CLI configurado. Si
-   se toca `supabase/functions/Crear-Usuario/index.ts`, hay que pegarlo a mano en
-   el dashboard o no tiene efecto — el repo y lo desplegado se desincronizan en
-   silencio.
+   **Ojo para la próxima:** hasta el 2026-08-05 esta función NO tenía deploy por
+   CLI: había que pegarla a mano en el dashboard o el repo y lo desplegado se
+   desincronizaban en silencio. Ver el punto 5.
+5. **Primer deploy por CLI (pendiente de correr).** El 2026-08-05 se versionó
+   `supabase/config.toml` con el `project_id` y el `verify_jwt` de las cuatro
+   Edge Functions, así que ya se pueden deployar desde el repo. **Todavía no se
+   corrió ningún deploy por CLI.** Estado actual:
+   - El repo tiene `Crear-Usuario` importando `npm:@supabase/supabase-js@2`;
+     **producción sigue con el import viejo de `esm.sh`.** Es la única diferencia
+     esperada, y es cosmética (misma librería, misma versión).
+   - Antes de deployar hay que **comparar el código del dashboard contra el del
+     repo**: el CLI pisa producción con el repo, así que cualquier diferencia que
+     no sea esa línea de import hay que reconciliarla primero.
+   - No hay Docker en la máquina de Diego: el deploy necesita `--use-api`.
+   - `supabase login` sigue pendiente. El link al proyecto ya existe localmente
+     (`supabase/.temp/linked-project.json`), pero ese archivo es por máquina.
 
 ---
 
