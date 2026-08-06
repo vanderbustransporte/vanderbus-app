@@ -66,7 +66,7 @@ export default function Login() {
       >
         <div style={{ marginBottom: '1.75rem' }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.02em' }}>
-            Vanderbus
+            TransAllInOne
           </h1>
           <p style={{ margin: '0.35rem 0 0', fontSize: '0.875rem', color: 'var(--text-2)' }}>
             Ingresá para acceder a tu panel

@@ -116,7 +116,7 @@ export default function Configuracion() {
       <div className="surface db-in db-d2" style={{ padding: 24, marginBottom: 16 }}>
         <p className="db-slabel" style={{ marginBottom: 16 }}>Datos de cobro</p>
         <Field label="Alias bancario / CBU">
-          <Input value={form.alias_bancario} onChange={e => set('alias_bancario', e.target.value)} placeholder="Ej: vanderbus.mp" />
+          <Input value={form.alias_bancario} onChange={e => set('alias_bancario', e.target.value)} placeholder="Ej: miempresa.mp" />
         </Field>
       </div>
 
