@@ -9,7 +9,7 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 | Persona | Área que está tocando | Rama | Desde |
 |---|---|---|---|
-| Diego | — | — | — |
+| Diego | Rebranding + baja de la sección Notificaciones | `rebranding/transallinone` | 2026-08-06 |
 | Nico | — | — | — |
 
 > Completar antes de empezar a trabajar. Es el mecanismo barato para no pisarnos
@@ -55,6 +55,16 @@ Cuando se sume una migración nueva, anotarla acá con estado hasta que se apliq
    que la use. Hacerlo *después* de pasar el repo a privado.
 3. **Dar acceso de colaborador a la otra persona** en el repo (Settings →
    Collaborators), también desde la cuenta owner.
+4. **Desactivar el workflow de n8n que scrapea oportunidades de flete.** El
+   negocio ya no hace fletes. El repo NO tiene la fuente: las filas de
+   `oportunidades` las insertaba un scraper `google_cse` vía **n8n local**
+   (documentado en `supabase/migrations/20260710120200_oportunidades_org_rls.sql`).
+   Está inactivo desde 2026-06-04 — probablemente porque la migración de RLS del
+   2026-07-10 le rompió el insert (`organization_id` NOT NULL + `tenant_isolation`).
+   **Hay que borrar/apagar el workflow en n8n para que no reviva.** Del lado del
+   código ya se retiró el tipo `'oportunidad'` de `src/utils/tipoNotif.js`.
+5. **Limpiar las filas viejas de flete** (opcional, cosmético). Queries en la
+   sección "Deuda conocida".
 
 ---
 
@@ -78,6 +88,23 @@ Roadmap técnico detallado y lo ya hecho: `.claude/skills/vanderbus-app.md`.
 - Restos de la plantilla Vite sin usar en `src/` (`counter.ts`, `main.ts`, `style.css`).
 - Tabla `vehiculo` (singular) y `ubicaciones` / `geofences` / `oportunidades` son
   vestigiales. Están cerradas con RLS. No usarlas.
+- **Restos del flete en la base** (2026-08-06). El código ya no habla de fletes,
+  pero quedan filas. Correr a mano en el SQL editor, en este orden:
+  ```sql
+  -- 1. Ver qué hay antes de borrar
+  select tipo, count(*) from public.notificaciones where tipo = 'oportunidad' group by tipo;
+  select count(*) from public.oportunidades;
+
+  -- 2. Borrar los avisos de flete ya emitidos
+  delete from public.notificaciones where tipo = 'oportunidad';
+
+  -- 3. Vaciar los leads scrapeados
+  delete from public.oportunidades;
+  ```
+  El CHECK `notificaciones_tipo_check` **se deja como está**: sigue aceptando
+  `'oportunidad'`. Sacarlo del CHECK no aporta (ya no hay emisor) y tocar el
+  constraint es más riesgoso que dejarlo. **No** dropear la tabla
+  `oportunidades`: está cerrada con RLS y no molesta.
 - Datos legacy: montos como string, fechas en formatos mezclados, horas en 12h y
   24h conviviendo, viajes con `tipo: 'Mudanza'`/`'Flete'`. **Se normalizan al leer,
   no se migran.** Ver convenciones en `.claude/skills/vanderbus-app.md`.
