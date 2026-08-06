@@ -1,6 +1,6 @@
 // src/components/NotifCenter.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Bell, ArrowRight } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TIPO_CONFIG } from '../utils/tipoNotif'
 import { agruparPorSeveridad } from '../utils/notifGrupos'
@@ -139,11 +139,6 @@ export default function NotifCenter({ unreadCount, onNav }) {
     await supabase.from('notificaciones').update({ leida: true }).eq('leida', false)
   }, [])
 
-  const verTodas = useCallback(() => {
-    onNav('notificaciones')
-    closePanel()
-  }, [onNav, closePanel])
-
   // ── Render ─────────────────────────────────────────────────────────────────
   const grupos = useMemo(() => agruparPorSeveridad(notifs), [notifs])
 
@@ -254,21 +249,9 @@ export default function NotifCenter({ unreadCount, onNav }) {
             )}
           </div>
 
-          {/* Footer */}
-          {notifs.length > 0 && (
-            <button
-              onClick={verTodas}
-              className="quiet-btn"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '11px 16px', flexShrink: 0,
-                border: 'none', borderTop: '1px solid var(--border)',
-                color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}
-            >
-              Ver todas las notificaciones <ArrowRight size={13} />
-            </button>
-          )}
+          {/* Sin footer: la sección dedicada de Notificaciones se dio de baja y
+              este panel es el único acceso. Lista las últimas 50 agrupadas por
+              severidad, que es todo lo que mostraba la página. */}
         </div>
       )}
     </div>

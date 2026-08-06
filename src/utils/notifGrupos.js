@@ -1,8 +1,8 @@
 // src/utils/notifGrupos.js
 //
-// Agrupación de notificaciones por severidad, compartida entre el panel de la
-// campana (NotifCenter) y la página dedicada (Notificaciones). Mantener acá la
-// única fuente de verdad del orden y los colores por tier.
+// Agrupación de notificaciones por severidad, usada por el panel de la campana
+// (NotifCenter), que desde la baja de la sección dedicada es el único consumidor.
+// Mantener acá la única fuente de verdad del orden y los colores por tier.
 
 export const SEVERIDADES = [
   { key: 'accion',      label: 'Acción requerida', color: 'var(--danger)',  tipos: ['accion'] },

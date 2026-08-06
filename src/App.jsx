@@ -148,7 +148,7 @@ export default function App() {
   // Título de pestaña: ahora refleja también en qué sección estás, que es lo que
   // se ve al tener varias pestañas abiertas del sistema.
   useEffect(() => {
-    const empresa = orgNombre || 'Vanderbus'
+    const empresa = orgNombre || 'TransAllInOne'
     document.title = rutaActual ? `${rutaActual.titulo} · ${empresa}` : empresa
   }, [orgNombre, rutaActual])
 
@@ -219,7 +219,6 @@ export default function App() {
         onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
-        unreadCount={notifCount}
       />
 
       {/* Topbar */}
