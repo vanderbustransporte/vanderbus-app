@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Cómo levantar y verificar la app Vanderbus en el navegador real (receta probada)
+description: Cómo levantar y verificar la app TransAllInOne en el navegador real (receta probada)
 ---
 
-# Verificar Vanderbus en runtime
+# Verificar TransAllInOne en runtime
 
 1. `npm run dev` en la raíz del repo (background). Si el 5173 está ocupado Vite
    salta al 5174 — leer el output para saber el puerto real.

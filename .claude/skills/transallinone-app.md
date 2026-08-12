@@ -1,13 +1,15 @@
 ---
-name: vanderbus-app
-description: Conocimiento completo sobre la app Vanderbus: arquitectura, stack, convenciones, estado actual y roadmap. Leer SIEMPRE antes de tocar cualquier archivo del proyecto.
+name: transallinone-app
+description: Conocimiento completo sobre la app TransAllInOne: arquitectura, stack, convenciones, estado actual y roadmap. Leer SIEMPRE antes de tocar cualquier archivo del proyecto.
 ---
 
-# Skill: Vanderbus App
+# Skill: TransAllInOne
 
 ## Que es este proyecto
 
 App de gestión para empresas de transporte. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+
+> **Nombre del producto: TransAllInOne** (antes "Vanderbus App", renombrado en 2026-08). *Vanderbus Transporte* es la **empresa** piloto, no el producto: cuando el texto dice "Vanderbus Transporte" habla del cliente. El repo de GitHub y la carpeta local conservan el slug viejo (`vanderbus-app`) a propósito — renombrarlos rompería remotes y rutas.
 
 > **Formato real de este repo:** es una **SPA web** (React + Vite) que se abre en el navegador con `npm run dev`. **No hay código, configuración ni dependencias de Electron en este repositorio ni en su historial de git.** La doc previa lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repo (ver Stack).
 
@@ -339,7 +341,7 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 1. **Tarifas por empresa** — leer de `org_settings` en vez de valores hardcodeados.
 2. **Onboarding self-service** — pantalla de registro para empresas nuevas (función `crear_empresa()` ya existe en SQL).
 3. **SaaS / billing** — planes, límites, webhook de pago. (La suspensión por `estado_sub` ya se aplica a nivel RLS; falta lo que la dispara: cobro/webhook.)
-4. **Dominio propio** — `api.vanderbus.app` → Supabase (evita bloqueos de red corporativa).
+4. **Dominio propio** — `api.transallinone.app` → Supabase (evita bloqueos de red corporativa).
 5. **Nómina mejorada** — sueldo fijo + extras, resumen día 26, notificación WhatsApp via n8n.
 6. **Ancho uniforme** — todos los módulos a `max-w-[1680px]` (el Dashboard ya lo tiene).
 7. ~~Deep links a registros~~ — **hecho** (2026-07-17): `/#/viajes/:id`, `/#/contactos/:id`,

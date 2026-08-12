@@ -1,7 +1,15 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-07-24.
+Última actualización: 2026-08-12.
+
+> **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
+> agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
+> piloto, no del producto — cuando algún doc dice "Vanderbus Transporte" habla del
+> cliente. El repo de GitHub y la carpeta local mantienen el slug viejo
+> (`vanderbus-app`) a propósito: renombrarlos rompe remotes, rutas y permisos.
+> Las claves de localStorage con prefijo `vanderbus_` **también se dejan** — ver
+> "Deuda conocida".
 
 ---
 
@@ -65,6 +73,20 @@ Cuando se sume una migración nueva, anotarla acá con estado hasta que se apliq
    código ya se retiró el tipo `'oportunidad'` de `src/utils/tipoNotif.js`.
 5. **Limpiar las filas viejas de flete** (opcional, cosmético). Queries en la
    sección "Deuda conocida".
+6. **Renombrar el tenant en Supabase** (último paso del rebranding). El nombre de
+   la empresa que se ve en la app NO sale del código: sale de
+   `organizations.nombre` → `AuthContext.orgNombre`. Y `organizations` es de solo
+   lectura desde el cliente (`20260710130100_organizations_solo_lectura.sql`), así
+   que va **por SQL editor**, mirando antes:
+   ```sql
+   -- 1. VER primero: qué orgs hay y cuál es la del tenant original
+   select id, nombre, created_at from public.organizations order by created_at;
+
+   -- 2. Recién con el id a la vista, renombrar SOLO esa fila
+   -- update public.organizations set nombre = '<nombre nuevo>' where id = '<uuid>';
+   ```
+   Ojo con no tocar las orgs de prueba (`Empresa Demo RLS`, `Prueba Panel
+   Superadmin`, y la org B que usa la suite RLS).
 
 ---
 
@@ -77,7 +99,7 @@ Plan completo en `docs/plan-producto-tms.md`. Lo inmediato:
 - Tarifas por empresa desde `org_settings` (hoy hay valores hardcodeados).
 - Onboarding self-service para empresas nuevas.
 
-Roadmap técnico detallado y lo ya hecho: `.claude/skills/vanderbus-app.md`.
+Roadmap técnico detallado y lo ya hecho: `.claude/skills/transallinone-app.md`.
 
 ---
 
@@ -86,6 +108,15 @@ Roadmap técnico detallado y lo ya hecho: `.claude/skills/vanderbus-app.md`.
 - `vite.config.js` todavía define `apiPlugin()` (un `/api/viajes` en memoria del
   dev server), vestigio del Express jubilado. No lo usa nadie. Confirmar y borrar.
 - Restos de la plantilla Vite sin usar en `src/` (`counter.ts`, `main.ts`, `style.css`).
+- **Claves de localStorage con prefijo `vanderbus_`** (6 usos): `App.jsx` (sidebar
+  colapsado), `ThemeContext.jsx` + `index.html` (tema) y `chequeoVencimientos.js`
+  (firma de vencimientos ya notificados). **Se dejan a propósito:** renombrar la
+  firma de vencimientos **redispararía todas las alertas** a todos los usuarios.
+  Si algún día se renombran, va con fallback de lectura de la clave vieja.
+- `vanderbus-skill.md` (raíz) y `prompt-setup-diego-claude-code (1).md` son restos
+  del setup inicial: describen un monorepo Electron con `server/` Express que **no
+  existe** en este repo ni en su historial. La versión buena y única del skill es
+  `.claude/skills/transallinone-app.md`. Confirmar y borrarlos.
 - Tabla `vehiculo` (singular) y `ubicaciones` / `geofences` / `oportunidades` son
   vestigiales. Están cerradas con RLS. No usarlas.
 - **Restos del flete en la base** (2026-08-06). El código ya no habla de fletes,
@@ -107,4 +138,4 @@ Roadmap técnico detallado y lo ya hecho: `.claude/skills/vanderbus-app.md`.
   `oportunidades`: está cerrada con RLS y no molesta.
 - Datos legacy: montos como string, fechas en formatos mezclados, horas en 12h y
   24h conviviendo, viajes con `tipo: 'Mudanza'`/`'Flete'`. **Se normalizan al leer,
-  no se migran.** Ver convenciones en `.claude/skills/vanderbus-app.md`.
+  no se migran.** Ver convenciones en `.claude/skills/transallinone-app.md`.

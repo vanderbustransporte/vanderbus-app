@@ -1,9 +1,9 @@
-# Cómo trabajamos en Vanderbus
+# Cómo trabajamos en TransAllInOne
 
 Este documento es el contrato de trabajo entre las personas que tocan este repo.
 Si algo acá contradice lo que hacías antes, gana este documento.
 
-- **Arquitectura, modelo de datos y convenciones de código:** `.claude/skills/vanderbus-app.md` (leerlo antes de tocar nada).
+- **Arquitectura, modelo de datos y convenciones de código:** `.claude/skills/transallinone-app.md` (leerlo antes de tocar nada).
 - **Reglas duras para agentes de IA:** `CLAUDE.md`.
 - **Estado actual y quién está en qué:** `docs/estado-proyecto.md`.
 - **Arrancar con un asistente de IA:** `docs/onboarding-ia.md` (prompt listo para pegar).
