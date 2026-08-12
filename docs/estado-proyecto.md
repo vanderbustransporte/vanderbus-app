@@ -113,10 +113,13 @@ Roadmap técnico detallado y lo ya hecho: `.claude/skills/transallinone-app.md`.
   (firma de vencimientos ya notificados). **Se dejan a propósito:** renombrar la
   firma de vencimientos **redispararía todas las alertas** a todos los usuarios.
   Si algún día se renombran, va con fallback de lectura de la clave vieja.
-- `vanderbus-skill.md` (raíz) y `prompt-setup-diego-claude-code (1).md` son restos
-  del setup inicial: describen un monorepo Electron con `server/` Express que **no
-  existe** en este repo ni en su historial. La versión buena y única del skill es
-  `.claude/skills/transallinone-app.md`. Confirmar y borrarlos.
+- ~~`vanderbus-skill.md` (raíz) y `prompt-setup-diego-claude-code (1).md`~~ —
+  **borrados el 2026-08-12.** Eran restos del setup inicial que describían un
+  monorepo Electron con `server/` Express que no existe en este repo ni en su
+  historial; un colaborador nuevo razonaba sobre un build inexistente. La versión
+  buena y única del skill es `.claude/skills/transallinone-app.md`.
+  (`docs/auditoria-saas-2026-07.md` §Doc los sigue nombrando: es un doc histórico,
+  no se reescribe.)
 - Tabla `vehiculo` (singular) y `ubicaciones` / `geofences` / `oportunidades` son
   vestigiales. Están cerradas con RLS. No usarlas.
 - **Restos del flete en la base** (2026-08-06). El código ya no habla de fletes,
