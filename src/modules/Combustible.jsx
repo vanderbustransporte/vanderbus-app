@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId, monthName } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
@@ -148,6 +149,18 @@ function Combustible() {
   }
 
   const openNew = () => { setEditId(null); setForm(empty()); setErrors({}); setModal(true) }
+
+  // El "Acceso rápido" del Dashboard llega con { nuevo: true } en location.state
+  // (ver useNav) y espera el form abierto, no la pantalla a secas. Efecto y no
+  // initial state: si ya estás parado en Combustible el componente no se remonta
+  // y el pedido tiene que entrar igual — mismo criterio que el { q } de la
+  // palette. `openNew` no va en las dependencias: se redefine en cada render y
+  // sólo toca setters estables, meterlo ahí reabriría el modal en loop.
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.nuevo && editable) openNew()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, editable])
 
   // La fila de la tabla trae `consumo` (derivado en memoria, no es columna):
   // hay que sacarlo antes de que entre al form o el UPDATE lo rebota entero.
