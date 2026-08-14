@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 const ACCENT = 'var(--accent)'
 
 const SECCIONES = [
-  { id: 'dashboard',     label: 'Dashboard' },
+  { id: 'dashboard',     label: 'Panel de control' },
   { id: 'viajes',        label: 'Viajes' },
   { id: 'combustible',   label: 'Combustible' },
   { id: 'mantenimiento', label: 'Mantenimiento' },
