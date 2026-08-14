@@ -2,8 +2,13 @@
 //
 // El valor efectivo sale de organizations.features (jsonb, solo lo edita un
 // superadmin desde el panel Empresas) con estos defaults cuando la org no
-// tiene el flag seteado: lo que hoy es visible sigue visible; el GPS nace
-// apagado (antes estaba oculto por código en el Sidebar).
+// tiene el flag seteado.
+//
+// Criterio de los defaults: nace apagado todo lo que una empresa de transporte
+// no usa el primer día. Un módulo visible y vacío para siempre se lee como
+// "la app está rota", no como "esto no lo uso". El GPS ya nacía apagado
+// (necesita un tracker en el vehículo); Marketing se sumó por lo mismo.
+// Prenderlos es un click del superadmin en el panel Empresas.
 export const FEATURES = [
   {
     id: 'seguimiento',
@@ -15,7 +20,7 @@ export const FEATURES = [
     id: 'marketing',
     label: 'Marketing',
     descripcion: 'Campañas y presupuesto de difusión',
-    porDefecto: true,
+    porDefecto: false,
   },
 ]
 
