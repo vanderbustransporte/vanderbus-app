@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-12.
+Última actualización: 2026-08-14.
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -27,11 +27,17 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 ## Dónde está el código
 
-- `main` es el tronco y está al día: el 2026-07-24 se mergeó `redesign/fase-1`
-  completa (13 commits: router + deep links, command palette, Finanzas, despacho,
-  choferes, estados vacíos, tracking público, vales de combustible).
+- `main` es el tronco. El 2026-07-24 se mergeó `redesign/fase-1` completa (13
+  commits: router + deep links, command palette, Finanzas, despacho, choferes,
+  estados vacíos, tracking público, vales de combustible).
 - La rama `redesign/fase-1` quedó igual que `main`. **No trabajar más sobre ella:**
   ramas nuevas salen de `main`.
+- **2026-08-14:** `rebranding/transallinone` (rebranding a TransAllInOne +
+  notificaciones centralizadas en la campana) y `combustible/estimador-consumo`
+  (13 commits: estimador, ficha extendida, calibración, docs por vehículo,
+  catálogo de referencia) entran a `main` juntas por PR. Hasta que ese PR se
+  mergee, **`main` remoto no tiene ninguna de las dos**: quien ramifique de
+  `main` antes del merge arranca sin el rebranding.
 
 ---
 
@@ -58,9 +64,9 @@ Lectura para cualquier `authenticated`, escritura SÓLO `service_role` — un da
 de un tenant no lo ven todos. **Verificado en vivo el 2026-07-28**: como anónimo la
 consulta devuelve 0 filas, como autenticado devuelve las sembradas.
 
-El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido hasta la TANDA 4:
-**9 filas en la base al 2026-07-31** (la TANDA 4 la corrió Diego; las 8 anteriores
-se habían verificado con un `select` real, no con el archivo). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
+El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido **entero, hasta la
+TANDA 5: 11 filas en la base, verificadas con un `select` real el 2026-08-13** (incluida
+la TANDA 5: Ford Cargo 1723 2016 y VW Delivery 11.180 2019). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
 editor del dashboard o con la service_role key — desde el cliente con la anon key no se
 puede insertar, que es justamente el punto.
 
@@ -125,6 +131,15 @@ se prueba sin desplegar nada y sin gastar una llamada a la API:
    ```
    Ojo con no tocar las orgs de prueba (`Empresa Demo RLS`, `Prueba Panel
    Superadmin`, y la org B que usa la suite RLS).
+7. **Cargar la ficha de consumo de las unidades REALES de la flota.** Las 4
+   migraciones están aplicadas y el cálculo funciona, pero las **2 unidades
+   activas tienen todas las columnas del estimador en NULL** (la más completa,
+   `got 170` / Renault Master 2007, sólo tiene `capacidad`). Con eso
+   `estimarConsumo()` devuelve `ok: false` con "falta el consumo de la unidad" —
+   el comportamiento correcto, pero significa que **en producción el estimador
+   todavía no muestra ningún número**. Lo desbloquea cargar consumo urbano/ruta
+   (o mixto) + tara en Flota → editar unidad, a mano o con la precarga desde
+   `vehiculos_referencia`. No hace falta tocar código.
 
 ---
 
@@ -142,9 +157,9 @@ historial de cargas reales de esa unidad. De ahí las dos velocidades de carga:
   porque no hay homologación publicada y **no se inventa**. El número lo aprenden
   del historial. Las 7 primeras filas sembradas son todas de esta clase.
 
-### Estado de la carga al 2026-07-31
+### Estado de la carga al 2026-08-13 (verificado por `select`)
 
-**Sembrado y commiteado (9 filas en la base):**
+**Sembrado y commiteado (11 filas en la base):**
 
 | Tanda | Filas | Consumo |
 |---|---|---|
@@ -152,7 +167,7 @@ historial de cargas reales de esa unidad. De ahí las dos velocidades de carga:
 | 3 | **Toyota Hilux 2021 2.8 TDI 4x4 DC AT** | 12.5 urbano / 7.5 ruta, `benchmark_flota` |
 | 4 | **Renault Master 2021 Furgón L2H2 2.3 dCi 135** | 8.9 / 7.0 / 7.7, `homologado` (ECE) → ×1.18 |
 
-**Escrito y SIN SEMBRAR — TANDA 5, camiones (2026-07-31):**
+**TANDA 5, camiones — sembrada (escrita 2026-07-31, aplicada y verificada 2026-08-13):**
 
 Dos esqueletos, ambos con fuente argentina (pruebas de MotorMagazine), ambos con
 `consumo_* = NULL`:
