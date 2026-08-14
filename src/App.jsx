@@ -261,7 +261,7 @@ export default function App() {
             </kbd>
           </button>
 
-          <NotifCenter unreadCount={notifCount} onNav={nav} />
+          <NotifCenter unreadCount={notifCount} onNav={nav} onUnreadChange={setNotifCount} />
           <ThemeToggle />
           <UserMenu />
         </div>
