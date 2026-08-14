@@ -5,7 +5,7 @@ repo. Sirve para cualquiera de las dos personas.
 
 ---
 
-Vas a trabajar en **Vanderbus**, una SPA React 19 + Vite 8 + Tailwind 4 que habla
+Vas a trabajar en **TransAllInOne**, una SPA React 19 + Vite 8 + Tailwind 4 que habla
 directo a Supabase (Postgres + Auth + RLS + Edge Functions). No hay backend
 propio. Somos **dos personas trabajando en paralelo** sobre el mismo repo, cada
 una en su área.
@@ -14,7 +14,7 @@ Hacé esto en orden, sin saltear:
 
 **1. Leé, antes de tocar un solo archivo:**
 - `CLAUDE.md` — reglas duras. Son obligatorias, no sugerencias.
-- `.claude/skills/vanderbus-app.md` — arquitectura, modelo de datos, convenciones
+- `.claude/skills/transallinone-app.md` — arquitectura, modelo de datos, convenciones
   y **las trampas de datos** (montos como string, fechas en formatos mezclados,
   horas en 12h y 24h conviviendo, FKs uuid que no aceptan `''`). Muchas de esas
   trampas ya causaron bugs en producción; están documentadas con el síntoma.

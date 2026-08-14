@@ -1,13 +1,15 @@
 ---
-name: vanderbus-app
-description: Conocimiento completo sobre la app Vanderbus: arquitectura, stack, convenciones, estado actual y roadmap. Leer SIEMPRE antes de tocar cualquier archivo del proyecto.
+name: transallinone-app
+description: Conocimiento completo sobre la app TransAllInOne: arquitectura, stack, convenciones, estado actual y roadmap. Leer SIEMPRE antes de tocar cualquier archivo del proyecto.
 ---
 
-# Skill: Vanderbus App
+# Skill: TransAllInOne
 
 ## Que es este proyecto
 
 App de gestión para empresas de transporte. Empezó como herramienta interna de Vanderbus Transporte (Lomas de Zamora, AMBA) y está en proceso de conversión a SaaS multi-tenant donde cada empresa tiene sus datos aislados.
+
+> **Nombre del producto: TransAllInOne** (antes "Vanderbus App", renombrado en 2026-08). *Vanderbus Transporte* es la **empresa** piloto, no el producto: cuando el texto dice "Vanderbus Transporte" habla del cliente. El repo de GitHub y la carpeta local conservan el slug viejo (`vanderbus-app`) a propósito — renombrarlos rompería remotes y rutas.
 
 > **Formato real de este repo:** es una **SPA web** (React + Vite) que se abre en el navegador con `npm run dev`. **No hay código, configuración ni dependencias de Electron en este repositorio ni en su historial de git.** La doc previa lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repo (ver Stack).
 
@@ -339,7 +341,7 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
 1. **Tarifas por empresa** — leer de `org_settings` en vez de valores hardcodeados.
 2. **Onboarding self-service** — pantalla de registro para empresas nuevas (función `crear_empresa()` ya existe en SQL).
 3. **SaaS / billing** — planes, límites, webhook de pago. (La suspensión por `estado_sub` ya se aplica a nivel RLS; falta lo que la dispara: cobro/webhook.)
-4. **Dominio propio** — `api.vanderbus.app` → Supabase (evita bloqueos de red corporativa).
+4. **Dominio propio** — `api.transallinone.app` → Supabase (evita bloqueos de red corporativa).
 5. **Nómina mejorada** — sueldo fijo + extras, resumen día 26, notificación WhatsApp via n8n.
 6. **Ancho uniforme** — todos los módulos a `max-w-[1680px]` (el Dashboard ya lo tiene).
 7. ~~Deep links a registros~~ — **hecho** (2026-07-17): `/#/viajes/:id`, `/#/contactos/:id`,
@@ -416,6 +418,68 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    tocar el CHECK de `notificaciones.tipo`) y link `choferes:<id>`. En Viajes, la sección
    de despacho tiene un select-acción "Elegir chofer del legajo" que copia nombre/DNI/cel
    a los campos de texto (siguen editables). La palette Ctrl+K también busca choferes.
+
+15. **Estimador de consumo de combustible por viaje** — código hecho (2026-07-24),
+   faltan SOLO las tres migraciones (ninguna aplicada; se aplican en orden, y la
+   app tolera cualquier combinación de las tres):
+   `20260724120000_consumo_estimado.sql` (estimador base) →
+   `20260724130000_consumo_ficha_extendida.sql` (ficha completa + calibración) →
+   `20260724140000_vehiculo_docs.sql` (manual en PDF por unidad).
+   Detección runtime en `src/utils/consumo.js` (`consumoDisponible()` /
+   `fichaExtDisponible()`, sonda por columna centinela, 42703 = no aplicada) y
+   `src/utils/docsVehiculo.js` (`docsDisponible()`, 42P01). Hasta entonces Flota,
+   Viajes y Combustible ocultan las secciones y SACAN esos campos del payload al
+   guardar, mismo patrón que despacho y vales.
+   **Cómo funciona el cálculo:**
+   `L/100km = base(tipoRuta) × factorCarga × factorCarrocería × factorTopografía`,
+   más `ralentí(L/h) × horas de motor detenido` en litros. `base` es el consumo
+   **en vacío** interpolado entre urbano y ruta y CORREGIDO por `fuente_consumo`;
+   `factorCarga = (1−s) + s × (tara+peso)/tara`, con `s` = fracción del consumo
+   que depende de la masa, partida por clase (`src/data/clases.js`) porque un semi
+   que triplica su masa sube ~40% y un furgón que la duplica sube ~30%: a 90 km/h
+   manda la aerodinámica, no el peso.
+   **Ojo al tocarlo:**
+   - Los consumos de la ficha son **en vacío**. Si alguien carga ahí el consumo
+     "cargado", el peso se cuenta dos veces.
+   - **`fuente_consumo` no es cosmético.** Un homologado de liviano es real pero
+     optimista (10–25% por debajo del uso urbano argentino) y se corrige +18%; los
+     pesados NO tienen homologación de L/100km publicada, así que ahí el valor es
+     benchmark o declaración del transportista y no se corrige. La UI lo dice.
+   - La **carrocería** entra como factor y SÓLO sobre el tramo de ruta (abajo de
+     ~70 km/h la diferencia aerodinámica es ruido), no por masa. El **volumen** no
+     entra en la fórmula a propósito: no cambia la sección frontal. Se muestra
+     como aprovechamiento.
+   - `src/data/motores.js` y `src/data/clases.js` son **valores de referencia**
+     (el primero sólo PRECARGA la ficha; el segundo aporta coeficientes cuando
+     falta el dato). No son la ficha del manual de cada unidad. Lo que manda es lo
+     guardado en `vehiculos`.
+   - **Calibración** (`src/utils/calibracion.js`): `usado = w×real + (1−w)×teórico`
+     con `w = n/(n+5)` → con 1 carga el teórico pesa 83%, con 5 van 50/50, con 20
+     el real pesa 80%. `real` sale SÓLO de cargas con `tanque_lleno='si'`
+     (una carga parcial no dice cuántos litros se gastaron en esos km) ordenadas
+     por **odómetro, no por fecha**. Outliers: rango duro por clase + más de 3σ
+     del centro, con σ estimada por **MAD sobre la mediana** — la σ clásica la
+     infla el propio outlier y no lo detecta (verificado: un odómetro mal tipeado
+     movía el real de 14.00 a 12.63 L/100km; con MAD queda en 14.04). El medido se
+     normaliza a "vacío" dividiéndolo por el factor de carga promedio de los
+     viajes de esa unidad: sin eso el peso se contaría dos veces.
+   - `consumoRealVehiculo()` (el viejo, sin flag de tanque lleno) sigue existiendo
+     como respaldo para bases sin la migración `...130000`. El cálculo bueno es
+     `consumoCalibrado`.
+   - La salida es un **rango** (±30/20/12/8% según ficha y cargas medidas), no un
+     número puntual, y va grande y arriba: si alguien cotiza un flete con esto y
+     le erra, la diferencia la pone él.
+   - `estimarConsumo()` devuelve `faltan` (qué datos hacen falta) y `supuestos`
+     (qué se dio por sentado, incluido lo que NO se modela). La UI muestra las
+     dos: un estimado sin sus supuestos a la vista es una mentira prolija.
+   - **Extracción del PDF** (Edge Function `extraer-ficha-tecnica`): no manda el
+     PDF entero — indexa por página, puntúa por palabras clave de
+     especificaciones y manda sólo las 12 mejores recortadas. `null` es respuesta
+     válida y esperada: el modelo no infiere ni completa con conocimiento general.
+     Lo extraído se valida por rango contra la clase y **nada entra al cálculo sin
+     confirmación humana** (va al form como propuesta, con página y cita a la
+     vista). La lógica pura vive en `logica.ts` para poder probarla sin desplegar:
+     `node --experimental-strip-types supabase/checks/extraccion_ficha_check.mjs`.
 
 ## Comandos clave
 

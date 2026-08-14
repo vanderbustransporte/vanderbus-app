@@ -50,13 +50,13 @@ y seguimiento de cargas, C&R Seguridad, Carbess, CETACC):
 
 ---
 
-## 2. Dónde está parado Vanderbus hoy
+## 2. Dónde está parado TransAllInOne hoy
 
 Lo que ya está a nivel producto: multi-tenant con RLS, permisos por sección, GPS propio,
 notificaciones de vencimientos, command palette, deep links, undo en borrados, dashboard
 operativo. Eso es infraestructura que muchos TMS chicos no tienen.
 
-Lo que falta es **profundidad de dominio**: el viaje de Vanderbus hoy es
+Lo que falta es **profundidad de dominio**: el viaje de TransAllInOne hoy es
 `cliente + origen + destino + fecha + monto`. Para el negocio declarado (viajes largos con
 custodia) faltan las tres capas que todos los exitosos tienen:
 

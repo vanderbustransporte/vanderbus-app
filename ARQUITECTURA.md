@@ -1,4 +1,4 @@
-# Vanderbus App — Arquitectura técnica (para Diego)
+# TransAllInOne — Arquitectura técnica (para Diego)
 
 Este documento describe cómo está construida la app hoy, después de la migración multi-tenant. Es el punto de partida para cualquier colaborador nuevo.
 
@@ -228,7 +228,7 @@ En orden de prioridad:
 1. **Tarifas y branding por empresa** — mover los valores hardcodeados de Vanderbus a `org_settings`. Hoy `tarifa_sin_peon`, `tarifa_con_peon`, etc. existen en la tabla pero la calculadora de precios no los lee de ahí todavía.
 2. **Registro self-service de empresas nuevas** — la función `crear_empresa()` ya existe en SQL. Falta la pantalla de onboarding (registro → crea empresa → wizard inicial).
 3. **Cobro / suscripción SaaS** — planes, límites por plan (cantidad de vehículos, usuarios), webhook de pago (MercadoPago o Stripe). La validación de suscripción tiene que vivir en una Edge Function, no en el frontend.
-4. **Dominio propio para Supabase** — hoy la app conecta a `*.supabase.co`. Algunos clientes pueden tener ese dominio bloqueado. Configurar un dominio propio (ej. `api.vanderbus.app`) resuelve esto.
+4. **Dominio propio para Supabase** — hoy la app conecta a `*.supabase.co`. Algunos clientes pueden tener ese dominio bloqueado. Configurar un dominio propio (ej. `api.transallinone.app`) resuelve esto.
 5. **Nómina mejorada** — sueldo fijo + extras por viajes fuera de horario, resumen al día 26, notificación WhatsApp via n8n.
 6. **Ancho de contenedor global** — hoy el Dashboard usa `max-w-[1680px]` (ancho total) pero los demás módulos siguen con `max-w-4xl`/`max-w-5xl`. Uniformizar.
 

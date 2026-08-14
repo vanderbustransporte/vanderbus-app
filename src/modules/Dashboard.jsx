@@ -360,13 +360,12 @@ export default function Dashboard() {
               <AtencionRow key={i} item={it} onClick={() => onNav(it.link)} />
             ))}
           </div>
+          {/* Sin link a una sección de Notificaciones (dada de baja): el resto
+              de las alertas se ven en el panel de la campana de la topbar. */}
           {atencion.length > atencionVisible.length && (
-            <button
-              onClick={() => onNav('notificaciones')}
-              style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              Ver {atencion.length - atencionVisible.length} más
-            </button>
+            <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>
+              +{atencion.length - atencionVisible.length} más en la campana
+            </p>
           )}
         </div>
       )}
