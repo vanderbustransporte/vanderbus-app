@@ -1,7 +1,7 @@
-# Vanderbus App
+# TransAllInOne (repo `vanderbus-app`)
 
 ## Skill principal — leer SIEMPRE antes de trabajar
-Always read and apply the skill at .claude/skills/vanderbus-app.md before making any changes.
+Always read and apply the skill at .claude/skills/transallinone-app.md before making any changes.
 This skill contains the complete architecture, conventions, data model, and roadmap of the project.
 
 ## Trabajo compartido

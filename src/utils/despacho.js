@@ -58,7 +58,12 @@ export function armarFichaDespacho(v, vehiculo) {
     linea('Referencia', v.referencia),
     linea('Cliente / Dador', v.cliente),
     linea('Destinatario', v.destinatario),
-    (v.origen || v.destino) ? `Ruta: ${v.origen || '¿?'} → ${v.destino || '¿?'}` : null,
+    // La distancia se suma a la línea de ruta si está cargada (columna nueva del
+    // estimador de consumo): al otro lado de la ficha también le sirve saberla.
+    // El consumo estimado NO va: es número interno de costo, no dato de despacho.
+    (v.origen || v.destino)
+      ? `Ruta: ${v.origen || '¿?'} → ${v.destino || '¿?'}${v.distancia_km ? ` (${num(v.distancia_km)} km)` : ''}`
+      : null,
   ].filter(Boolean).join('\n')
 
   const unidad = bloque('UNIDAD', [

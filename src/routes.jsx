@@ -2,7 +2,7 @@ import { lazy } from 'react'
 import {
   LayoutDashboard, MapPin, Truck, Fuel, Wrench, Navigation,
   TrendingUp, DollarSign, Contact, Megaphone, Users, Database,
-  Settings, Bell, Building2, IdCard,
+  Settings, Building2, IdCard,
 } from 'lucide-react'
 
 // ── Registro único de módulos ────────────────────────────────────────────────
@@ -39,7 +39,6 @@ import {
 // mapa (Leaflet) y los gráficos (Recharts) no los paga quien nunca los abre.
 
 const Dashboard      = lazy(() => import('./modules/Dashboard'))
-const Notificaciones = lazy(() => import('./modules/Notificaciones'))
 const Viajes         = lazy(() => import('./modules/Viajes'))
 const Vehiculo       = lazy(() => import('./modules/Vehiculo'))
 const Combustible    = lazy(() => import('./modules/Combustible'))
@@ -60,7 +59,9 @@ export const GRUPOS = ['Operación', 'Administración', 'Crecimiento', 'Sistema'
 export const ROUTES = [
   // ── Operación ──
   { id: 'dashboard',      path: '/dashboard',      label: 'Dashboard',     titulo: 'Panel de control', grupo: 'Operación',      icon: LayoutDashboard, acceso: 'permiso',    Component: Dashboard },
-  { id: 'notificaciones', path: '/notificaciones', label: 'Notificaciones', titulo: 'Notificaciones',  grupo: 'Operación',      icon: Bell,            acceso: 'libre',      Component: Notificaciones },
+  // No hay módulo 'notificaciones': la campana de la topbar (NotifCenter) es el
+  // único acceso a las alertas. La sección dedicada era redundante con el panel.
+  // El motor que las genera (utils/chequeoVencimientos.js) sigue intacto.
   { id: 'viajes',         path: '/viajes',         label: 'Viajes',        titulo: 'Viajes',           grupo: 'Operación',      icon: MapPin,          acceso: 'permiso',    Component: Viajes, detalle: true },
   { id: 'vehiculo',       path: '/vehiculo',       label: 'Flota',         titulo: 'Flota',            grupo: 'Operación',      icon: Truck,           acceso: 'permiso',    Component: Vehiculo, detalle: true },
   { id: 'choferes',       path: '/choferes',       label: 'Choferes',      titulo: 'Choferes',         grupo: 'Operación',      icon: IdCard,          acceso: 'permiso',    Component: Choferes, detalle: true },

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useStore } from '../store/useStore'
 import { ROUTES, GRUPOS, puedeAcceder } from '../routes'
 
-export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile, unreadCount = 0 }) {
+export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
   const { puedeVer, esOwner, esSuperadmin, featureOn, orgNombre } = useAuth()
   const { data } = useStore()
   const width = collapsed ? 64 : 240
@@ -67,7 +67,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
             )}
             {!collapsed && (
               <span className="font-bold text-sm truncate" style={{ color: 'var(--sb-logo)', letterSpacing: '-0.01em' }}>
-                {orgNombre || 'Vanderbus'}
+                {orgNombre || 'TransAllInOne'}
               </span>
             )}
           </button>
@@ -102,30 +102,23 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                   </div>
                 )}
                 <div className="px-2 flex flex-col gap-0.5">
-                  {items.map(({ id, path, label, icon: Icon }) => {
-                    const badge = id === 'notificaciones' ? unreadCount : 0
-                    return (
-                      <NavLink
-                        key={id}
-                        to={path}
-                        onClick={onCloseMobile}
-                        title={collapsed ? label : undefined}
-                        className={({ isActive }) => `sb-item${isActive ? ' is-active' : ''}${collapsed ? ' is-collapsed' : ''}`}
-                      >
-                        {({ isActive }) => (
-                          <>
-                            {isActive && <span className="sb-item-bar" />}
-                            <Icon size={17} style={{ flexShrink: 0 }} />
-                            {!collapsed && <span className="truncate">{label}</span>}
-                            {badge > 0 && !collapsed && (
-                              <span className="sb-badge">{badge > 99 ? '99+' : badge}</span>
-                            )}
-                            {badge > 0 && collapsed && <span className="sb-badge-dot" />}
-                          </>
-                        )}
-                      </NavLink>
-                    )
-                  })}
+                  {items.map(({ id, path, label, icon: Icon }) => (
+                    <NavLink
+                      key={id}
+                      to={path}
+                      onClick={onCloseMobile}
+                      title={collapsed ? label : undefined}
+                      className={({ isActive }) => `sb-item${isActive ? ' is-active' : ''}${collapsed ? ' is-collapsed' : ''}`}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && <span className="sb-item-bar" />}
+                          <Icon size={17} style={{ flexShrink: 0 }} />
+                          {!collapsed && <span className="truncate">{label}</span>}
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
                 </div>
               </div>
             )

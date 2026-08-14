@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useConfirm } from '../context/ConfirmContext'
 import { conValorActual, vehiculosSeleccionables } from '../utils/form'
+import { CAMPOS_FICHA_COMBUSTIBLE, fichaExtDisponible } from '../utils/consumo'
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -49,6 +50,8 @@ const empty = () => ({
   vehiculo_id: '',
   // Forma de pago / vale (solo se envían si la migración de vales está aplicada).
   forma_pago: 'Contado', vale_numero: '', vale_estado: '',
+  // Flag de tanque lleno (migración 20260724130000, idem: sólo si está aplicada).
+  tanque_lleno: '',
 })
 
 function consumoColor(c) {
@@ -105,6 +108,10 @@ function Combustible() {
   // ¿Está aplicada la migración de vales? (columna combustible.forma_pago)
   const [valesOn, setValesOn] = useState(false)
   useEffect(() => { let vivo = true; valesDisponible().then(ok => { if (vivo) setValesOn(ok) }); return () => { vivo = false } }, [])
+
+  // ¿Y la de la ficha extendida? (columna combustible.tanque_lleno)
+  const [fichaExtOn, setFichaExtOn] = useState(false)
+  useEffect(() => { let vivo = true; fichaExtDisponible().then(ok => { if (vivo) setFichaExtOn(ok) }); return () => { vivo = false } }, [])
 
   // Rendición que se está por pagar + campos del pago + ver historial de pagadas.
   const [rendPagar, setRendPagar] = useState(null)
@@ -183,6 +190,9 @@ function Combustible() {
       // una columna inexistente falla ENTERO — mismo patrón que despacho).
       for (const k of CAMPOS_VALE) delete registro[k]
     }
+
+    // Idem para el flag de tanque lleno (migración 20260724130000).
+    if (!fichaExtOn) for (const k of CAMPOS_FICHA_COMBUSTIBLE) delete registro[k]
 
     if (editId) update('combustible', list.map(r => r.id === editId ? registro : r))
     else        update('combustible', [registro, ...list])
@@ -576,6 +586,27 @@ function Combustible() {
               <Input type="number" step="0.01" value={form.litros} onChange={e => set('litros', e.target.value)} placeholder="0.00" />
               {errors.litros && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.litros}</p>}
             </Field>
+            {/* Tanque lleno: NO es un detalle. Sólo entre dos cargas a tanque
+                lleno se puede medir cuánto consumió la unidad; una carga parcial
+                da un L/100km sin sentido. El motor de calibración usa únicamente
+                estas cargas (utils/calibracion.js). */}
+            {fichaExtOn && (
+              <div className="col-span-2">
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', borderRadius: 'var(--radius)', background: 'var(--bg-overlay)', border: '1px solid var(--border)' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.tanque_lleno === 'si'}
+                    onChange={e => set('tanque_lleno', e.target.checked ? 'si' : 'no')}
+                    style={{ marginTop: 2, accentColor: 'var(--accent)', width: 15, height: 15, flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
+                    <strong style={{ color: 'var(--text-1)' }}>Se cargó a tanque lleno</strong> — sólo las cargas
+                    de tanque lleno a tanque lleno sirven para medir el consumo real de la unidad.
+                    Las parciales se registran igual, pero no entran al cálculo.
+                  </span>
+                </label>
+              </div>
+            )}
             <Field label="Importe ($)" required>
               <Input type="number" step="0.01" value={form.importe} onChange={e => set('importe', e.target.value)} placeholder="0.00" />
               {errors.importe && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.importe}</p>}

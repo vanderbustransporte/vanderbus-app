@@ -1,6 +1,8 @@
-# Vanderbus App — Sistema de Gestión Multi-Tenant
+# TransAllInOne — Sistema de Gestión Multi-Tenant
 
 App web (SPA React + Vite) para empresas de transporte. Arrancó como una herramienta interna de Vanderbus Transporte y está siendo migrada a una plataforma SaaS multi-tenant donde cada empresa tiene sus propios datos aislados.
+
+> **Nombre:** el producto se llama **TransAllInOne** (antes "Vanderbus App"). *Vanderbus Transporte* sigue siendo el nombre de la **empresa** piloto, no del producto. El repo en GitHub conserva el slug viejo (`vanderbustransporte/vanderbus-app`).
 
 > **Este repo es solo el frontend web.** Se abre en el navegador con `npm run dev`. No hay código de Electron ni backend propio versionado acá (ni en el historial de git). La versión anterior de este README lo describía como "app de escritorio Electron"; si un wrapper de escritorio existe, vive fuera de este repositorio.
 
@@ -55,7 +57,7 @@ Sin `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` la app aborta el arranque con
 |---|---|
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Cómo trabajamos: ramas, PRs, migraciones, cómo no pisarnos |
 | [`docs/estado-proyecto.md`](docs/estado-proyecto.md) | Qué está hecho, qué migraciones faltan aplicar, quién está en qué |
-| [`.claude/skills/vanderbus-app.md`](.claude/skills/vanderbus-app.md) | Arquitectura, modelo de datos y convenciones de código (las trampas de datos están acá) |
+| [`.claude/skills/transallinone-app.md`](.claude/skills/transallinone-app.md) | Arquitectura, modelo de datos y convenciones de código (las trampas de datos están acá) |
 | [`ARQUITECTURA.md`](ARQUITECTURA.md) | Esquema de la base |
 
 ## Configuración
