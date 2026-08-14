@@ -107,7 +107,31 @@ se prueba sin desplegar nada y sin gastar una llamada a la API:
    que la use. Hacerlo *después* de pasar el repo a privado.
 3. **Dar acceso de colaborador a la otra persona** en el repo (Settings →
    Collaborators), también desde la cuenta owner.
-4. **Desactivar el workflow de n8n que scrapea oportunidades de flete.** El
+4. ~~**Redeployar `Crear-Usuario` en el dashboard de Supabase.**~~ **HECHO el
+   2026-08-01: la Edge Function `Crear-Usuario` está desplegada en producción en
+   la versión 3, con el fix de escalada de rol activo y verificado.** Esa función
+   se versionó por primera vez en `supabase/functions/Crear-Usuario/index.ts`
+   (antes vivía SOLO en el dashboard) y se le cerró una escalada de privilegios:
+   tomaba el `rol` crudo del body, así que un owner podía crear un segundo owner
+   armando el request a mano. Diego pegó la versión nueva en el editor del
+   dashboard ese mismo día. **No queda nada pendiente de este punto.**
+   **Ojo para la próxima:** hasta el 2026-08-05 esta función NO tenía deploy por
+   CLI: había que pegarla a mano en el dashboard o el repo y lo desplegado se
+   desincronizaban en silencio. Ver el punto 5.
+5. **Primer deploy por CLI (pendiente de correr).** El 2026-08-05 se versionó
+   `supabase/config.toml` con el `project_id` y el `verify_jwt` de las cuatro
+   Edge Functions, así que ya se pueden deployar desde el repo. **Todavía no se
+   corrió ningún deploy por CLI.** Estado actual:
+   - El repo tiene `Crear-Usuario` importando `npm:@supabase/supabase-js@2`;
+     **producción sigue con el import viejo de `esm.sh`.** Es la única diferencia
+     esperada, y es cosmética (misma librería, misma versión).
+   - Antes de deployar hay que **comparar el código del dashboard contra el del
+     repo**: el CLI pisa producción con el repo, así que cualquier diferencia que
+     no sea esa línea de import hay que reconciliarla primero.
+   - No hay Docker en la máquina de Diego: el deploy necesita `--use-api`.
+   - `supabase login` sigue pendiente. El link al proyecto ya existe localmente
+     (`supabase/.temp/linked-project.json`), pero ese archivo es por máquina.
+6. **Desactivar el workflow de n8n que scrapea oportunidades de flete.** El
    negocio ya no hace fletes. El repo NO tiene la fuente: las filas de
    `oportunidades` las insertaba un scraper `google_cse` vía **n8n local**
    (documentado en `supabase/migrations/20260710120200_oportunidades_org_rls.sql`).
@@ -115,9 +139,9 @@ se prueba sin desplegar nada y sin gastar una llamada a la API:
    2026-07-10 le rompió el insert (`organization_id` NOT NULL + `tenant_isolation`).
    **Hay que borrar/apagar el workflow en n8n para que no reviva.** Del lado del
    código ya se retiró el tipo `'oportunidad'` de `src/utils/tipoNotif.js`.
-5. **Limpiar las filas viejas de flete** (opcional, cosmético). Queries en la
+7. **Limpiar las filas viejas de flete** (opcional, cosmético). Queries en la
    sección "Deuda conocida".
-6. **Renombrar el tenant en Supabase** (último paso del rebranding). El nombre de
+8. **Renombrar el tenant en Supabase** (último paso del rebranding). El nombre de
    la empresa que se ve en la app NO sale del código: sale de
    `organizations.nombre` → `AuthContext.orgNombre`. Y `organizations` es de solo
    lectura desde el cliente (`20260710130100_organizations_solo_lectura.sql`), así
@@ -131,7 +155,7 @@ se prueba sin desplegar nada y sin gastar una llamada a la API:
    ```
    Ojo con no tocar las orgs de prueba (`Empresa Demo RLS`, `Prueba Panel
    Superadmin`, y la org B que usa la suite RLS).
-7. **Cargar la ficha de consumo de las unidades REALES de la flota.** Las 4
+9. **Cargar la ficha de consumo de las unidades REALES de la flota.** Las 4
    migraciones están aplicadas y el cálculo funciona, pero las **2 unidades
    activas tienen todas las columnas del estimador en NULL** (la más completa,
    `got 170` / Renault Master 2007, sólo tiene `capacidad`). Con eso

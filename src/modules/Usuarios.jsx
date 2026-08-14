@@ -288,11 +288,18 @@ export default function Usuarios() {
                 </button>
               </div>
             </Field>
+            {/* Los usuarios nuevos se crean SIEMPRE como staff: la Edge Function
+                Crear-Usuario rechaza con 403 cualquier otro rol. Para que haya un
+                segundo dueño, se crea el usuario y después se lo promueve desde
+                "Editar permisos" (ese flujo sí acepta owner). */}
             <Field label="Rol">
-              <Select value={form.rol} onChange={e => setF('rol', e.target.value)}>
-                <option value="owner">Owner</option>
-                <option value="staff">Staff</option>
-              </Select>
+              <div style={{
+                display: 'flex', alignItems: 'center', height: 38, padding: '0 12px',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)', fontSize: 13, color: 'var(--text-2)',
+              }}>
+                Staff
+              </div>
             </Field>
           </div>
         </div>

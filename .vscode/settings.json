@@ -1,0 +1,20 @@
+{
+  // Deno APAGADO a nivel global: el frontend (src/) sigue usando el TS server
+  // normal de VS Code. Si esto pasa a true se rompe el linting de toda la app.
+  "deno.enable": false,
+
+  // Deno SOLO adentro de supabase/functions (Edge Functions, runtime Deno).
+  // OJO: no agregar "deno.disablePaths": ["."] — disablePaths le gana a
+  // enablePaths y deja la carpeta de functions sin LSP de Deno.
+  "deno.enablePaths": ["supabase/functions"],
+
+  "deno.lint": true,
+
+  // En la extensión de Deno v3+ esto es string[], no boolean. El código de las
+  // functions solo usa APIs estables (Deno.serve, Deno.env), así que va vacío.
+  "deno.unstable": [],
+
+  // El import map vive adentro de deno.json ("imports"), que es la forma
+  // moderna. No hay import_map.json separado.
+  "deno.config": "./supabase/functions/deno.json"
+}

@@ -1,0 +1,30 @@
+# supabase/config.toml — fuente única de verdad del proyecto Supabase.
+#
+# Versionado a propósito: sin este archivo el CLI no sabe a qué proyecto
+# apunta y las Edge Functions se terminan deployando a mano por el dashboard
+# (que fue exactamente lo que pasó con Crear-Usuario). Con esto, un
+# `supabase functions deploy <nombre>` desde la raíz del repo alcanza.
+#
+# Escrito a mano, NO con `supabase init`: ese comando scaffoldea la config
+# completa del stack local (db, auth, storage, studio, analytics...) que este
+# proyecto no usa — acá no se levanta Supabase local, se trabaja contra el
+# proyecto hosteado.
+project_id = "mrfwcfuddvexqixfjnuh"
+
+# ── Edge Functions ───────────────────────────────────────────────────────────
+# OJO: si una función NO figura acá, el CLI la deploya con verify_jwt = true
+# por defecto. Para gps-ingesta y detectar-viajes-gps eso las ROMPE: ninguna
+# de las dos recibe un JWT de usuario, se autentican con su propio header.
+# Declararlas explícitamente evita tener que acordarse del --no-verify-jwt.
+
+[functions.Crear-Usuario]
+verify_jwt = true   # valida el JWT del owner que llama
+
+[functions.provisionar-empresa]
+verify_jwt = true   # valida el JWT del superadmin
+
+[functions.gps-ingesta]
+verify_jwt = false  # el GPSLogger autentica con x-device-token
+
+[functions.detectar-viajes-gps]
+verify_jwt = false  # pg_cron autentica con x-cron-secret

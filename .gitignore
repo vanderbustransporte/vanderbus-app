@@ -18,7 +18,10 @@ dist-ssr
 !.env.example
 
 # Editor directories and files
+# Ojo: tiene que ser ".vscode/*" con glob, NO ".vscode/". Si se ignora la carpeta
+# entera, git ni siquiera la recorre y los "!" de abajo no re-incluyen nada.
 .vscode/*
+!.vscode/settings.json
 !.vscode/extensions.json
 .idea
 .DS_Store
@@ -27,8 +30,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Estado local del CLI de Supabase (el link al proyecto es por maquina)
+# ── Supabase ────────────────────────────────────────────────────────────────
+# supabase/config.toml SI se versiona: es la fuente unica de verdad del
+# project_id y del verify_jwt de cada Edge Function. Lo que se ignora es el
+# estado local de la CLI, que es por maquina y no describe al proyecto.
+# (git NO soporta comentarios al final de una linea de patron: el texto
+# quedaria como parte del patron. Cada comentario va en su propia linea.)
+# Cache de la CLI: link al proyecto y versiones de los servicios.
 supabase/.temp/
+# Branching local.
+supabase/.branches/
+# Secrets locales de las Edge Functions.
+supabase/.env
+supabase/.env.local
 
 # Prompts y notas personales sueltas en la raiz (no son del proyecto)
 prompt.txt
