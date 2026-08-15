@@ -27,7 +27,11 @@ import {
 import { TOPOGRAFIAS, TOPOGRAFIA_DEFAULT } from '../data/clases'
 import ConsumoEstimado from '../components/ConsumoEstimado'
 
-const TIPOS   = ['Excursión', 'Traslado', 'Turismo', 'Charter', 'Escolar', 'Corporativo', 'Otro']
+// Tipos de viaje de logística / transporte de cargas. Los tipos de pasajeros
+// (Excursión, Traslado, Turismo, Charter, Escolar, Corporativo) salieron acá.
+// NO se migran los viajes viejos: el listado muestra `r.tipo` crudo y el form
+// los conserva vía conValorActual() — ver utils/form.js.
+const TIPOS   = ['Flete', 'Mudanza', 'Distribución', 'Carga general', 'Carga con custodia', 'Contenedor', 'Encomienda', 'Otro']
 const ESTADOS = ['Pendiente', 'Confirmado', 'Realizado', 'Cancelado']
 
 const ESTADO_STYLES = {
@@ -43,7 +47,7 @@ const ESTADO_FALLBACK = { bg: 'var(--bg-overlay)', color: 'var(--text-2)' }
 // handleSave los saca del payload si la migración 20260718120000 no está
 // aplicada (ver utils/despacho.js).
 const empty = () => ({
-  id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Excursión',
+  id: genId(), fecha: todayISO(), hora: '', cliente: '', tipo: 'Flete',
   origen: '', destino: '', monto_sena: '', monto_total: '', estado: 'Pendiente', notas: '',
   vehiculo_id: '',
   // Igual que los de despacho: van siempre en el form pero handleSave los saca
@@ -119,7 +123,8 @@ export default function Viajes() {
   )
 
   // Opciones del modal, preservando lo que la fila ya tiene guardado (valores
-  // legacy tipo 'Mudanza'/'Flete' y vehículos archivados; ver utils/form.js).
+  // legacy de pasajeros tipo 'Traslado'/'Excursión' y vehículos archivados;
+  // ver utils/form.js).
   const tiposOpciones   = useMemo(() => conValorActual(TIPOS, form.tipo), [form.tipo])
   const estadosOpciones = useMemo(() => conValorActual(ESTADOS, form.estado), [form.estado])
   const vehiculosOpciones = useMemo(

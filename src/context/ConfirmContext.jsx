@@ -51,11 +51,12 @@ export function ConfirmProvider({ children }) {
   return (
     <ConfirmContext.Provider value={confirmar}>
       {children}
+      {/* Sin cierre por click en el backdrop: cancelar es una decisión
+          explícita (botón o Escape), igual que en shared/Modal.jsx. */}
       {dialogo && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'var(--modal-backdrop)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-          onMouseDown={(e) => { if (e.target === e.currentTarget) cerrar(false) }}
         >
           <div
             className="w-full max-w-sm modal-panel"
