@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 
+// Cierra SOLO con la X o con Escape. El click en el backdrop NO cierra a
+// propósito: estos modales son formularios de carga y un click al costado
+// borraba todo lo tipeado sin aviso (pérdida de datos real, no hipotética).
 export default function Modal({ title, onClose, children, size = 'md' }) {
   const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
 
@@ -14,7 +17,6 @@ export default function Modal({ title, onClose, children, size = 'md' }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'var(--modal-backdrop)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         className={`w-full ${sizes[size]} modal-panel`}

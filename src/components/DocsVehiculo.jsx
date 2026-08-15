@@ -38,6 +38,15 @@ export default function DocsVehiculo({ vehiculoId, organizationId, editable, ext
 
   useEffect(() => { refrescar() }, [refrescar])
 
+  // El visor cierra con la X o con Escape. El click en el backdrop no cierra,
+  // mismo criterio que shared/Modal.jsx (todos los overlays cierran igual).
+  useEffect(() => {
+    if (!visor) return
+    const onKey = (e) => { if (e.key === 'Escape') setVisor(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [visor])
+
   const onArchivo = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''   // permite volver a elegir el mismo archivo
@@ -155,13 +164,12 @@ export default function DocsVehiculo({ vehiculoId, organizationId, editable, ext
           zoom e impresión — no hace falta mantener un visor propio. */}
       {visor && (
         <div
-          onClick={() => setVisor(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,.6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
           }}
         >
-          <div onClick={e => e.stopPropagation()} className="modal-panel" style={{ width: 'min(1100px, 100%)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div className="modal-panel" style={{ width: 'min(1100px, 100%)', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
               <FileText size={15} style={{ color: 'var(--accent)' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
