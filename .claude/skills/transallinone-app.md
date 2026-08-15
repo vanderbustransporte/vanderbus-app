@@ -17,64 +17,39 @@ El dueño del proyecto es Nico (usuario: "ELON EL PERRI" en Windows). Diego es e
 
 ---
 
-## Stack completo
+## Stack — solo lo que el repo NO te dice solo
 
-- **Frontend:** React 19 + Vite + Tailwind CSS 4 — **SPA web** (corre en el navegador)
-- **Router:** react-router-dom 7 en modo **HashRouter** (`/#/viajes`). Es Hash y no Browser porque el build usa `base: './'` y no hay rewrite de servidor: con paths reales, refrescar en `/viajes` daría 404. Si algún día se sirve desde un host con rewrite a index.html, es cambiar una línea en `main.jsx`.
-- **Desktop:** *no presente en este repo.* `vite.config.js` usa `base: './'` (assets con rutas relativas), lo que sugiere que en algún momento se pensó para empaquetar en un contenedor tipo Electron, pero **no hay wrapper Electron ni `electron-updater` versionado acá** (verificado: nada de Electron en el árbol de archivos ni en el historial de git).
-- **Base de datos:** Supabase (PostgreSQL + Auth + RLS + Realtime + Edge Functions)
-- **Estado global:** Singleton propio en `src/store/useStore.js`
-- **Tipografías:** Plus Jakarta Sans (UI) + Geist Mono (números/datos)
-- **Iconos:** Lucide React
-- **Gráficos:** Recharts
-- **Mapas:** Leaflet + OpenStreetMap (módulo GPS)
-- **Automatizaciones:** n8n local
+Las dependencias están en `package.json` (React 19 + Vite + Tailwind 4, Supabase,
+Leaflet, Recharts, Lucide). Lo que hay que saber y no se deduce:
 
-**IMPORTANTE:** Hubo un backend Express que fue JUBILADO; **no está en este repo** (no hay carpeta `server/` versionada). El frontend habla directo a Supabase. No reintroducir un backend Express.
+- **Router en modo HashRouter** (`/#/viajes`), no Browser: el build usa `base: './'`
+  y no hay rewrite de servidor, así que con paths reales refrescar en `/viajes` daría
+  404. Si algún día se sirve desde un host con rewrite a index.html, es una línea en
+  `main.jsx`.
+- **No hay Electron acá.** `base: './'` sugiere que se pensó para empaquetar en un
+  contenedor de escritorio, pero no hay wrapper ni `electron-updater` versionado
+  (verificado en el árbol y en el historial de git). Si existe, vive fuera del repo.
+- **El backend Express fue JUBILADO** y no está en este repo (no hay `server/`).
+  El frontend habla directo a Supabase. No reintroducir un backend Express.
+- **Estado global:** singleton propio en `src/store/useStore.js` (no Redux/Zustand).
+- **Automatizaciones:** n8n local, fuera del repo.
 
 ---
 
-## Estructura de carpetas
+## Estructura — lo que un `ls` no te aclara
 
-```
-vanderbus-app\                 ← raíz del repo (acá está package.json y se corre npm)
-├── index.html
-├── vite.config.js             ← base: './' (assets con rutas relativas)
-├── package.json               ← Vite + React 19 (sin Electron)
-├── src\
-│   ├── main.jsx               ← HashRouter envuelve al AuthGate (el deep link sobrevive al login)
-│   ├── App.jsx                ← shell: topbar + <Routes> + guard de permisos
-│   ├── routes.jsx             ← CRÍTICO: registro único de módulos (path, label, permisos, feature, lazy)
-│   ├── hooks\useNav.js        ← navegar por id de módulo: nav('viajes')
-│   ├── modules\               ← Un archivo = un módulo completo
-│   │   ├── Dashboard.jsx
-│   │   ├── Vehiculo.jsx        (gestión de FLOTA, no un solo vehículo)
-│   │   ├── Combustible.jsx
-│   │   ├── Mantenimiento.jsx
-│   │   ├── Nomina.jsx
-│   │   ├── Finanzas.jsx
-│   │   ├── Viajes.jsx
-│   │   ├── Marketing.jsx
-│   │   ├── Contactos.jsx
-│   │   ├── SeguimientoGPS.jsx
-│   │   ├── Usuarios.jsx        (solo visible para owner)
-│   │   └── Backup.jsx
-│   ├── components\
-│   │   ├── Sidebar.jsx         (menú filtrado por permisos)
-│   │   ├── Login.jsx
-│   │   ├── NotifCenter.jsx
-│   │   ├── ThemeToggle.jsx
-│   │   ├── ToastContainer.jsx
-│   │   └── shared\            (Field, Modal, SearchBar, Table)
-│   ├── context\              (AuthContext ← CRÍTICO sesión+permisos, ThemeContext, ToastContext)
-│   ├── store\useStore.js     ← CRÍTICO: todos los datos de la empresa
-│   ├── lib\supabase.js       ← solo anon key, nunca service_role
-│   ├── utils\                (format.js, fecha.js, chartTheme.js, crearNotificacion.js, ...)
-│   └── index.css             ← Design system completo (variables CSS)
-└── public\
-```
+La raíz del repo *es* el frontend (no hay subcarpeta `vanderbus\`, ni `electron\`,
+ni `server\`, ni en el historial). `src/modules/` = un archivo por módulo completo.
+Los cuatro archivos que hay que conocer antes de tocar nada:
 
-> **Nota:** la doc previa dibujaba este repo como una subcarpeta `vanderbus\` dentro de `C:\vanderbus-app\`, con carpetas hermanas `electron\` y `server\`. **Esas carpetas no están en este repositorio ni en su historial de git** — la raíz del repo *es* el frontend. Además quedan restos de la plantilla Vite sin usar (`src/counter.ts`, `src/main.ts`, `src/style.css`) que conviven con la app real y se pueden eliminar.
+- **`src/routes.jsx`** — registro único de módulos (ver sección Navegación).
+- **`src/store/useStore.js`** — todos los datos de la empresa.
+- **`src/context/AuthContext.jsx`** — sesión + permisos.
+- **`src/lib/supabase.js`** — solo anon key, NUNCA service_role.
+
+Dos trampas de nombre: **`Vehiculo.jsx` gestiona la FLOTA entera**, no un vehículo;
+y quedan restos de la plantilla Vite sin usar (`src/counter.ts`, `src/main.ts`,
+`src/style.css`) que conviven con la app real y se pueden borrar.
 
 ---
 
@@ -198,24 +173,10 @@ const { data, error } = await supabase.functions.invoke('provisionar-empresa', {
 
 ## Design system
 
-### Variables CSS principales (src/index.css)
-
-```css
-/* Fondos (dark) */
---bg-base: #09090b; --bg-surface: #101012; --bg-elevated: #18181b; --bg-overlay: #27272a;
-
-/* Textos */
---text-1: #f1f5f9; --text-2: #94a3b8; --text-3: #52525b;
-
-/* Accent */
---accent: #38bdf8; --accent-dim: rgba(56,189,248,0.10);
-
-/* Semánticos */
---positive: #34d399; --danger: #f87171; --warning: #fbbf24;
-
-/* Forma */
---radius: 8px; --radius-sm: 6px;
-```
+Las variables CSS (fondos, textos, accent, semánticos, radios) están definidas en
+`src/index.css` — leerlas de ahí, no de acá. Usar SIEMPRE las variables, nunca
+colores literales: el light mode se activa con `[data-theme="light"]` en `<html>`
+y sobreescribe solo las variables, así que un `#18181b` hardcodeado no se adapta.
 
 ### Clases CSS importantes
 
@@ -230,33 +191,9 @@ const { data, error } = await supabase.functions.invoke('provisionar-empresa', {
 .modal-panel      /* panel de modal con animación modal-in */
 ```
 
-Light mode: `[data-theme="light"]` en `<html>` activa las overrides.
-
-### Patrón de módulo típico
-
-```jsx
-import { useStore } from '../store/useStore'
-import { useAuth } from '../context/AuthContext'
-import { Field, Input, Select } from '../components/shared/Field'
-
-export default function MiModulo() {
-  const { data, update } = useStore()
-  const { puedeEditar } = useAuth()
-  const editable = puedeEditar('mi-seccion')
-
-  // ...
-
-  return (
-    <div className="max-w-5xl mx-auto">
-      <div className="db-in db-d0" style={{ marginBottom: 28 }}>
-        <h1 className="mod-h1">Título</h1>
-        <p className="mod-sub">Subtítulo</p>
-      </div>
-      {editable && <button className="glass-btn-primary">Agregar</button>}
-    </div>
-  )
-}
-```
+Para el patrón de módulo típico (useStore + useAuth + Field/Input/Select + `mod-h1`
+/ `mod-sub` / `db-in`), copiar de un módulo existente — `src/modules/Contactos.jsx`
+es el más chico y sigue el patrón completo.
 
 ---
 
@@ -391,109 +328,27 @@ nav('viajes')   // por id de módulo; si el path cambia, cambia solo en routes.j
    tablas existentes, sin migración. "Por cobrar" = `monto_total − monto_sena` de viajes
    Pendiente/Confirmado. Los movimientos derivados (marketing, ingreso espejo con `viaje_id`)
    no se editan ni borran desde Finanzas.
-13. **Despacho completo (Fase B del plan de producto)** — código **hecho** (2026-07-18),
-   falta SOLO aplicar la migración `20260718120000_viajes_despacho.sql` (17 columnas text
-   nullable en `viajes`: carga tipo/bultos/peso/volumen/valor, chofer nombre/dni/cel,
-   patente_semi, custodia, satelital, precintos, referencia, destinatario). El análisis
-   competitivo que originó esto vive en `docs/plan-producto-tms.md`.
-   **Cómo funciona:** `src/utils/despacho.js` detecta en runtime si la migración está
-   aplicada (select de `carga_tipo`, promesa cacheada; error 42703 = no aplicada) — hasta
-   entonces Viajes oculta la sección "Datos de despacho" y `handleSave` SACA esos campos
-   del payload (mandarlos contra columnas inexistentes haría fallar el guardado entero,
-   mismo patrón que el bug del uuid ''). La **ficha de despacho** (botón FileText en cada
-   fila, visible también para solo-lectura) arma texto plano con solo las líneas con datos
-   (`armarFichaDespacho`) y ofrece Copiar + link wa.me. Fase D (tracking público) sigue
-   pendiente en el plan.
-14. **Choferes (Fase C)** — código **hecho** (2026-07-18), falta SOLO aplicar la migración
-   `20260718130000_choferes.sql`: tabla `choferes` (id TEXT genId, fechas TEXT ISO, soft
-   delete `activo`) + `tenant_isolation` + policies restrictivas sección **'choferes'**
-   (nueva: está en `SECCIONES` de Usuarios.jsx y en routes.jsx con `detalle: true`) +
-   realtime + `importar_backup` reemplazada con choferes en su array.
-   **Cómo funciona:** detección runtime en `src/utils/choferes.js` (error **42P01** = tabla
-   inexistente); el store trata la tabla ausente como vacía, la EXCLUYE de la suscripción
-   Realtime (`_tablasAusentes` — un binding a tabla fuera de la publicación pone el canal
-   entero en error) y el export de backup tolera el 42P01 en vez de abortar. Vencimientos
-   del legajo (licencia / habilitación LNH / psicofísico, `CAMPOS_VENC_CHOFER`) entran a
-   `chequeoVencimientos` con tipo **'vencimiento'** (reutilizado a propósito: NO hubo que
-   tocar el CHECK de `notificaciones.tipo`) y link `choferes:<id>`. En Viajes, la sección
-   de despacho tiene un select-acción "Elegir chofer del legajo" que copia nombre/DNI/cel
-   a los campos de texto (siguen editables). La palette Ctrl+K también busca choferes.
+13. **Despacho completo (Fase B)**, **14. Choferes (Fase C)** y **15. Estimador de
+   consumo** — código hecho, con migraciones pendientes y detección en runtime.
+   El detalle operativo y **las trampas al tocarlos** (patrón de detección por
+   error 42703/42P01, ingreso espejo, calibración por MAD, por qué el consumo de
+   la ficha es *en vacío*, por qué la salida es un rango) salieron de acá para no
+   cargarse en cada sesión.
 
-15. **Estimador de consumo de combustible por viaje** — código hecho (2026-07-24),
-   faltan SOLO las tres migraciones (ninguna aplicada; se aplican en orden, y la
-   app tolera cualquier combinación de las tres):
-   `20260724120000_consumo_estimado.sql` (estimador base) →
-   `20260724130000_consumo_ficha_extendida.sql` (ficha completa + calibración) →
-   `20260724140000_vehiculo_docs.sql` (manual en PDF por unidad).
-   Detección runtime en `src/utils/consumo.js` (`consumoDisponible()` /
-   `fichaExtDisponible()`, sonda por columna centinela, 42703 = no aplicada) y
-   `src/utils/docsVehiculo.js` (`docsDisponible()`, 42P01). Hasta entonces Flota,
-   Viajes y Combustible ocultan las secciones y SACAN esos campos del payload al
-   guardar, mismo patrón que despacho y vales.
-   **Cómo funciona el cálculo:**
-   `L/100km = base(tipoRuta) × factorCarga × factorCarrocería × factorTopografía`,
-   más `ralentí(L/h) × horas de motor detenido` en litros. `base` es el consumo
-   **en vacío** interpolado entre urbano y ruta y CORREGIDO por `fuente_consumo`;
-   `factorCarga = (1−s) + s × (tara+peso)/tara`, con `s` = fracción del consumo
-   que depende de la masa, partida por clase (`src/data/clases.js`) porque un semi
-   que triplica su masa sube ~40% y un furgón que la duplica sube ~30%: a 90 km/h
-   manda la aerodinámica, no el peso.
-   **Ojo al tocarlo:**
-   - Los consumos de la ficha son **en vacío**. Si alguien carga ahí el consumo
-     "cargado", el peso se cuenta dos veces.
-   - **`fuente_consumo` no es cosmético.** Un homologado de liviano es real pero
-     optimista (10–25% por debajo del uso urbano argentino) y se corrige +18%; los
-     pesados NO tienen homologación de L/100km publicada, así que ahí el valor es
-     benchmark o declaración del transportista y no se corrige. La UI lo dice.
-   - La **carrocería** entra como factor y SÓLO sobre el tramo de ruta (abajo de
-     ~70 km/h la diferencia aerodinámica es ruido), no por masa. El **volumen** no
-     entra en la fórmula a propósito: no cambia la sección frontal. Se muestra
-     como aprovechamiento.
-   - `src/data/motores.js` y `src/data/clases.js` son **valores de referencia**
-     (el primero sólo PRECARGA la ficha; el segundo aporta coeficientes cuando
-     falta el dato). No son la ficha del manual de cada unidad. Lo que manda es lo
-     guardado en `vehiculos`.
-   - **Calibración** (`src/utils/calibracion.js`): `usado = w×real + (1−w)×teórico`
-     con `w = n/(n+5)` → con 1 carga el teórico pesa 83%, con 5 van 50/50, con 20
-     el real pesa 80%. `real` sale SÓLO de cargas con `tanque_lleno='si'`
-     (una carga parcial no dice cuántos litros se gastaron en esos km) ordenadas
-     por **odómetro, no por fecha**. Outliers: rango duro por clase + más de 3σ
-     del centro, con σ estimada por **MAD sobre la mediana** — la σ clásica la
-     infla el propio outlier y no lo detecta (verificado: un odómetro mal tipeado
-     movía el real de 14.00 a 12.63 L/100km; con MAD queda en 14.04). El medido se
-     normaliza a "vacío" dividiéndolo por el factor de carga promedio de los
-     viajes de esa unidad: sin eso el peso se contaría dos veces.
-   - `consumoRealVehiculo()` (el viejo, sin flag de tanque lleno) sigue existiendo
-     como respaldo para bases sin la migración `...130000`. El cálculo bueno es
-     `consumoCalibrado`.
-   - La salida es un **rango** (±30/20/12/8% según ficha y cargas medidas), no un
-     número puntual, y va grande y arriba: si alguien cotiza un flete con esto y
-     le erra, la diferencia la pone él.
-   - `estimarConsumo()` devuelve `faltan` (qué datos hacen falta) y `supuestos`
-     (qué se dio por sentado, incluido lo que NO se modela). La UI muestra las
-     dos: un estimado sin sus supuestos a la vista es una mentira prolija.
-   - **Extracción del PDF** (Edge Function `extraer-ficha-tecnica`): no manda el
-     PDF entero — indexa por página, puntúa por palabras clave de
-     especificaciones y manda sólo las 12 mejores recortadas. `null` es respuesta
-     válida y esperada: el modelo no infiere ni completa con conocimiento general.
-     Lo extraído se valida por rango contra la clase y **nada entra al cálculo sin
-     confirmación humana** (va al form como propuesta, con página y cita a la
-     vista). La lógica pura vive en `logica.ts` para poder probarla sin desplegar:
-     `node --experimental-strip-types supabase/checks/extraccion_ficha_check.mjs`.
+   > **LEER `.claude/skills/transallinone-features.md` ANTES de tocar Viajes,
+   > Combustible, Flota o el estimador.** No improvisar sobre esas features sin
+   > ese archivo: cada una tiene un modo de fallar en silencio.
 
 ## Comandos clave
 
-Todos se corren desde la **raíz del repo** (donde está `package.json`). La ruta
-local varía por máquina: en la de Diego es `C:\Users\diego\Desktop\vanderbus-app`.
+`npm install` / `npm run dev` / `npm run build`, desde la raíz del repo. Lo que no
+es obvio:
 
-```bash
-npm install     # primera vez, y cada vez que la otra persona sumó una dependencia
-npm run dev     # http://localhost:5173 (5174 si está ocupado) — UNA sola terminal
-npm run build   # tiene que pasar antes de abrir un PR
-```
-
-**Git:** en algunas máquinas Git no está en el PATH y hay que invocarlo con la ruta
-completa (`"C:\Program Files\Git\bin\git.exe" …`). Probar `git --version` primero.
+- **`npm run dev` en UNA sola terminal**: levanta en 5173, y si está ocupado salta a
+  5174 — dos instancias hacen perder de vista cuál se está mirando.
+- **`npm run build` tiene que pasar antes de abrir un PR.**
+- **Git puede no estar en el PATH** en algunas máquinas y hay que invocarlo con la
+  ruta completa (`"C:\Program Files\Git\bin\git.exe" …`). Probar `git --version` primero.
 
 **Flujo de trabajo (dos personas en paralelo):** rama corta desde `main` → PR →
 review → squash merge. Está todo en `CONTRIBUTING.md`; **no commitear a `main`
