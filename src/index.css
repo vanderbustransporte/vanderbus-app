@@ -252,6 +252,48 @@ button:active { transform: scale(0.97); }
   transform-origin: top right;
 }
 
+/* Fila del panel: el cuerpo es un botón (abre / marca leída) y las acciones
+   (marcar leída, descartar) son botones hermanos — anidar botones es HTML
+   inválido y el click de la acción terminaba disparando también el de la fila.
+   Las acciones aparecen al hover y SIEMPRE con foco de teclado. */
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  transition: background 140ms ease;
+}
+.notif-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 6px 10px 11px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+.notif-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px 0 0;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.notif-row:focus-within .notif-actions { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .notif-row:hover                 { background: var(--hover-tint); }
+  .notif-row:hover .notif-actions  { opacity: 1; }
+}
+/* Touch: no hay hover, así que las acciones van visibles pero atenuadas. */
+@media (hover: none) {
+  .notif-actions { opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-row, .notif-actions { transition: none; }
+}
+
 /* ── Dashboard stagger ─────────────────────────────────── */
 @keyframes db-up {
   to { opacity: 1; transform: translateY(0); }
