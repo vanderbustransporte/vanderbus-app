@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-14.
+Última actualización: 2026-08-17.
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -35,9 +35,35 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 - **2026-08-14:** `rebranding/transallinone` (rebranding a TransAllInOne +
   notificaciones centralizadas en la campana) y `combustible/estimador-consumo`
   (13 commits: estimador, ficha extendida, calibración, docs por vehículo,
-  catálogo de referencia) entran a `main` juntas por PR. Hasta que ese PR se
-  mergee, **`main` remoto no tiene ninguna de las dos**: quien ramifique de
-  `main` antes del merge arranca sin el rebranding.
+  catálogo de referencia) **ya están mergeadas** a `main`.
+- **2026-08-17: no queda trabajo fuera de `main`.** Se cerraron las dos últimas
+  ramas colgadas, las dos ramificadas de `6d209cb` y mergeadas sin conflicto,
+  con `npm run build` verde entre medio:
+  - `ux/limpieza-1` (3 commits, merge `9bb04d7`) — un solo nombre para el panel
+    de control (el menú decía "Dashboard" y la topbar "Panel de control", que
+    para alguien no técnico son dos pantallas), los atajos de "Acceso rápido"
+    del Dashboard abren el formulario en vez de dejarte mirando la pantalla
+    (viajan por `location.state.nuevo`, mismo canal que el `{ q }` de la
+    palette), y **Marketing pasa a nacer apagado** como el GPS: un módulo
+    visible y vacío para siempre se lee como "la app está rota". Prenderlo
+    sigue siendo un click del superadmin en el panel Empresas.
+  - `notificaciones/centro-campana-v2` (1 commit, merge `fbcb126`) — la mitad
+    que faltaba de la centralización en la campana: filtros y agrupación por
+    severidad, y `src/utils/notifDestino.js`, que hace que el click anuncie a
+    dónde va ("Revisar en Flota") y **oculte la acción si el usuario no tiene
+    acceso a ese módulo**, en vez de llevarlo a "Sin acceso". La baja de la
+    sección dedicada ya estaba en `main` desde el rebranding; esto es el panel.
+  - `notificaciones/centro-campana` (v1) quedó **superada por completo**: su
+    contenido es la baja de la sección (ya en `main`) más una versión anterior
+    del panel. Verificado que no aporta nada: se puede borrar. Lo único que
+    dejó sin barrer son dos reglas CSS muertas en `src/index.css`
+    (`.sb-badge`, `.sb-badge-dot`), sin ningún uso en JSX.
+
+  > **Pendiente de verificación en navegador.** Los dos merges tienen build
+  > verde y el contenido de cada rama se había probado en runtime en su sesión
+  > original, pero **el merge en sí no se abrió en el navegador** (la extensión
+  > de Chrome no estaba conectada el 2026-08-17). Lo que conviene mirar una vez:
+  > los 4 botones de "Acceso rápido" del Dashboard y el panel de la campana.
 
 ---
 
