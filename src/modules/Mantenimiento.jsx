@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore, getData } from '../store/useStore'
 import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { formatDate, formatARS, todayISO, genId } from '../utils/format'
@@ -75,6 +76,18 @@ export default function Mantenimiento() {
   }
 
   const openNew = () => { setEditId(null); setForm(empty()); setErrors({}); setModal(true) }
+
+  // El "Acceso rápido" del Dashboard llega con { nuevo: true } en location.state
+  // (ver useNav) y espera el form abierto, no la pantalla a secas. Efecto y no
+  // initial state: si ya estás parado en Mantenimiento el componente no se
+  // remonta y el pedido tiene que entrar igual — mismo criterio que el { q } de
+  // la palette. `openNew` no va en las dependencias: se redefine en cada render
+  // y sólo toca setters estables, meterlo ahí reabriría el modal en loop.
+  const location = useLocation()
+  useEffect(() => {
+    if (location.state?.nuevo && editable) openNew()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, editable])
 
   // `...empty()` primero para que las filas viejas tengan todas las claves
   // definidas, null → '' para inputs controlados, y fechas normalizadas a ISO

@@ -442,13 +442,18 @@ export default function Dashboard() {
       </div>
 
       {/* ── Acceso rápido ── */}
+      {/* Cada botón navega al módulo Y le pide abrir el alta, vía el `state` del
+          history entry (mismo canal que usa la palette con { q }). Antes sólo
+          navegaban: el botón decía "Nuevo ingreso" y te dejaba mirando Finanzas.
+          El módulo destino lee `state.nuevo` y sólo abre si hay permiso de
+          edición — la promesa la cumple él, no el botón. */}
       <div className="surface db-in db-d4" style={{ padding: '20px 22px', marginBottom: 28 }}>
         <p className="db-slabel">Acceso rápido</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <QuickBtn icon={ArrowUpCircle}   label="Nuevo ingreso"  onClick={() => onNav('finanzas')}      />
-          <QuickBtn icon={ArrowDownCircle} label="Nuevo gasto"    onClick={() => onNav('finanzas')}      />
-          <QuickBtn icon={Fuel}            label="Nueva carga"    onClick={() => onNav('combustible')}   />
-          <QuickBtn icon={Wrench}          label="Mantenimiento"  onClick={() => onNav('mantenimiento')} />
+          <QuickBtn icon={ArrowUpCircle}   label="Nuevo ingreso"       onClick={() => onNav('finanzas',      { nuevo: 'ingreso' })} />
+          <QuickBtn icon={ArrowDownCircle} label="Nuevo gasto"         onClick={() => onNav('finanzas',      { nuevo: 'gasto' })}   />
+          <QuickBtn icon={Fuel}            label="Nueva carga"         onClick={() => onNav('combustible',   { nuevo: true })}      />
+          <QuickBtn icon={Wrench}          label="Nuevo mantenimiento" onClick={() => onNav('mantenimiento', { nuevo: true })}      />
         </div>
       </div>
 

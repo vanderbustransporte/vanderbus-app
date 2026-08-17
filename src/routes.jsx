@@ -58,7 +58,10 @@ export const GRUPOS = ['Operación', 'Administración', 'Crecimiento', 'Sistema'
 
 export const ROUTES = [
   // ── Operación ──
-  { id: 'dashboard',      path: '/dashboard',      label: 'Dashboard',     titulo: 'Panel de control', grupo: 'Operación',      icon: LayoutDashboard, acceso: 'permiso',    Component: Dashboard },
+  // `label` y `titulo` dicen lo mismo a propósito: eran "Dashboard" en el menú y
+  // "Panel de control" en la topbar, y para alguien no técnico son dos pantallas
+  // distintas. El `id` sigue siendo 'dashboard' (se persiste en notificaciones.link).
+  { id: 'dashboard',      path: '/dashboard',      label: 'Panel de control', titulo: 'Panel de control', grupo: 'Operación',   icon: LayoutDashboard, acceso: 'permiso',    Component: Dashboard },
   // No hay módulo 'notificaciones': la campana de la topbar (NotifCenter) es el
   // único acceso a las alertas. La sección dedicada era redundante con el panel.
   // El motor que las genera (utils/chequeoVencimientos.js) sigue intacto.

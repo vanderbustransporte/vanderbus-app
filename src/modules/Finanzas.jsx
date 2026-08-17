@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore, getData } from '../store/useStore'
 import { formatDate, formatARS, todayISO, genId, monthName } from '../utils/format'
 import { toISO, fechaMes } from '../utils/fecha'
@@ -208,6 +209,20 @@ export default function Finanzas() {
   const [periodoResumen, setPeriodoResumen] = useState('mes')
   const [periodoFlota, setPeriodoFlota]     = useState('12m')
   const [buscaCliente, setBuscaCliente]     = useState('')
+
+  // El "Acceso rápido" del Dashboard llega con { nuevo: 'ingreso' | 'gasto' } en
+  // location.state (ver useNav) y espera el form abierto, no la pantalla a secas.
+  // Efecto y no initial state: si ya estás parado en Finanzas el componente no se
+  // remonta y el pedido tiene que entrar igual — mismo criterio que el { q } de
+  // la palette. También pasa a Movimientos: al guardar, la fila nueva queda a la
+  // vista en vez de caer en una pestaña que no estás mirando.
+  const location = useLocation()
+  useEffect(() => {
+    const nuevo = location.state?.nuevo
+    if (!nuevo || !editable) return
+    setVista('movimientos')
+    setModal({ tipo: nuevo === 'gasto' ? 'gasto' : 'ingreso' })
+  }, [location.state, editable])
 
   const all = useMemo(() =>
     [...ingresos.map(r => ({ ...r, tipo: 'ingreso' })), ...gastos.map(r => ({ ...r, tipo: 'gasto' }))]
