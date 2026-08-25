@@ -66,32 +66,45 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   > de Chrome no estaba conectada el 2026-08-17). Lo que conviene mirar una vez:
   > los 4 botones de "Acceso rápido" del Dashboard y el panel de la campana.
 
-- **2026-08-25: dos ramas nuevas sin mergear**, ambas ramificadas de `main`
-  (7 commits locales sin pushear en ese momento — ver más abajo):
-  - `ux/estimador-ficha-simplificada` — Bloque A de la simplificación del
-    estimador (auditoría completa en la sesión: mapa de la estructura,
-    diagnóstico de sobrecarga de config, propuesta de flujo en 3 niveles).
-    Reescribe "Consumo y pesos" en `Vehiculo.jsx` de una pantalla con ~20 campos
-    siempre visibles a: **Nivel 1** un buscador único (reemplaza la cascada
-    marca→modelo→año→versión de `PrecargaReferencia` y el select con optgroups
-    de `motores.js` por un `<input list>` + `<datalist>`, filtrado 100%
-    client-side), **Nivel 2** sólo los dos datos que mueven el cálculo (consumo
-    urbano/ruta + tara, en lenguaje llano) más la fuente del consumo cuando hay
-    algo cargado, **Nivel 3** "Ficha técnica completa (opcional)" colapsado por
-    defecto (potencia, torque, norma de emisión, PBT, carrocería, etc. — nada
-    de ahí entra al cálculo o tiene fallback por clase), auto-expandido si la
-    ficha ya trae datos ahí adentro. `vehiculosRef.js` cambió `listarMarcas` /
-    `listarModelos` / `listarAnios` / `listarVersiones` / `obtenerFicha` (3
-    round trips encadenados por selección) por `listarFichas()` (una sola
-    consulta, cacheada) + `etiquetaFicha()`. **Verificado en navegador** contra
-    la Master 2.5 real: precarga desde el buscador, badges de verificación,
-    tres números, auto-expand de Nivel 3, sin tocar el campo `tara_kg` ya
-    cargado cuando la fila de referencia no trae ese dato (NULL no pisa).
-    Bloques B (modal de Viajes) y el buscador con "año más cercano" quedan para
-    después. Sin pushear.
+- **2026-08-25: dos ramas nuevas de la simplificación del estimador**, ambas
+  ramificadas de `main`:
+  - `ux/estimador-ficha-simplificada` — **pusheada** (4 commits:
+    `13360e4`, `d09b52c`, más los dos del Bloque B abajo). Simplificación
+    completa del estimador de consumo (auditoría de la sesión: mapa de la
+    estructura, diagnóstico de sobrecarga de config, propuesta en 3 niveles /
+    Bloques A y B). **Bloque A** (`13360e4`, `d09b52c`) reescribe "Consumo y
+    pesos" en `Vehiculo.jsx` de una pantalla con ~20 campos siempre visibles a:
+    **Nivel 1** un buscador único (reemplaza la cascada marca→modelo→año→versión
+    de `PrecargaReferencia` y el select con optgroups de `motores.js` por un
+    `<input list>` + `<datalist>`, filtrado 100% client-side — `vehiculosRef.js`
+    cambió `listarMarcas`/`listarModelos`/`listarAnios`/`listarVersiones`/
+    `obtenerFicha` por `listarFichas()` + `etiquetaFicha()`), **Nivel 2** sólo
+    los dos datos que mueven el cálculo (consumo urbano/ruta + tara, en lenguaje
+    llano) más la fuente del consumo — como **pregunta binaria** ("¿Es el dato
+    oficial de la ficha técnica de fábrica?" Sí/No → `homologado`/
+    `benchmark_flota`; el primer commit la había dejado como select de 4
+    términos técnicos por error, corregido en `d09b52c` tras revisión), y
+    **Nivel 3** "Ficha técnica completa (opcional)" colapsada por defecto
+    (auto-expandida si la ficha ya trae datos ahí). **Bloque B** reestructura el
+    modal de Viajes: distancia/tipo de recorrido visibles bajo el título
+    "Estimar combustible", topografía/ralentí detrás de "Ajustes del recorrido"
+    (auto-expandido si ya tienen algo distinto del default), el peso de la
+    carga (`carga_peso_kg`) aparece en ese mismo bloque **sólo cuando "Datos de
+    despacho" está colapsado** — evita el campo duplicado cuando el usuario ya
+    tiene despacho abierto — y `ConsumoEstimado.jsx` se achicó a rango + costo +
+    una línea de origen (`banda.nivel`, ya calculado) + supuestos colapsados;
+    los "tres números" (teórico/real/usado) y el desvío quedaron sólo en Flota,
+    no duplicados acá. **Verificado en navegador** en ambos bloques contra la
+    Master 2.5 real y un vehículo de prueba: precarga, badges de verificación,
+    auto-expand, la pregunta binaria resaltando la opción elegida, el peso
+    apareciendo/desapareciendo según el estado de despacho sin perder el valor,
+    y el panel de resultado achicado con el rango correcto. Sin errores de
+    consola, `npm run build` verde en cada paso. Queda para después: el
+    buscador con "año más cercano" explícito (hoy sale gratis del filtrado
+    nativo del datalist, sin código dedicado).
   - `datos/catalogo-referencia-tanda6` — 8 filas nuevas para el seed de
     `vehiculos_referencia` (livianos, semi-pesados, tractores; detalle en la
-    sección del catálogo más abajo). **Escritas, sin sembrar.**
+    sección del catálogo más abajo). **Escritas, sin sembrar, sin pushear.**
 
 ---
 
