@@ -1,9 +1,20 @@
 // Precarga de la ficha desde el catálogo de referencia GLOBAL
 // (tabla `vehiculos_referencia`, ver utils/vehiculosRef.js y la migración
-// 20260727120000). Es la RAMA "referencia" del paso 2 de Flota: el usuario elige
-// marca → modelo → año → versión y prellena las specs del estimador, gratis y sin
-// API. Sólo se monta cuando fuenteCatalogo() === 'referencia' (tabla aplicada y
-// con datos); si no, ConsumoSpecs muestra el select plano de src/data/motores.js.
+// 20260727120000). Es la RAMA "referencia" del paso 2 de Flota: el usuario
+// escribe marca y modelo en UN buscador (datalist nativo) y prellena las specs
+// del estimador, gratis y sin API. Sólo se monta cuando fuenteCatalogo() ===
+// 'referencia' (tabla aplicada y con datos); si no, ConsumoSpecs muestra el
+// buscador plano de src/data/motores.js.
+//
+// ── Por qué un buscador y no la cascada marca→modelo→año→versión ────────────
+// (rediseño 2026-08-25) La cascada de 4 selects obligaba a 4 decisiones
+// encadenadas — y en la práctica el año/versión exacto de la unidad del
+// operario casi nunca coincide con la fila cargada. Con un buscador de texto
+// libre + datalist, escribir "Renault Master" alcanza: el navegador filtra y
+// muestra TODAS las versiones/años que hay cargados para ese modelo, así que
+// elegir "la más parecida" es gratis (no hace falta código de "año más
+// cercano"). El volumen del catálogo es chico (ver nota de vehiculosRef.js),
+// así que se trae la tabla entera una vez y el filtrado es 100% client-side.
 //
 // ── Trazabilidad y verificación ──────────────────────────────────────────────
 // El dato SIEMPRE se muestra y se prellena, esté verificado o no. `verificado`
@@ -18,11 +29,10 @@
 // va al form de la unidad (per-tenant, tabla `vehiculos`) y sigue 100% editable.
 
 import React, { useState, useEffect } from 'react'
-import { Field, Select } from './shared/Field'
+import { Field, Input } from './shared/Field'
 import { CheckCircle, ShieldAlert, ExternalLink } from 'lucide-react'
 import {
-  listarMarcas, listarModelos, listarAnios, listarVersiones,
-  obtenerFicha, specsDesdeReferencia, trazabilidad,
+  listarFichas, etiquetaFicha, specsDesdeReferencia, trazabilidad,
 } from '../utils/vehiculosRef'
 import { CLASES, CARROCERIAS, FUENTES_CONSUMO, COMBUSTIBLES_MOTOR } from '../data/clases'
 
@@ -65,45 +75,23 @@ function BadgeVerif({ verificado }) {
   )
 }
 
-const RESET = { modelo: '', anio: '', version: '' }
-
 export default function PrecargaReferencia({ fichaExt, onPrecargar }) {
-  const [marcas, setMarcas]     = useState([])
-  const [modelos, setModelos]   = useState([])
-  const [anios, setAnios]       = useState([])
-  const [versiones, setVersiones] = useState([])
+  const [fichas, setFichas] = useState([])  // catálogo completo (chico), traído una vez
+  const [texto, setTexto]   = useState('')
+  const [ficha, setFicha]   = useState(null)   // fila de referencia elegida (o null)
+  const [traza, setTraza]   = useState(null)   // trazabilidad(ficha)
+  const [specs, setSpecs]   = useState([])     // [[key, valorFormateado], …] lo que se prellenó
 
-  const [sel, setSel] = useState({ marca: '', modelo: '', anio: '', version: '' })
-  const [ficha, setFicha] = useState(null)   // fila de referencia elegida (o null)
-  const [traza, setTraza] = useState(null)   // trazabilidad(ficha)
-  const [specs, setSpecs] = useState([])     // [[key, valorFormateado], …] lo que se prellenó
-
-  // Marcas al montar.
-  useEffect(() => { let vivo = true; listarMarcas().then(v => vivo && setMarcas(v)); return () => { vivo = false } }, [])
+  // Catálogo completo al montar (una sola consulta: ver nota de vehiculosRef.js).
+  useEffect(() => { let vivo = true; listarFichas().then(v => vivo && setFichas(v)); return () => { vivo = false } }, [])
 
   const limpiarFicha = () => { setFicha(null); setTraza(null); setSpecs([]) }
 
-  const elegirMarca = async (marca) => {
-    setSel({ marca, ...RESET }); limpiarFicha()
-    setModelos([]); setAnios([]); setVersiones([])
-    if (marca) setModelos(await listarModelos(marca))
-  }
-  const elegirModelo = async (modelo) => {
-    setSel(s => ({ ...s, modelo, anio: '', version: '' })); limpiarFicha()
-    setAnios([]); setVersiones([])
-    if (modelo) setAnios(await listarAnios(sel.marca, modelo))
-  }
-  const elegirAnio = async (anioStr) => {
-    const anio = anioStr ? Number(anioStr) : ''
-    setSel(s => ({ ...s, anio, version: '' })); limpiarFicha()
-    setVersiones([])
-    if (anio !== '') setVersiones(await listarVersiones(sel.marca, sel.modelo, anio))
-  }
-  const elegirVersion = async (version) => {
-    setSel(s => ({ ...s, version }))
-    if (!version) { limpiarFicha(); return }
-    const row = await obtenerFicha({ marca: sel.marca, modelo: sel.modelo, anio: sel.anio, version })
-    if (!row) { limpiarFicha(); return }
+  // El datalist dispara onChange con el texto EXACTO de la opción elegida (y
+  // también con cualquier texto que el usuario tipee a mano). Sólo se precarga
+  // cuando el texto matchea una etiqueta completa — mientras se está tipeando
+  // no hay match y no pasa nada, ni se limpia lo ya elegido a mitad de edición.
+  const elegir = (row) => {
     const mapa = specsDesdeReferencia(row, { fichaExt })
     // Sólo las specs con valor real (specsDesdeReferencia devuelve '' para lo que
     // falta en la ficha): un dato ausente no se muestra ni pisa el form.
@@ -114,29 +102,28 @@ export default function PrecargaReferencia({ fichaExt, onPrecargar }) {
     onPrecargar(Object.fromEntries(conValor))
   }
 
+  const onChange = (e) => {
+    const v = e.target.value
+    setTexto(v)
+    if (!v) { limpiarFicha(); return }
+    const row = fichas.find(r => etiquetaFicha(r) === v)
+    if (row) elegir(row)
+  }
+
   const verificado = traza?.verificado === true
 
   return (
     <div>
-      <Field label="Buscar en el catálogo de referencia (prellena y queda editable)">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Select value={sel.marca} onChange={e => elegirMarca(e.target.value)}>
-            <option value="">Marca…</option>
-            {marcas.map(m => <option key={m} value={m}>{m}</option>)}
-          </Select>
-          <Select value={sel.modelo} onChange={e => elegirModelo(e.target.value)} disabled={!sel.marca}>
-            <option value="">Modelo…</option>
-            {modelos.map(m => <option key={m} value={m}>{m}</option>)}
-          </Select>
-          <Select value={sel.anio === '' ? '' : String(sel.anio)} onChange={e => elegirAnio(e.target.value)} disabled={!sel.modelo}>
-            <option value="">Año…</option>
-            {anios.map(a => <option key={a} value={a}>{a}</option>)}
-          </Select>
-          <Select value={sel.version} onChange={e => elegirVersion(e.target.value)} disabled={sel.anio === ''}>
-            <option value="">Versión…</option>
-            {versiones.map(v => <option key={v} value={v}>{v}</option>)}
-          </Select>
-        </div>
+      <Field label="Buscá la unidad (marca y modelo alcanza) — prellena y queda editable">
+        <Input
+          list="catalogo-referencia"
+          value={texto}
+          onChange={onChange}
+          placeholder="Ej: Renault Master, Scania R450…"
+        />
+        <datalist id="catalogo-referencia">
+          {fichas.map(r => <option key={r.id} value={etiquetaFicha(r)} />)}
+        </datalist>
       </Field>
 
       {/* Panel de prellenado + trazabilidad. Se muestra al elegir una versión con

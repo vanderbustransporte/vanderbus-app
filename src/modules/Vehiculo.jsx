@@ -6,7 +6,7 @@ import { useConfirm } from '../context/ConfirmContext'
 import { Field, Input, Select, Textarea } from '../components/shared/Field'
 import { formatDate, expiryLabel } from '../utils/format'
 import { faltantesVehiculo } from '../utils/chequeoVencimientos'
-import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock, Fuel } from 'lucide-react'
+import { Truck, Edit2, Save, X, Plus, Archive, AlertTriangle, CheckCircle, Clock, Fuel, ChevronDown, ChevronRight } from 'lucide-react'
 import EmptyState from '../components/shared/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -20,7 +20,7 @@ import {
   CLASES, CLASE_IDS, FUENTES_CONSUMO, CARROCERIAS,
   COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
 } from '../data/clases'
-import { MOTORES, GRUPOS_MOTOR, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
+import { MOTORES, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
 import { fuenteCatalogo } from '../utils/vehiculosRef'
 import PrecargaReferencia from '../components/PrecargaReferencia'
 import { docsDisponible } from '../utils/docsVehiculo'
@@ -169,6 +169,12 @@ function VehiculoCard({ v, onEdit, onArchive, editable, faltan = [], flash = fal
 // Se cargan una vez por unidad. El catálogo de motores (data/motores.js) sólo
 // PRECARGA valores de referencia: lo que queda guardado es lo que el usuario
 // deja en los campos, y esos son los que manda el cálculo.
+//
+// Estratificado en 3 niveles (rediseño 2026-08-25, ver auditoría del estimador):
+// el operario no técnico sólo necesita ver el buscador y dos números (consumo +
+// tara) para tener un estimado; todo lo demás — potencia, torque, norma de
+// emisión, PBT, carrocería... — no mueve el cálculo o tiene un fallback por
+// clase, y va detrás de "Ficha técnica completa (opcional)".
 function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
   const tara  = num(form.tara_kg)
   const clase = claseDe(form)
@@ -191,13 +197,35 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
     const m = motorPorId(id)
     if (m) setForm(f => ({ ...f, ...specsDesdeMotor(m, { fichaExt }) }))
   }
+  const [motorTexto, setMotorTexto] = useState('')
+  const elegirMotorTexto = (texto) => {
+    setMotorTexto(texto)
+    const m = MOTORES.find(x => etiquetaMotor(x) === texto)
+    if (m) precargar(m.id)
+  }
 
-  // Fuente del catálogo de precarga. 'referencia' = cascada marca→modelo→año→versión
-  // desde la tabla global (sólo si está aplicada Y sembrada); 'legacy' = el select
-  // plano de data/motores.js, como hasta hoy. Mientras resuelve, y ante cualquier
-  // duda, cae a 'legacy': la app no depende de la tabla nueva para funcionar.
+  // Fuente del catálogo de precarga. 'referencia' = buscador contra la tabla
+  // global (sólo si está aplicada Y sembrada); 'legacy' = buscador sobre el
+  // catálogo estático de data/motores.js, como hasta hoy. Mientras resuelve, y
+  // ante cualquier duda, cae a 'legacy': la app no depende de la tabla nueva.
   const [fuenteCat, setFuenteCat] = useState('legacy')
   useEffect(() => { let vivo = true; fuenteCatalogo().then(f => { if (vivo) setFuenteCat(f) }); return () => { vivo = false } }, [])
+
+  // ¿Hay algún consumo cargado? Recién ahí tiene sentido preguntar de dónde
+  // salió — antes de eso el campo no está haciendo nada.
+  const huboConsumo = !!(form.consumo_urbano_l100 || form.consumo_ruta_l100 || form.consumo_mixto_l100)
+
+  // Nivel 3 colapsado por defecto — el operario no lo necesita para tener un
+  // estimado. Se auto-abre UNA vez si la ficha ya trae algo ahí adentro (por
+  // ejemplo, una precarga desde el catálogo), para que no queden datos
+  // "escondidos" sin que el usuario sepa que están.
+  const [verDetalle, setVerDetalle] = useState(false)
+  const detalleTieneValor = fichaExt
+    ? !!(form.clase || form.motor_cilindrada_l || form.motor_potencia_cv || form.motor_torque_nm ||
+         form.motor_combustible || form.norma_emision || form.transmision || form.relacion_diferencial ||
+         form.consumo_mixto_l100 || form.pbt_kg || form.tanque_l || form.consumo_ralenti_lh || form.carga_max_kg)
+    : !!form.carga_max_kg
+  useEffect(() => { if (detalleTieneValor) setVerDetalle(true) }, [detalleTieneValor])
 
   return (
     <div className="surface db-in db-d5" style={{ padding: 24, marginTop: 16 }}>
@@ -207,135 +235,70 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 18 }}>
         Con esto la app estima cuántos litros va a gastar cada viaje de esta unidad
-        antes de salir, según los km y el peso de la carga. Los valores del manual
+        antes de salir, según los km y el peso de la carga. Los valores de acá abajo
         son <strong style={{ color: 'var(--text-1)' }}>con la unidad vacía</strong>: el
-        peso de la carga lo suma el cálculo.
-        {fichaExt && <>
-          {' '}Todo es opcional: lo que falte se cae al valor de referencia de la clase.
-          Decir <strong style={{ color: 'var(--text-1)' }}>de dónde salió el consumo</strong> importa
-          — un homologado de liviano es optimista y el cálculo lo corrige; los pesados
-          no tienen homologación publicada, así que ahí el número siempre es un
-          benchmark o lo que declare el transportista.
-        </>}
+        peso de la carga lo suma el cálculo solo. Si no sabés algún dato, dejalo en
+        blanco — <strong style={{ color: 'var(--text-1)' }}>la app lo aprende de las
+        cargas de combustible</strong> a medida que las vayas cargando.
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          {fuenteCat === 'referencia' ? (
-            // Rama referencia: cascada marca→modelo→año→versión desde la tabla
-            // global, con prellenado + trazabilidad (verificado / sin verificar).
-            // Lo que precarga va al form (per-tenant) y sigue editable abajo.
-            <PrecargaReferencia
-              fichaExt={fichaExt}
-              onPrecargar={specs => setForm(f => ({ ...f, ...specs }))}
+      {/* NIVEL 1 — identificar la unidad. Un solo buscador en vez de una
+          cascada de selects: escribir "Renault Master" alcanza, no hace falta
+          saber el año ni la versión exactos de memoria. */}
+      <div style={{ marginBottom: 20 }}>
+        {fuenteCat === 'referencia' ? (
+          // Rama referencia: buscador contra la tabla global, con prellenado +
+          // trazabilidad (verificado / sin verificar). Lo que precarga va al
+          // form (per-tenant) y sigue editable abajo.
+          <PrecargaReferencia
+            fichaExt={fichaExt}
+            onPrecargar={specs => setForm(f => ({ ...f, ...specs }))}
+          />
+        ) : (
+          // Rama legacy (tabla ausente o sin sembrar): buscador sobre
+          // data/motores.js. Elegir precarga los campos de abajo (que siguen
+          // editables). Mismo patrón que "elegir chofer del legajo" en Viajes.
+          <Field label="Buscá la unidad en el catálogo (valores de referencia, ajustables)">
+            <Input
+              list="catalogo-motores-legacy"
+              value={motorTexto}
+              onChange={e => elegirMotorTexto(e.target.value)}
+              placeholder="Ej: Renault Master, Toyota Hilux…"
             />
-          ) : (
-            // Rama legacy (tabla ausente o sin sembrar): el select plano de
-            // data/motores.js, como hasta hoy. Elegir precarga los campos de abajo
-            // (que siguen editables) y vuelve a vacío. Mismo patrón que "elegir
-            // chofer del legajo" en Viajes.
-            <Field label="Precargar desde el catálogo (valores de referencia, ajustables)">
-              <Select value="" onChange={e => precargar(e.target.value)}>
-                <option value="">— Cargar a mano o elegir una unidad parecida —</option>
-                {GRUPOS_MOTOR.map(g => (
-                  <optgroup key={g} label={g}>
-                    {MOTORES.filter(m => m.grupo === g).map(m => (
-                      <option key={m.id} value={m.id}>{etiquetaMotor(m)}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </Select>
-            </Field>
-          )}
-        </div>
-
-        {fichaExt && (
-          <Field label="Clase de unidad">
-            <Select value={form.clase} onChange={e => set('clase', e.target.value)}>
-              <option value="">— Deducir de la tara —</option>
-              {CLASE_IDS.map(id => <option key={id} value={id}>{CLASES[id].label} · {CLASES[id].hint}</option>)}
-            </Select>
+            <datalist id="catalogo-motores-legacy">
+              {MOTORES.map(m => <option key={m.id} value={etiquetaMotor(m)} />)}
+            </datalist>
           </Field>
         )}
-        <div className={fichaExt ? '' : 'sm:col-span-2'}>
-          <Field label="Motorización">
-            <Input value={form.motor_desc} onChange={e => set('motor_desc', e.target.value)} placeholder="Ej: 2.3 dCi (G9U/M9T) 130 cv" />
-          </Field>
-        </div>
+      </div>
 
-        {fichaExt && <>
-          <Field label="Cilindrada (L)">
-            <Input type="number" step="0.1" min="0" value={form.motor_cilindrada_l} onChange={e => set('motor_cilindrada_l', e.target.value)} placeholder="Ej: 2.3" />
-          </Field>
-          <Field label="Potencia (CV)">
-            <Input type="number" step="1" min="0" value={form.motor_potencia_cv} onChange={e => set('motor_potencia_cv', e.target.value)} placeholder="Ej: 130" />
-          </Field>
-          <Field label="Torque (Nm)">
-            <Input type="number" step="1" min="0" value={form.motor_torque_nm} onChange={e => set('motor_torque_nm', e.target.value)} placeholder="Ej: 320" />
-          </Field>
-          <Field label="Combustible del motor">
-            <Select value={form.motor_combustible} onChange={e => set('motor_combustible', e.target.value)}>
-              <option value="">— Sin declarar —</option>
-              {COMBUSTIBLES_MOTOR.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </Select>
-          </Field>
-          <Field label="Norma de emisión">
-            <Input value={form.norma_emision} onChange={e => set('norma_emision', e.target.value)} list="normas-emision" placeholder="Ej: Euro V" />
-            <datalist id="normas-emision">{NORMAS_EMISION.map(n => <option key={n} value={n} />)}</datalist>
-          </Field>
-          <Field label="Transmisión">
-            <Select value={form.transmision} onChange={e => set('transmision', e.target.value)}>
-              <option value="">— Sin declarar —</option>
-              {TRANSMISIONES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </Select>
-          </Field>
-          <Field label="Relación de diferencial">
-            <Input value={form.relacion_diferencial} onChange={e => set('relacion_diferencial', e.target.value)} placeholder="Ej: 3.42" />
-          </Field>
-        </>}
-
-        <div className="sm:col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Consumo declarado</p></div>
-        <Field label="Consumo urbano vacío (L/100km)">
+      {/* NIVEL 2 — lo esencial: sólo estos dos datos mueven el número. Todo lo
+          demás tiene un valor de referencia por clase si falta. */}
+      <p className="db-slabel" style={{ marginBottom: 10 }}>Lo esencial para estimar</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="¿Cuánto gasta en ciudad, vacía? (litros cada 100 km)">
           <Input type="number" step="0.1" min="0" value={form.consumo_urbano_l100} onChange={e => set('consumo_urbano_l100', e.target.value)} placeholder="Ej: 12.5" />
         </Field>
-        <Field label="Consumo en ruta vacío (L/100km)">
+        <Field label="¿Cuánto gasta en ruta, vacía? (litros cada 100 km)">
           <Input type="number" step="0.1" min="0" value={form.consumo_ruta_l100} onChange={e => set('consumo_ruta_l100', e.target.value)} placeholder="Ej: 9.5" />
         </Field>
-        {fichaExt && <>
-          <Field label="Consumo mixto (L/100km)">
-            <Input type="number" step="0.1" min="0" value={form.consumo_mixto_l100} onChange={e => set('consumo_mixto_l100', e.target.value)} placeholder="Se usa sólo si faltan los dos de arriba" />
-          </Field>
-          <Field label="¿De dónde salió ese consumo?">
-            <Select value={form.fuente_consumo} onChange={e => set('fuente_consumo', e.target.value)}>
-              <option value="">— Sin declarar (se trata como estimado) —</option>
-              {Object.entries(FUENTES_CONSUMO).map(([id, f]) => <option key={id} value={id}>{f.label}</option>)}
-            </Select>
-          </Field>
-        </>}
 
-        <div className="sm:col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Pesos y carrocería</p></div>
-        <Field label="Tara — peso de la unidad vacía (kg)">
-          <Input type="number" step="1" min="0" value={form.tara_kg} onChange={e => set('tara_kg', e.target.value)} placeholder="Ej: 2150" />
-        </Field>
-        <Field label="Carga útil máxima (kg)">
-          <Input type="number" step="1" min="0" value={form.carga_max_kg} onChange={e => set('carga_max_kg', e.target.value)} placeholder="Ej: 1550" />
-        </Field>
-        {fichaExt && <>
-          <Field label="PBT — peso bruto total (kg)">
-            <Input type="number" step="1" min="0" value={form.pbt_kg} onChange={e => set('pbt_kg', e.target.value)} placeholder="Ej: 3500" />
+        {fichaExt && huboConsumo && (
+          <div className="sm:col-span-2">
+            <Field label="¿De dónde salió ese consumo?">
+              <Select value={form.fuente_consumo} onChange={e => set('fuente_consumo', e.target.value)}>
+                <option value="">— Sin declarar (se trata como estimado) —</option>
+                {Object.entries(FUENTES_CONSUMO).map(([id, f]) => <option key={id} value={id}>{f.label}</option>)}
+              </Select>
+            </Field>
+          </div>
+        )}
+
+        <div className="sm:col-span-2">
+          <Field label="¿Cuánto pesa esta unidad vacía? (kg)">
+            <Input type="number" step="1" min="0" value={form.tara_kg} onChange={e => set('tara_kg', e.target.value)} placeholder="Ej: 2150" />
           </Field>
-          <Field label="Tipo de carrocería">
-            <Select value={form.carroceria} onChange={e => set('carroceria', e.target.value)}>
-              {Object.entries(CARROCERIAS).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
-            </Select>
-          </Field>
-          <Field label="Capacidad del tanque (L)">
-            <Input type="number" step="1" min="0" value={form.tanque_l} onChange={e => set('tanque_l', e.target.value)} placeholder="Ej: 80" />
-          </Field>
-          <Field label="Consumo en ralentí (L/h)">
-            <Input type="number" step="0.1" min="0" value={form.consumo_ralenti_lh} onChange={e => set('consumo_ralenti_lh', e.target.value)} placeholder={`Si falta: ${ralentiUsado.toFixed(1)} estimado`} />
-          </Field>
-        </>}
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16, fontSize: 11, color: 'var(--text-2)' }}>
@@ -388,6 +351,91 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
           de lo que dice su ficha. Si el desvío se sostiene, el dato de la ficha está
           mal cargado o la unidad tiene algo.
         </p>
+      )}
+
+      {/* NIVEL 3 — el resto de la ficha. Nada de acá es obligatorio para tener
+          un estimado: potencia, torque, norma de emisión, etc. no entran al
+          cálculo, y PBT/carrocería/tanque/ralentí tienen un valor de
+          referencia por clase si faltan. Colapsado por defecto. */}
+      <button
+        type="button"
+        onClick={() => setVerDetalle(v => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6, marginTop: 18, padding: 0,
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: 12, fontWeight: 700, color: 'var(--text-1)',
+        }}
+      >
+        {verDetalle ? <ChevronDown size={14} style={{ color: ACCENT }} /> : <ChevronRight size={14} style={{ color: ACCENT }} />}
+        Ficha técnica completa
+        <span style={{ fontWeight: 500, color: 'var(--text-2)' }}>— opcional, para más precisión</span>
+      </button>
+
+      {verDetalle && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginTop: 14 }}>
+          <div className="sm:col-span-2">
+            <Field label="Motorización (descriptivo)">
+              <Input value={form.motor_desc} onChange={e => set('motor_desc', e.target.value)} placeholder="Ej: 2.3 dCi (G9U/M9T) 130 cv" />
+            </Field>
+          </div>
+          <Field label="Carga útil máxima (kg)">
+            <Input type="number" step="1" min="0" value={form.carga_max_kg} onChange={e => set('carga_max_kg', e.target.value)} placeholder="Ej: 1550" />
+          </Field>
+
+          {fichaExt && <>
+            <Field label="Clase de unidad">
+              <Select value={form.clase} onChange={e => set('clase', e.target.value)}>
+                <option value="">— Deducir de la tara —</option>
+                {CLASE_IDS.map(id => <option key={id} value={id}>{CLASES[id].label} · {CLASES[id].hint}</option>)}
+              </Select>
+            </Field>
+            <Field label="Cilindrada (L)">
+              <Input type="number" step="0.1" min="0" value={form.motor_cilindrada_l} onChange={e => set('motor_cilindrada_l', e.target.value)} placeholder="Ej: 2.3" />
+            </Field>
+            <Field label="Potencia (CV)">
+              <Input type="number" step="1" min="0" value={form.motor_potencia_cv} onChange={e => set('motor_potencia_cv', e.target.value)} placeholder="Ej: 130" />
+            </Field>
+            <Field label="Torque (Nm)">
+              <Input type="number" step="1" min="0" value={form.motor_torque_nm} onChange={e => set('motor_torque_nm', e.target.value)} placeholder="Ej: 320" />
+            </Field>
+            <Field label="Combustible del motor">
+              <Select value={form.motor_combustible} onChange={e => set('motor_combustible', e.target.value)}>
+                <option value="">— Sin declarar —</option>
+                {COMBUSTIBLES_MOTOR.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </Select>
+            </Field>
+            <Field label="Norma de emisión">
+              <Input value={form.norma_emision} onChange={e => set('norma_emision', e.target.value)} list="normas-emision" placeholder="Ej: Euro V" />
+              <datalist id="normas-emision">{NORMAS_EMISION.map(n => <option key={n} value={n} />)}</datalist>
+            </Field>
+            <Field label="Transmisión">
+              <Select value={form.transmision} onChange={e => set('transmision', e.target.value)}>
+                <option value="">— Sin declarar —</option>
+                {TRANSMISIONES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </Select>
+            </Field>
+            <Field label="Relación de diferencial">
+              <Input value={form.relacion_diferencial} onChange={e => set('relacion_diferencial', e.target.value)} placeholder="Ej: 3.42" />
+            </Field>
+            <Field label="Consumo mixto (L/100km)">
+              <Input type="number" step="0.1" min="0" value={form.consumo_mixto_l100} onChange={e => set('consumo_mixto_l100', e.target.value)} placeholder="Se usa sólo si faltan los dos de arriba" />
+            </Field>
+            <Field label="PBT — peso bruto total (kg)">
+              <Input type="number" step="1" min="0" value={form.pbt_kg} onChange={e => set('pbt_kg', e.target.value)} placeholder="Ej: 3500" />
+            </Field>
+            <Field label="Tipo de carrocería">
+              <Select value={form.carroceria} onChange={e => set('carroceria', e.target.value)}>
+                {Object.entries(CARROCERIAS).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+              </Select>
+            </Field>
+            <Field label="Capacidad del tanque (L)">
+              <Input type="number" step="1" min="0" value={form.tanque_l} onChange={e => set('tanque_l', e.target.value)} placeholder="Ej: 80" />
+            </Field>
+            <Field label="Consumo en ralentí (L/h)">
+              <Input type="number" step="0.1" min="0" value={form.consumo_ralenti_lh} onChange={e => set('consumo_ralenti_lh', e.target.value)} placeholder={`Si falta: ${ralentiUsado.toFixed(1)} estimado`} />
+            </Field>
+          </>}
+        </div>
       )}
 
     </div>

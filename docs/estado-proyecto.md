@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-17.
+Última actualización: 2026-08-25.
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -17,7 +17,8 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 | Persona | Área que está tocando | Rama | Desde |
 |---|---|---|---|
-| Diego | — (rebranding y estimador de consumo, ambos mergeados a `main`) | — | — |
+| Diego | Simplificación UX de la ficha de consumo (Flota) | `ux/estimador-ficha-simplificada` | 2026-08-25 |
+| Diego | Catálogo de referencia — TANDA 6 (datos, sin sembrar) | `datos/catalogo-referencia-tanda6` | 2026-08-25 |
 | Nico | — | — | — |
 
 > Completar antes de empezar a trabajar. Es el mecanismo barato para no pisarnos
@@ -64,6 +65,33 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   > original, pero **el merge en sí no se abrió en el navegador** (la extensión
   > de Chrome no estaba conectada el 2026-08-17). Lo que conviene mirar una vez:
   > los 4 botones de "Acceso rápido" del Dashboard y el panel de la campana.
+
+- **2026-08-25: dos ramas nuevas sin mergear**, ambas ramificadas de `main`
+  (7 commits locales sin pushear en ese momento — ver más abajo):
+  - `ux/estimador-ficha-simplificada` — Bloque A de la simplificación del
+    estimador (auditoría completa en la sesión: mapa de la estructura,
+    diagnóstico de sobrecarga de config, propuesta de flujo en 3 niveles).
+    Reescribe "Consumo y pesos" en `Vehiculo.jsx` de una pantalla con ~20 campos
+    siempre visibles a: **Nivel 1** un buscador único (reemplaza la cascada
+    marca→modelo→año→versión de `PrecargaReferencia` y el select con optgroups
+    de `motores.js` por un `<input list>` + `<datalist>`, filtrado 100%
+    client-side), **Nivel 2** sólo los dos datos que mueven el cálculo (consumo
+    urbano/ruta + tara, en lenguaje llano) más la fuente del consumo cuando hay
+    algo cargado, **Nivel 3** "Ficha técnica completa (opcional)" colapsado por
+    defecto (potencia, torque, norma de emisión, PBT, carrocería, etc. — nada
+    de ahí entra al cálculo o tiene fallback por clase), auto-expandido si la
+    ficha ya trae datos ahí adentro. `vehiculosRef.js` cambió `listarMarcas` /
+    `listarModelos` / `listarAnios` / `listarVersiones` / `obtenerFicha` (3
+    round trips encadenados por selección) por `listarFichas()` (una sola
+    consulta, cacheada) + `etiquetaFicha()`. **Verificado en navegador** contra
+    la Master 2.5 real: precarga desde el buscador, badges de verificación,
+    tres números, auto-expand de Nivel 3, sin tocar el campo `tara_kg` ya
+    cargado cuando la fila de referencia no trae ese dato (NULL no pisa).
+    Bloques B (modal de Viajes) y el buscador con "año más cercano" quedan para
+    después. Sin pushear.
+  - `datos/catalogo-referencia-tanda6` — 8 filas nuevas para el seed de
+    `vehiculos_referencia` (livianos, semi-pesados, tractores; detalle en la
+    sección del catálogo más abajo). **Escritas, sin sembrar.**
 
 ---
 

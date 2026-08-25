@@ -67,44 +67,29 @@ export async function fuenteCatalogo() {
   return (await hayReferencia()) ? 'referencia' : 'legacy'
 }
 
-// ── Listas encadenadas (cada nivel filtra por lo elegido en el anterior) ─────
+// ── Catálogo completo, para el buscador de texto libre ──────────────────────
 //
-// Se filtra por los valores de DISPLAY exactos, no por los normalizados: cada
-// nivel recibe strings que salieron de esta misma tabla en el nivel anterior, así
-// que el match exacto es correcto y no hace falta replicar normalizar_ref en JS.
-// La normalización vive en la base sólo para deduplicar al sembrar.
-//
-// Postgres devuelve las filas; el DISTINCT y el orden se hacen en JS (el volumen
-// de un catálogo de modelos es chico). Ante cualquier error → [] (la UI muestra
-// vacío, no rompe).
-
-async function distinct(columna, filtros = {}, orden = 'asc') {
-  let q = supabase.from(TABLA).select(columna)
-  for (const [k, v] of Object.entries(filtros)) q = q.eq(k, v)
-  const { data, error } = await q
-  if (error || !data) return []
-  const vistos = [...new Set(data.map(r => r[columna]).filter(v => v !== null && v !== ''))]
-  vistos.sort((a, b) => typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'es'))
-  return orden === 'desc' ? vistos.reverse() : vistos
+// (rediseño 2026-08-25) Reemplaza a la cascada marca→modelo→año→versión: en vez
+// de 3 round trips encadenados para llegar a UNA fila, se trae la tabla entera
+// de una vez (el volumen de un catálogo de modelos es chico) y el filtrado lo
+// hace el `<datalist>` nativo del navegador en el cliente. Cacheado igual que
+// hayReferencia(): un resultado con filas es estable durante la sesión (nadie
+// resiembra en vivo); un error de red no se cachea, para reintentar.
+let _fichas = null
+export function listarFichas() {
+  if (!_fichas) {
+    _fichas = supabase.from(TABLA).select('*').then(({ data, error }) => {
+      if (error) { _fichas = null; return [] }
+      return data || []
+    }).catch(() => { _fichas = null; return [] })
+  }
+  return _fichas
 }
 
-export const listarMarcas   = ()                      => distinct('marca')
-export const listarModelos  = (marca)                 => distinct('modelo', { marca })
-// Los años, del más nuevo al más viejo (lo que se busca casi siempre es lo reciente).
-export const listarAnios    = (marca, modelo)         => distinct('anio', { marca, modelo }, 'desc')
-export const listarVersiones = (marca, modelo, anio)  => distinct('version', { marca, modelo, anio })
-
-// ── Ficha puntual ────────────────────────────────────────────────────────────
-// La fila completa para un (marca, modelo, año, versión). Devuelve null si no
-// está o si hay error. maybeSingle: 0 filas no es un error.
-export async function obtenerFicha({ marca, modelo, anio, version }) {
-  const { data, error } = await supabase.from(TABLA)
-    .select('*')
-    .eq('marca', marca).eq('modelo', modelo).eq('anio', anio).eq('version', version)
-    .maybeSingle()
-  if (error) return null
-  return data || null
-}
+// Etiqueta única por fila para el datalist: "Marca Modelo Año — Versión".
+// marca+modelo+año+versión es justamente la clave única de la tabla, así que
+// dos filas nunca producen la misma etiqueta.
+export const etiquetaFicha = (row) => `${row.marca} ${row.modelo} ${row.anio} — ${row.version}`
 
 // ── Mapeo referencia → campos de la ficha del vehículo ──────────────────────
 //
