@@ -11,11 +11,20 @@
 // encadenadas — y en la práctica el año/versión exacto de la unidad del
 // operario casi nunca coincide con la fila cargada. Con un buscador de texto
 // libre + datalist, escribir "Renault Master" alcanza: el navegador filtra y
-// muestra TODAS las versiones/años que hay cargados para ese modelo, así que
-// elegir "la más parecida" es gratis (no hace falta código de "año más
-// cercano"). El volumen del catálogo es chico (ver nota de vehiculosRef.js),
-// así que se trae la tabla entera una vez y el filtrado es 100% client-side.
+// muestra TODAS las versiones/años que hay cargados para ese modelo. El
+// volumen del catálogo es chico (ver nota de vehiculosRef.js), así que se
+// trae la tabla entera una vez y el filtrado es 100% client-side.
 //
+// ── "Año más cercano" (2026-08-25) ───────────────────────────────────────────
+// Si el operario no quiere buscar el año exacto, el datalist también ofrece
+// la etiqueta agregada "Marca Modelo — cualquier año" (sólo cuando hay más de
+// una fila para esa marca+modelo). Elegirla resuelve sola contra la fila de
+// año más cercano al que ya está cargado en el campo "Año" de la unidad
+// (`vehiculoAnio`), o la más nueva si ese campo todavía está vacío —
+// `filaMasCercana()` en utils/vehiculosRef.js documenta el criterio de
+// desempate. Cuando el año usado no es EXACTO el que declaró la unidad, se
+// avisa en una línea, mismo tono que el resto de la trazabilidad: se prellena
+// igual (no bloquea nada) pero queda claro que hay que revisarlo.
 // ── Trazabilidad y verificación ──────────────────────────────────────────────
 // El dato SIEMPRE se muestra y se prellena, esté verificado o no. `verificado`
 // es una propiedad de la FILA de referencia (el doble check contra la ficha de la
@@ -28,11 +37,12 @@
 // Sólo LECTURA: este componente no escribe la tabla de referencia. Lo que precarga
 // va al form de la unidad (per-tenant, tabla `vehiculos`) y sigue 100% editable.
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Field, Input } from './shared/Field'
-import { CheckCircle, ShieldAlert, ExternalLink } from 'lucide-react'
+import { CheckCircle, ShieldAlert, ExternalLink, TriangleAlert } from 'lucide-react'
 import {
   listarFichas, etiquetaFicha, specsDesdeReferencia, trazabilidad,
+  agruparPorMarcaModelo, etiquetaAgregada, filaMasCercana,
 } from '../utils/vehiculosRef'
 import { CLASES, CARROCERIAS, FUENTES_CONSUMO, COMBUSTIBLES_MOTOR } from '../data/clases'
 
@@ -75,22 +85,25 @@ function BadgeVerif({ verificado }) {
   )
 }
 
-export default function PrecargaReferencia({ fichaExt, onPrecargar }) {
+export default function PrecargaReferencia({ fichaExt, vehiculoAnio, onPrecargar }) {
   const [fichas, setFichas] = useState([])  // catálogo completo (chico), traído una vez
   const [texto, setTexto]   = useState('')
   const [ficha, setFicha]   = useState(null)   // fila de referencia elegida (o null)
   const [traza, setTraza]   = useState(null)   // trazabilidad(ficha)
   const [specs, setSpecs]   = useState([])     // [[key, valorFormateado], …] lo que se prellenó
+  // { objetivo, anioUsado } cuando la precarga vino de "año más cercano" y NO
+  // fue exacta; null cuando no aplica (elección directa, o exacta igual).
+  const [avisoAnio, setAvisoAnio] = useState(null)
 
   // Catálogo completo al montar (una sola consulta: ver nota de vehiculosRef.js).
   useEffect(() => { let vivo = true; listarFichas().then(v => vivo && setFichas(v)); return () => { vivo = false } }, [])
 
-  const limpiarFicha = () => { setFicha(null); setTraza(null); setSpecs([]) }
+  // Grupos marca+modelo con más de una fila: sólo ahí tiene sentido ofrecer
+  // "cualquier año" (con una sola fila, la etiqueta completa ya alcanza).
+  const grupos = useMemo(() => agruparPorMarcaModelo(fichas), [fichas])
 
-  // El datalist dispara onChange con el texto EXACTO de la opción elegida (y
-  // también con cualquier texto que el usuario tipee a mano). Sólo se precarga
-  // cuando el texto matchea una etiqueta completa — mientras se está tipeando
-  // no hay match y no pasa nada, ni se limpia lo ya elegido a mitad de edición.
+  const limpiarFicha = () => { setFicha(null); setTraza(null); setSpecs([]); setAvisoAnio(null) }
+
   const elegir = (row) => {
     const mapa = specsDesdeReferencia(row, { fichaExt })
     // Sólo las specs con valor real (specsDesdeReferencia devuelve '' para lo que
@@ -102,12 +115,29 @@ export default function PrecargaReferencia({ fichaExt, onPrecargar }) {
     onPrecargar(Object.fromEntries(conValor))
   }
 
+  // El datalist dispara onChange con el texto EXACTO de la opción elegida (y
+  // también con cualquier texto que el usuario tipee a mano). Dos formas de
+  // matchear: la etiqueta completa de una fila (precarga directa, sin aviso) o
+  // la etiqueta agregada "Marca Modelo — cualquier año" (resuelve por año más
+  // cercano). Mientras se está tipeando ninguna de las dos matchea todavía y
+  // no pasa nada, ni se limpia lo ya elegido a mitad de edición.
   const onChange = (e) => {
     const v = e.target.value
     setTexto(v)
     if (!v) { limpiarFicha(); return }
-    const row = fichas.find(r => etiquetaFicha(r) === v)
-    if (row) elegir(row)
+
+    const filaExacta = fichas.find(r => etiquetaFicha(r) === v)
+    if (filaExacta) { setAvisoAnio(null); elegir(filaExacta); return }
+
+    const grupo = grupos.find(g => etiquetaAgregada(g[0]) === v)
+    if (grupo) {
+      const { fila, exacto } = filaMasCercana(grupo, vehiculoAnio)
+      // El input pasa a mostrar la etiqueta completa de lo que realmente se
+      // aplicó — no se queda en "cualquier año", que ya cumplió su propósito.
+      setTexto(etiquetaFicha(fila))
+      setAvisoAnio(exacto ? null : { objetivo: vehiculoAnio || null, anioUsado: fila.anio })
+      elegir(fila)
+    }
   }
 
   const verificado = traza?.verificado === true
@@ -123,8 +153,23 @@ export default function PrecargaReferencia({ fichaExt, onPrecargar }) {
         />
         <datalist id="catalogo-referencia">
           {fichas.map(r => <option key={r.id} value={etiquetaFicha(r)} />)}
+          {grupos.map(g => <option key={etiquetaAgregada(g[0])} value={etiquetaAgregada(g[0])} />)}
         </datalist>
       </Field>
+
+      {/* Aviso de año aproximado: sólo cuando la precarga vino de "cualquier
+          año" y NO coincidió exacto. No bloquea nada — el form queda editable
+          igual que cualquier otra precarga — pero avisa en lenguaje llano. */}
+      {avisoAnio && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, padding: '9px 11px', borderRadius: 'var(--radius-sm)', background: 'var(--warning-dim)' }}>
+          <TriangleAlert size={13} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            {avisoAnio.objetivo
+              ? <>Tu unidad es del <strong style={{ color: 'var(--text-1)' }}>{avisoAnio.objetivo}</strong> y el catálogo no tiene esa versión. Usamos los datos de la versión <strong style={{ color: 'var(--text-1)' }}>{avisoAnio.anioUsado}</strong> (la más parecida disponible) — revisá que coincida con tu unidad.</>
+              : <>Todavía no cargaste el año de la unidad arriba, así que usamos la versión más nueva del catálogo: <strong style={{ color: 'var(--text-1)' }}>{avisoAnio.anioUsado}</strong>. Revisá que coincida con tu unidad.</>}
+          </span>
+        </div>
+      )}
 
       {/* Panel de prellenado + trazabilidad. Se muestra al elegir una versión con
           ficha. Cada spec lleva su badge de verificación al lado: verificado=false

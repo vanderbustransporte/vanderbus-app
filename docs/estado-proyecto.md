@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-25.
+Última actualización: 2026-08-25 (año más cercano en el buscador de referencia).
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -99,9 +99,26 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
     auto-expand, la pregunta binaria resaltando la opción elegida, el peso
     apareciendo/desapareciendo según el estado de despacho sin perder el valor,
     y el panel de resultado achicado con el rango correcto. Sin errores de
-    consola, `npm run build` verde en cada paso. Queda para después: el
-    buscador con "año más cercano" explícito (hoy sale gratis del filtrado
-    nativo del datalist, sin código dedicado).
+    consola, `npm run build` verde en cada paso.
+    **"Año más cercano" (2026-08-25, pedido explícito):** el buscador ahora
+    también ofrece, cuando una marca+modelo tiene 2+ filas, la etiqueta
+    agregada `"Marca Modelo — cualquier año"` (`agruparPorMarcaModelo()` /
+    `etiquetaAgregada()` / `filaMasCercana()` en `vehiculosRef.js`). Elegirla
+    resuelve contra la fila cuyo año tiene **menor diferencia absoluta** con el
+    campo "Año" de la unidad (`form.anio`, pasado como prop `vehiculoAnio`);
+    en empate gana **la más nueva**; sin año cargado en la unidad, directamente
+    la más nueva del grupo. Si el año usado no fue exacto, un aviso amarillo
+    dice de dónde salió ("Tu unidad es del 2020 y el catálogo no tiene esa
+    versión. Usamos los datos de la versión 2021 (la más parecida disponible)
+    — revisá que coincida con tu unidad.") sin bloquear nada — el form sigue
+    100% editable. **Verificado en navegador**: la flota real no tiene ningún
+    vehículo en un grupo marca+modelo con 2+ filas (la Master es grupo de una
+    sola fila, no aplica), así que se probó con "Agregar vehículo" (sin
+    guardar) → Iveco Tector, año 2020 → el catálogo tiene Tector 2019 (×2
+    versiones) y 2021: **2020 es un empate exacto** (diferencia 1 a cada
+    lado) y resolvió a **2021** por la regla de desempate ("más nueva"),
+    con el aviso correcto. Repetido sin año cargado: mismo resultado (2021)
+    con el mensaje de "sin año declarado". `npm run build` verde.
   - `datos/catalogo-referencia-tanda6` — 8 filas nuevas para el seed de
     `vehiculos_referencia` (livianos, semi-pesados, tractores; detalle en la
     sección del catálogo más abajo). **Escritas, sin sembrar, sin pushear.**

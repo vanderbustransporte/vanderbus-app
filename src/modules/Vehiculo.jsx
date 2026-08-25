@@ -252,6 +252,7 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
           // form (per-tenant) y sigue editable abajo.
           <PrecargaReferencia
             fichaExt={fichaExt}
+            vehiculoAnio={form.anio}
             onPrecargar={specs => setForm(f => ({ ...f, ...specs }))}
           />
         ) : (
