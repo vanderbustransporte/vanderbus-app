@@ -17,7 +17,7 @@ import {
 } from '../utils/consumo'
 import { calibracionVehiculo } from '../utils/calibracion'
 import {
-  CLASES, CLASE_IDS, FUENTES_CONSUMO, CARROCERIAS,
+  CLASES, CLASE_IDS, CARROCERIAS,
   COMBUSTIBLES_MOTOR, TRANSMISIONES, NORMAS_EMISION, ralentiEstimado,
 } from '../data/clases'
 import { MOTORES, motorPorId, etiquetaMotor, specsDesdeMotor } from '../data/motores'
@@ -283,13 +283,52 @@ function ConsumoSpecs({ form, set, setForm, combustible, viajes, fichaExt }) {
           <Input type="number" step="0.1" min="0" value={form.consumo_ruta_l100} onChange={e => set('consumo_ruta_l100', e.target.value)} placeholder="Ej: 9.5" />
         </Field>
 
+        {/* Fuente del consumo, como pregunta binaria en vez de un select con
+            4 términos técnicos (homologado/fabricante/benchmark/estimado): el
+            operario no tiene que saber qué significa cada uno. "Sí" = el dato
+            que salió de la precarga del catálogo o de la ficha técnica oficial
+            (se corrige +18%, es optimista); "No" = un número aproximado, de
+            experiencia o de otra fuente (se usa tal cual). Sólo aparece una vez
+            que hay algo escrito arriba — antes de eso no está preguntando nada
+            todavía. */}
         {fichaExt && huboConsumo && (
           <div className="sm:col-span-2">
-            <Field label="¿De dónde salió ese consumo?">
-              <Select value={form.fuente_consumo} onChange={e => set('fuente_consumo', e.target.value)}>
-                <option value="">— Sin declarar (se trata como estimado) —</option>
-                {Object.entries(FUENTES_CONSUMO).map(([id, f]) => <option key={id} value={id}>{f.label}</option>)}
-              </Select>
+            <Field label="¿Es el dato oficial de la ficha técnica de fábrica?">
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  ['homologado', 'Sí, es de la ficha oficial'],
+                  ['benchmark_flota', 'No, es aproximado'],
+                ].map(([valor, label]) => {
+                  const activo = form.fuente_consumo === valor
+                  return (
+                    <button
+                      key={valor}
+                      type="button"
+                      aria-pressed={activo}
+                      onClick={() => set('fuente_consumo', valor)}
+                      style={{
+                        flex: 1, padding: '9px 12px', borderRadius: 'var(--radius)', cursor: 'pointer',
+                        fontSize: 12.5, fontWeight: 600, transition: 'background 120ms, color 120ms',
+                        border: `1px solid ${activo ? 'transparent' : 'var(--border)'}`,
+                        background: activo ? 'var(--accent-dim)' : 'var(--bg-overlay)',
+                        color: activo ? 'var(--accent)' : 'var(--text-2)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              {form.fuente_consumo === 'homologado' && (
+                <p style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.5 }}>
+                  El dato oficial suele ser optimista frente al uso real: se corrige un 18% al alza.
+                </p>
+              )}
+              {form.fuente_consumo === 'benchmark_flota' && (
+                <p style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 6, lineHeight: 1.5 }}>
+                  Se usa tal cual, sin corrección — ya es un número de uso real.
+                </p>
+              )}
             </Field>
           </div>
         )}
