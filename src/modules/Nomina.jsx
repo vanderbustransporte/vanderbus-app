@@ -18,7 +18,7 @@ const CONCEPTOS = ['Sueldo mensual', 'Horas extra', 'Aguinaldo', 'Vacaciones', '
 const METODOS   = ['Efectivo', 'Transferencia', 'Cheque']
 
 const empty = () => ({
-  id: genId(), fecha: todayISO(), empleado: '', concepto: 'Sueldo mensual',
+  id: genId(), fecha: todayISO(), empleado: '', contacto_id: '', concepto: 'Sueldo mensual',
   importe: '', periodo: '', metodo: 'Efectivo', notas: ''
 })
 
@@ -110,6 +110,13 @@ export default function Nomina() {
 
   const empleados = useMemo(() => [...new Set(list.map(r => r.empleado).filter(Boolean))], [list])
 
+  // Contactos tipo 'Empleado': para vincular el pago a un contacto ya cargado
+  // en vez de reescribir el nombre a mano cada vez.
+  const contactosEmpleado = useMemo(
+    () => (data.contactos || []).filter(c => c.tipo === 'Empleado').sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')),
+    [data.contactos]
+  )
+
   const cols = [
     { key: 'fecha',    label: 'Fecha',    render: r => formatDate(r.fecha) },
     { key: 'empleado', label: 'Empleado', render: r => <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{r.empleado}</span> },
@@ -197,6 +204,24 @@ export default function Nomina() {
       {modal && (
         <Modal title={editId ? 'Editar pago de nómina' : 'Registrar pago de nómina'} onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
+            {contactosEmpleado.length > 0 && (
+              <div className="col-span-2">
+                <Field label="Vincular a un contacto existente (opcional)">
+                  <Select
+                    value={form.contacto_id || ''}
+                    onChange={e => {
+                      const cid = e.target.value
+                      const c = contactosEmpleado.find(x => x.id === cid)
+                      if (c) setForm(f => ({ ...f, contacto_id: cid, empleado: c.nombre || f.empleado }))
+                      else setForm(f => ({ ...f, contacto_id: '' }))
+                    }}
+                  >
+                    <option value="">— Sin vincular —</option>
+                    {contactosEmpleado.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </Select>
+                </Field>
+              </div>
+            )}
             <Field label="Fecha" required>
               <Input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
               {errors.fecha && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.fecha}</p>}
