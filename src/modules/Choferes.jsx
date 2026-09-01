@@ -5,7 +5,7 @@ import { toISO } from '../utils/fecha'
 import Table from '../components/shared/Table'
 import SearchBar from '../components/shared/SearchBar'
 import Modal from '../components/shared/Modal'
-import { Field, Input, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
+import { Field, Input, Select, Textarea, BtnPrimary, BtnCancel } from '../components/shared/Field'
 import { IdCard, Plus, Edit2, Archive, ArchiveRestore } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -14,7 +14,7 @@ import { useRegistroDestacado } from '../hooks/useRegistroDestacado'
 import { choferesDisponible, CAMPOS_VENC_CHOFER, nombreChofer } from '../utils/choferes'
 
 const empty = () => ({
-  id: genId(), nombre: '', dni: '', celular: '', email: '',
+  id: genId(), nombre: '', dni: '', celular: '', email: '', contacto_id: '',
   licencia_categoria: '', licencia_venc: '', habilitacion_venc: '', psicofisico_venc: '',
   notas: '', activo: true,
 })
@@ -38,6 +38,13 @@ export default function Choferes() {
 
   const [disponible, setDisponible] = useState(true)
   useEffect(() => { let vivo = true; choferesDisponible().then(ok => { if (vivo) setDisponible(ok) }); return () => { vivo = false } }, [])
+
+  // Contactos tipo 'Empleado': para vincular el legajo del chofer a un
+  // contacto ya cargado y no reescribir nombre/celular/email a mano.
+  const contactosEmpleado = useMemo(
+    () => (data.contactos || []).filter(c => c.tipo === 'Empleado').sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')),
+    [data.contactos]
+  )
 
   const [search, setSearch]   = useState('')
   const [filtro, setFiltro]   = useState('activos')   // activos | archivados | todos
@@ -92,6 +99,7 @@ export default function Choferes() {
     const chofer = {
       ...form,
       licencia_venc: toISO(form.licencia_venc), habilitacion_venc: toISO(form.habilitacion_venc), psicofisico_venc: toISO(form.psicofisico_venc),
+      contacto_id: form.contacto_id || null,
     }
     if (editId) update('choferes', list.map(c => c.id === editId ? chofer : c))
     else update('choferes', [chofer, ...list])
@@ -245,6 +253,24 @@ export default function Choferes() {
       {modal && (
         <Modal title={editId ? 'Editar chofer' : 'Nuevo chofer'} onClose={() => setModal(false)}>
           <div className="grid grid-cols-2 gap-4">
+            {contactosEmpleado.length > 0 && (
+              <div className="col-span-2">
+                <Field label="Vincular a un contacto existente (opcional)">
+                  <Select
+                    value={form.contacto_id || ''}
+                    onChange={e => {
+                      const cid = e.target.value
+                      const c = contactosEmpleado.find(x => x.id === cid)
+                      if (c) setForm(f => ({ ...f, contacto_id: cid, nombre: c.nombre || f.nombre, celular: c.telefono || f.celular, email: c.email || f.email }))
+                      else setForm(f => ({ ...f, contacto_id: '' }))
+                    }}
+                  >
+                    <option value="">— Sin vincular —</option>
+                    {contactosEmpleado.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </Select>
+                </Field>
+              </div>
+            )}
             <Field label="Nombre y apellido" required>
               <Input value={form.nombre} onChange={e => set('nombre', e.target.value)} />
               {errors.nombre && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.nombre}</p>}
