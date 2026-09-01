@@ -55,9 +55,8 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
     sección dedicada ya estaba en `main` desde el rebranding; esto es el panel.
   - `notificaciones/centro-campana` (v1) quedó **superada por completo**: su
     contenido es la baja de la sección (ya en `main`) más una versión anterior
-    del panel. Verificado que no aporta nada: se puede borrar. Lo único que
-    dejó sin barrer son dos reglas CSS muertas en `src/index.css`
-    (`.sb-badge`, `.sb-badge-dot`), sin ningún uso en JSX.
+    del panel. Verificado que no aporta nada. **Borrada el 2026-09-01** junto
+    con las otras dos, tras re-verificarlo blob a blob (ver más abajo).
 
   > **Pendiente de verificación en navegador.** Los dos merges tienen build
   > verde y el contenido de cada rama se había probado en runtime en su sesión
@@ -65,15 +64,52 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   > de Chrome no estaba conectada el 2026-08-17). Lo que conviene mirar una vez:
   > los 4 botones de "Acceso rápido" del Dashboard y el panel de la campana.
 
-- **2026-09-01: `contactos/vincular-choferes-nomina` está viva y sin mergear**
-  (3 commits). Primer paso de "Contactos como fuente de verdad": `choferes` y
-  `nomina` ganan `contacto_id` y el modal de cada uno trae un selector para
-  vincular a un contacto de tipo Empleado. Rebasada sobre `main` el 2026-09-01
-  (había salido de `origin/main`, le faltaban los 7 commits de agosto) y
-  **dejada sin upstream a propósito**: apuntaba a `origin/main`, así que un
-  `git push` pelado desde la rama habría empujado directo al tronco.
-  **La migración ya está aplicada (Diego, 2026-09-01, a mano en el SQL
-  editor).** Falta la verificación en navegador.
+- **2026-09-01: `contactos/vincular-choferes-nomina` MERGEADA y verificada.**
+  Primer paso de "Contactos como fuente de verdad": `choferes` y `nomina` ganan
+  `contacto_id` (FK nullable a `contactos`, `on delete set null`) y el modal de
+  cada uno trae un selector para vincular a un contacto de tipo Empleado.
+  Migración `20260825120000` **aplicada** el 2026-09-01. La rama había salido de
+  `origin/main` y le faltaban los 7 commits de agosto: se rebasó sobre `main`
+  antes de integrar.
+  - **El bug que costó la sesión:** el selector deja `contacto_id` en `''` al
+    elegir "— Sin vincular —", y `empty()` ya arranca en `''`. Contra una FK
+    Postgres rechaza el string vacío — no lo trata como `null` — así que
+    **fallaba el alta de CUALQUIER chofer o pago aunque el usuario no tocara el
+    selector**, no sólo la edición. Se normaliza en el borde dentro de
+    `handleSave` con `contacto_id: form.contacto_id || null`, el mismo patrón
+    que ya usaban Combustible, Mantenimiento y Viajes para `vehiculo_id`. El
+    estado del form queda en `''` a propósito: el `<Select>` es controlado y lo
+    necesita para que la opción vacía quede seleccionada. **No se tocó
+    `syncArray()`**: normalizar ahí afectaría a las 10 tablas.
+  - **Verificado en navegador el 2026-09-01** con el flujo completo (contacto
+    Empleado → chofer sin vincular → chofer vinculado → lo mismo en Nómina →
+    edición y desvinculación) y confirmado contra la base con `select`: **0
+    `contacto_id` guardados como `''`**, `choferes` 2 (1 vinculado / 1 sin
+    vincular) y `nomina` 1 (vinculado).
+  - Auditados de paso todos los módulos que escriben a Supabase buscando el
+    mismo bug en otros FK opcionales: **no hay ninguno más**. `vehiculo_id` ya
+    está cubierto en Combustible, Mantenimiento, Viajes y SeguimientoGPS;
+    `ingresos.viaje_id` y `vehiculo_docs.vehiculo_id` no pueden salir en `''`
+    por construcción; los `chofer_*` del despacho son columnas text, no FK.
+
+- **2026-09-01: ramas borradas por estar mergeadas y no aportar nada** —
+  `ux/limpieza-1` y `notificaciones/centro-campana-v2` (cero commits propios
+  respecto de `main`, ancestros directos) y `notificaciones/centro-campana`
+  (la v1 de julio). La v1 tenía 1 commit que `git cherry` marcaba como no
+  mergeado, pero se verificó blob a blob: `src/components/NotifCenter.jsx` y
+  `src/utils/notifDestino.js` son **byte a byte idénticos** a los de `main`, y
+  la baja de `src/modules/Notificaciones.jsx` también está aplicada. No se
+  perdió nada. Siguen sin barrer las dos reglas CSS muertas de `src/index.css`
+  (`.sb-badge`, `.sb-badge-dot`), sin uso en JSX.
+
+- **Lo único que queda sin integrar** (2026-09-01, no se tocan todavía):
+  - `ux/estimador-ficha-simplificada` — tip `994d80c`, "año más cercano" en el
+    buscador de referencia. **Es la única rama con remoto propio**
+    (`origin/ux/estimador-ficha-simplificada`).
+  - `datos/catalogo-referencia-tanda6` — tip `283cf90`, TANDA 6 del catálogo
+    (livianos, semi-pesados y tractores con fuente citada). Ojo: escribir el
+    seed **no lo aplica**, hay que correrlo en el SQL editor y verificar con un
+    `select` (ver la trampa documentada más abajo).
 
 ---
 
