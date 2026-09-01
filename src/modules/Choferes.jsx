@@ -99,6 +99,7 @@ export default function Choferes() {
     const chofer = {
       ...form,
       licencia_venc: toISO(form.licencia_venc), habilitacion_venc: toISO(form.habilitacion_venc), psicofisico_venc: toISO(form.psicofisico_venc),
+      contacto_id: form.contacto_id || null,
     }
     if (editId) update('choferes', list.map(c => c.id === editId ? chofer : c))
     else update('choferes', [chofer, ...list])

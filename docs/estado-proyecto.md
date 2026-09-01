@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-08-17.
+Última actualización: 2026-09-01.
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -65,6 +65,15 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   > de Chrome no estaba conectada el 2026-08-17). Lo que conviene mirar una vez:
   > los 4 botones de "Acceso rápido" del Dashboard y el panel de la campana.
 
+- **2026-09-01: `contactos/vincular-choferes-nomina` está viva y sin mergear**
+  (3 commits). Primer paso de "Contactos como fuente de verdad": `choferes` y
+  `nomina` ganan `contacto_id` y el modal de cada uno trae un selector para
+  vincular a un contacto de tipo Empleado. Rebasada sobre `main` el 2026-09-01
+  (había salido de `origin/main`, le faltaban los 7 commits de agosto) y
+  **dejada sin upstream a propósito**: apuntaba a `origin/main`, así que un
+  `git push` pelado desde la rama habría empujado directo al tronco.
+  Falta aplicar la migración y verificar en navegador.
+
 ---
 
 ## Migraciones — estado de aplicación
@@ -83,6 +92,7 @@ del estimador de consumo, **aplicadas por Diego el 2026-07-27** en orden en el S
 | `20260724130000_consumo_ficha_extendida.sql` | ✅ **SÍ** (2026-07-27) | Ficha técnica completa (clase, motor, fuente del consumo, PBT, carrocería, tanque, ralentí), topografía y horas de ralentí del viaje, y `combustible.tanque_lleno` (el insumo del motor de calibración) |
 | `20260724140000_vehiculo_docs.sql` | ✅ **SÍ** (2026-07-27) | Tabla `vehiculo_docs` + bucket privado `vehiculo-docs`: subir y consultar el manual / ficha técnica de cada unidad |
 | `20260727120000_vehiculos_referencia.sql` | ✅ **SÍ** (2026-07-28) | Catálogo de referencia GLOBAL `vehiculos_referencia`: el usuario elige marca → modelo → año → versión y prellena la ficha de su unidad, gratis y sin llamar a ninguna API |
+| `20260825120000_contacto_id_choferes_nomina.sql` | ❌ **NO** | `choferes.contacto_id` y `nomina.contacto_id`: FK nullable a `contactos(id)` con `on delete set null`. Vive en `contactos/vincular-choferes-nomina`, sin aplicar |
 
 **`vehiculos_referencia` es la EXCEPCIÓN al modelo por empresa:** no tiene
 `organization_id`. Un Scania R450 2019 es el mismo camión para todos los clientes.
@@ -120,6 +130,21 @@ Sin eso el botón “Leer datos” devuelve un error legible y todo lo demás an
 igual. La lógica pura (qué páginas se mandan al modelo, qué valores se aceptan)
 se prueba sin desplegar nada y sin gastar una llamada a la API:
 `node --experimental-strip-types supabase/checks/extraccion_ficha_check.mjs`.
+
+> **El ledger del CLI está vacío y esta tabla es la única fuente de verdad.**
+> `supabase migration list` (corrido el 2026-09-01 contra el proyecto linkeado)
+> devuelve las 28 migraciones locales con la columna `Remote` en blanco, y
+> ninguna fila remota huérfana. No significa que el esquema esté atrasado:
+> significa que **ninguna migración se aplicó nunca por el CLI**, porque se
+> pegan a mano en el SQL editor y eso no escribe `supabase_migrations.schema_migrations`.
+> Consecuencia práctica: **`supabase db push` intentaría aplicar las 28 desde
+> cero y rompería**. Además no hay migración de baseline — `supabase/migrations/`
+> arranca el 2026-07-10 sobre un esquema preexistente y sólo crea 4 tablas
+> (`choferes`, `dispositivos_gps`, `vehiculo_docs`, `vehiculos_referencia`);
+> `contactos`, `viajes`, `combustible`, `ingresos`, `gastos`, `nomina`,
+> `marketing`, `mantenimiento`, `vehiculos`, `profiles`, `organizations` y
+> `org_settings` **no las crea ninguna migración**: se crearon a mano y nunca
+> quedaron versionadas.
 
 ---
 

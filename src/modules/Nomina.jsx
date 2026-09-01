@@ -72,7 +72,7 @@ export default function Nomina() {
 
   const handleSave = () => {
     if (!validate()) return
-    const registro = { ...form, fecha: toISO(form.fecha) }
+    const registro = { ...form, fecha: toISO(form.fecha), contacto_id: form.contacto_id || null }
     if (editId) update('nomina', list.map(r => r.id === editId ? registro : r))
     else        update('nomina', [registro, ...list])
     setModal(false)
