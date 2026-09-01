@@ -72,7 +72,8 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   (había salido de `origin/main`, le faltaban los 7 commits de agosto) y
   **dejada sin upstream a propósito**: apuntaba a `origin/main`, así que un
   `git push` pelado desde la rama habría empujado directo al tronco.
-  Falta aplicar la migración y verificar en navegador.
+  **La migración ya está aplicada (Diego, 2026-09-01, a mano en el SQL
+  editor).** Falta la verificación en navegador.
 
 ---
 
@@ -92,7 +93,7 @@ del estimador de consumo, **aplicadas por Diego el 2026-07-27** en orden en el S
 | `20260724130000_consumo_ficha_extendida.sql` | ✅ **SÍ** (2026-07-27) | Ficha técnica completa (clase, motor, fuente del consumo, PBT, carrocería, tanque, ralentí), topografía y horas de ralentí del viaje, y `combustible.tanque_lleno` (el insumo del motor de calibración) |
 | `20260724140000_vehiculo_docs.sql` | ✅ **SÍ** (2026-07-27) | Tabla `vehiculo_docs` + bucket privado `vehiculo-docs`: subir y consultar el manual / ficha técnica de cada unidad |
 | `20260727120000_vehiculos_referencia.sql` | ✅ **SÍ** (2026-07-28) | Catálogo de referencia GLOBAL `vehiculos_referencia`: el usuario elige marca → modelo → año → versión y prellena la ficha de su unidad, gratis y sin llamar a ninguna API |
-| `20260825120000_contacto_id_choferes_nomina.sql` | ❌ **NO** | `choferes.contacto_id` y `nomina.contacto_id`: FK nullable a `contactos(id)` con `on delete set null`. Vive en `contactos/vincular-choferes-nomina`, sin aplicar |
+| `20260825120000_contacto_id_choferes_nomina.sql` | ✅ **SÍ** (2026-09-01) | `choferes.contacto_id` y `nomina.contacto_id`: FK nullable a `contactos(id)` con `on delete set null`. El código que la usa vive en `contactos/vincular-choferes-nomina`, todavía sin mergear |
 
 **`vehiculos_referencia` es la EXCEPCIÓN al modelo por empresa:** no tiene
 `organization_id`. Un Scania R450 2019 es el mismo camión para todos los clientes.
