@@ -106,6 +106,7 @@ export default function Viajes() {
   const [ficha, setFicha]             = useState(null)   // viaje cuya ficha de despacho se muestra
   const [share, setShare]             = useState(null)   // viaje cuyo link de seguimiento se comparte
   const [showDespacho, setShowDespacho] = useState(false)
+  const [verAjustesRecorrido, setVerAjustesRecorrido] = useState(false)
   const [despachoOn, setDespachoOn]   = useState(false)
   const [trackingOn, setTrackingOn]   = useState(false)
   const [consumoOn, setConsumoOn]     = useState(false)
@@ -150,7 +151,8 @@ export default function Viajes() {
 
   const openNew = () => {
     setEditId(null); setForm(empty()); setErrors({})
-    setCalc({ horas: '', conPeon: false }); setShowDespacho(false); setModal(true)
+    setCalc({ horas: '', conPeon: false }); setShowDespacho(false)
+    setVerAjustesRecorrido(false); setModal(true)
   }
 
   // Al abrir para editar hay que NORMALIZAR sí o sí: <input type="date"> sólo
@@ -161,6 +163,7 @@ export default function Viajes() {
   // `hora`/`vehiculo_id` tengan la clave definida y el input quede controlado.
   const openEdit = (r) => {
     setEditId(r.id)
+    const topografia = TOPOGRAFIAS[r.topografia] ? r.topografia : TOPOGRAFIA_DEFAULT
     setForm({
       ...empty(),
       // null → '' : la base guarda null en los campos vacíos (notas, vehiculo_id)
@@ -172,12 +175,15 @@ export default function Viajes() {
       // El null de la columna nueva pasó a '' arriba y dejaría el Select en
       // blanco: sin valor guardado, el recorrido se asume mixto.
       ruta_tipo: RUTA_TIPOS.includes(r.ruta_tipo) ? r.ruta_tipo : 'Mixto',
-      topografia: TOPOGRAFIAS[r.topografia] ? r.topografia : TOPOGRAFIA_DEFAULT,
+      topografia,
     })
     setErrors({})
     setCalc({ horas: '', conPeon: false })
     // Si la fila ya tiene datos de despacho, la sección arranca abierta.
     setShowDespacho(CAMPOS_DESPACHO.some(k => r[k]))
+    // Ídem "Ajustes del recorrido": si ya hay algo cargado ahí (topografía
+    // distinta del default o ralentí previsto), no queda escondido.
+    setVerAjustesRecorrido(topografia !== TOPOGRAFIA_DEFAULT || !!r.horas_ralenti)
     setModal(true)
   }
 
@@ -544,7 +550,13 @@ export default function Viajes() {
               <Input value={form.destino} onChange={e => set('destino', e.target.value)} placeholder="Ciudad / Punto de llegada" />
               {errors.destino && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.destino}</p>}
             </Field>
+            {/* Bloque del estimador (Bloque B, rediseño 2026-08-25): sólo lo
+                que hace falta ver siempre — distancia, tipo de recorrido y,
+                si despacho está colapsado, el peso — con topografía/ralentí
+                detrás de un toggle. Si despacho está ABIERTO el peso ya está
+                ahí adentro (junto con bultos/volumen/valor) y no se duplica. */}
             {consumoOn && <>
+              <div className="col-span-2" style={{ marginTop: 4 }}><p className="db-slabel">Estimar combustible</p></div>
               <Field label="Distancia (km)">
                 <Input type="number" step="1" min="0" value={form.distancia_km} onChange={e => set('distancia_km', e.target.value)} placeholder="Ej: 340" />
               </Field>
@@ -553,20 +565,39 @@ export default function Viajes() {
                   {RUTA_TIPOS.map(t => <option key={t}>{t}</option>)}
                 </Select>
               </Field>
-            </>}
-            {consumoOn && fichaExtOn && <>
-              <Field label="Topografía">
-                <Select value={form.topografia} onChange={e => set('topografia', e.target.value)}>
-                  {Object.entries(TOPOGRAFIAS).map(([id, t]) => <option key={id} value={id}>{t.label}</option>)}
-                </Select>
-              </Field>
-              {/* Horas de motor detenido: esperas de carga/descarga, frío, aduana.
-                  Se carga a mano — el módulo GPS está en pausa y el estimador NO
-                  depende de él (el hook para alimentarlo desde GPS queda para
-                  cuando el tracking vuelva a ser confiable). */}
-              <Field label="Horas de ralentí previstas">
-                <Input type="number" step="0.5" min="0" value={form.horas_ralenti} onChange={e => set('horas_ralenti', e.target.value)} placeholder="Motor en marcha detenido" />
-              </Field>
+              {despachoOn && !showDespacho && (
+                <Field label="Peso aproximado de la carga (kg)">
+                  <Input type="number" step="0.01" min="0" value={form.carga_peso_kg} onChange={e => set('carga_peso_kg', e.target.value)} placeholder="0" />
+                </Field>
+              )}
+              {fichaExtOn && (
+                <div className="col-span-2">
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => setVerAjustesRecorrido(v => !v)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', padding: '9px 12px', width: '100%', cursor: 'pointer' }}
+                  >
+                    {verAjustesRecorrido ? <ChevronDown size={14} style={{ color: 'var(--accent)' }} /> : <ChevronRight size={14} style={{ color: 'var(--accent)' }} />}
+                    Ajustes del recorrido
+                    <span style={{ fontWeight: 500, color: 'var(--text-2)' }}>— opcional, topografía y paradas largas</span>
+                  </button>
+                </div>
+              )}
+              {fichaExtOn && verAjustesRecorrido && <>
+                <Field label="Topografía">
+                  <Select value={form.topografia} onChange={e => set('topografia', e.target.value)}>
+                    {Object.entries(TOPOGRAFIAS).map(([id, t]) => <option key={id} value={id}>{t.label}</option>)}
+                  </Select>
+                </Field>
+                {/* Horas de motor detenido: esperas de carga/descarga, frío, aduana.
+                    Se carga a mano — el módulo GPS está en pausa y el estimador NO
+                    depende de él (el hook para alimentarlo desde GPS queda para
+                    cuando el tracking vuelva a ser confiable). */}
+                <Field label="Horas de ralentí previstas">
+                  <Input type="number" step="0.5" min="0" value={form.horas_ralenti} onChange={e => set('horas_ralenti', e.target.value)} placeholder="Motor en marcha detenido" />
+                </Field>
+              </>}
             </>}
             <Field label="Monto seña ($)">
               <Input type="number" step="0.01" min="0" value={form.monto_sena}  onChange={e => set('monto_sena', e.target.value)}  placeholder="0.00" />
@@ -677,7 +708,8 @@ export default function Viajes() {
                 <Input value={form.precintos} onChange={e => set('precintos', e.target.value)} placeholder="Números, separados por coma" />
               </Field>
             </>}
-            {/* Va al final, después del peso de la carga (sección de despacho):
+            {/* Va al final, después de cualquier fuente del peso de la carga
+                (el campo del bloque de arriba o el de la sección de despacho):
                 así el número ya está completo cuando el ojo llega acá. Se
                 recalcula en vivo con lo que haya en el form. */}
             {consumoOn && (

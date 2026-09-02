@@ -67,43 +67,120 @@ export async function fuenteCatalogo() {
   return (await hayReferencia()) ? 'referencia' : 'legacy'
 }
 
-// ── Listas encadenadas (cada nivel filtra por lo elegido en el anterior) ─────
+// ── Catálogo completo, para el buscador de texto libre ──────────────────────
 //
-// Se filtra por los valores de DISPLAY exactos, no por los normalizados: cada
-// nivel recibe strings que salieron de esta misma tabla en el nivel anterior, así
-// que el match exacto es correcto y no hace falta replicar normalizar_ref en JS.
-// La normalización vive en la base sólo para deduplicar al sembrar.
-//
-// Postgres devuelve las filas; el DISTINCT y el orden se hacen en JS (el volumen
-// de un catálogo de modelos es chico). Ante cualquier error → [] (la UI muestra
-// vacío, no rompe).
-
-async function distinct(columna, filtros = {}, orden = 'asc') {
-  let q = supabase.from(TABLA).select(columna)
-  for (const [k, v] of Object.entries(filtros)) q = q.eq(k, v)
-  const { data, error } = await q
-  if (error || !data) return []
-  const vistos = [...new Set(data.map(r => r[columna]).filter(v => v !== null && v !== ''))]
-  vistos.sort((a, b) => typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'es'))
-  return orden === 'desc' ? vistos.reverse() : vistos
+// (rediseño 2026-08-25) Reemplaza a la cascada marca→modelo→año→versión: en vez
+// de 3 round trips encadenados para llegar a UNA fila, se trae la tabla entera
+// de una vez (el volumen de un catálogo de modelos es chico) y el filtrado lo
+// hace el `<datalist>` nativo del navegador en el cliente. Cacheado igual que
+// hayReferencia(): un resultado con filas es estable durante la sesión (nadie
+// resiembra en vivo); un error de red no se cachea, para reintentar.
+let _fichas = null
+export function listarFichas() {
+  if (!_fichas) {
+    _fichas = supabase.from(TABLA).select('*').then(({ data, error }) => {
+      if (error) { _fichas = null; return [] }
+      return data || []
+    }).catch(() => { _fichas = null; return [] })
+  }
+  return _fichas
 }
 
-export const listarMarcas   = ()                      => distinct('marca')
-export const listarModelos  = (marca)                 => distinct('modelo', { marca })
-// Los años, del más nuevo al más viejo (lo que se busca casi siempre es lo reciente).
-export const listarAnios    = (marca, modelo)         => distinct('anio', { marca, modelo }, 'desc')
-export const listarVersiones = (marca, modelo, anio)  => distinct('version', { marca, modelo, anio })
+// Etiqueta única por fila para el datalist: "Marca Modelo Año — Versión".
+// marca+modelo+año+versión es justamente la clave única de la tabla, así que
+// dos filas nunca producen la misma etiqueta.
+export const etiquetaFicha = (row) => `${row.marca} ${row.modelo} ${row.anio} — ${row.version}`
 
-// ── Ficha puntual ────────────────────────────────────────────────────────────
-// La fila completa para un (marca, modelo, año, versión). Devuelve null si no
-// está o si hay error. maybeSingle: 0 filas no es un error.
-export async function obtenerFicha({ marca, modelo, anio, version }) {
-  const { data, error } = await supabase.from(TABLA)
-    .select('*')
-    .eq('marca', marca).eq('modelo', modelo).eq('anio', anio).eq('version', version)
-    .maybeSingle()
-  if (error) return null
-  return data || null
+// ── Buscar por marca+modelo sin saber el año exacto ─────────────────────────
+//
+// (2026-08-25) El operario rara vez tiene de memoria el año Y la versión
+// exactos que carga el catálogo. Cuando una marca+modelo tiene más de una fila,
+// se ofrece TAMBIÉN la etiqueta agregada "Marca Modelo" en el buscador: elegirla
+// no obliga a saber el año, resuelve sola contra la fila de año más cercano al
+// declarado arriba en la ficha de la unidad (o la más nueva, si la unidad
+// todavía no tiene año cargado). Grupos de una sola fila no se agregan: ahí la
+// etiqueta completa ya alcanza y sumar el agregado sería un duplicado inútil.
+export function agruparPorMarcaModelo(fichas) {
+  const grupos = new Map()
+  for (const r of fichas) {
+    const clave = `${r.marca}\u0000${r.modelo}`
+    if (!grupos.has(clave)) grupos.set(clave, [])
+    grupos.get(clave).push(r)
+  }
+  return [...grupos.values()].filter(filas => filas.length > 1)
+}
+
+// El sufijo fijo "— cualquier año" es a propósito: ninguna etiqueta completa
+// (etiquetaFicha) termina así (siempre lleva un año real de 4 dígitos), así
+// que el agregado nunca puede coincidir por accidente con un prefijo que el
+// usuario esté tipeando camino a una etiqueta completa más larga.
+export const etiquetaAgregada = (row) => `${row.marca} ${row.modelo} — cualquier año`
+
+// Fila de año más cercano dentro de un grupo marca+modelo, dado un año
+// objetivo (el de la ficha de la unidad, si ya está cargado).
+//
+// Criterio: MENOR DIFERENCIA ABSOLUTA contra el objetivo; en caso de empate
+// (ej. objetivo 2020 entre una fila 2019 y una 2021), gana la MÁS NUEVA — un
+// catálogo más reciente tiene más chances de compartir specs con la unidad
+// real que uno viejo, y es el mismo criterio que ya usaba listarAnios(desc)
+// en la cascada vieja ("lo que se busca casi siempre es lo reciente").
+// Sin objetivo (unidad sin año cargado todavía): directamente la más nueva.
+//
+// ── Versiones del mismo año dentro de un grupo ──────────────────────────────
+//
+// (2026-09-02) filaMasCercana() resuelve el AÑO, pero un mismo marca+modelo+año
+// puede tener VARIAS versiones, y son vehículos distintos: el Tector 2019 está
+// cargado como '90 (9tn)' (PBT 8500) y '110 (11tn)' (PBT 10600). Elegir una de
+// las dos por el orden en que las devolvió la base y no decirlo precargaba specs
+// equivocadas en silencio — y encima sin el aviso de año, porque la diferencia
+// contra el año declarado era 0 (`exacto: true`). Acá se listan todas las
+// candidatas de ese año para que la UI las ofrezca; con UNA sola, la UI precarga
+// directo como siempre y no molesta a nadie.
+export function versionesDelAnio(filas, anio) {
+  return (filas || []).filter(f => f.anio === anio)
+}
+
+// Descripción de una versión en términos que un operario reconoce.
+//
+// El código de versión ('170E28 4x2 chasis') no le dice nada a nadie: lo que
+// distingue una versión de otra en la cabeza del que carga el dato es el
+// TONELAJE y cuánto lleva. Se arma con lo que la fila tenga, en orden de
+// utilidad: PBT (el "9 toneladas" del nombre comercial), carga útil, y recién
+// si no hay ninguno de los dos, potencia o motor. Devuelve '' si la fila no
+// trae nada útil — la UI entonces muestra sólo el código de versión.
+const miles = n => Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+export function descriptorFila(row) {
+  if (!row) return ''
+  const partes = []
+  if (row.pbt_kg) {
+    const t = Number(row.pbt_kg) / 1000
+    partes.push(`${t.toLocaleString('es-AR', { maximumFractionDigits: 1 })} toneladas`)
+  }
+  if (row.carga_util_kg) partes.push(`carga útil ${miles(row.carga_util_kg)} kg`)
+  if (!partes.length && row.potencia_cv) partes.push(`${miles(row.potencia_cv)} cv`)
+  if (!partes.length && row.motor) partes.push(row.motor)
+  return partes.join(' · ')
+}
+
+// Devuelve `{ fila, exacto }`: `exacto` dice si el año objetivo estaba
+// realmente en el catálogo (diferencia 0) — la UI sólo avisa aproximación
+// cuando `exacto` es false.
+export function filaMasCercana(filas, anioObjetivo) {
+  if (!filas || !filas.length) return null
+  const objetivo = anioObjetivo ? Number(anioObjetivo) : null
+  if (!objetivo || !Number.isFinite(objetivo)) {
+    const masNueva = [...filas].sort((a, b) => b.anio - a.anio)[0]
+    return { fila: masNueva, exacto: false }
+  }
+  let mejor = filas[0]
+  let mejorDiff = Math.abs(filas[0].anio - objetivo)
+  for (const f of filas.slice(1)) {
+    const diff = Math.abs(f.anio - objetivo)
+    if (diff < mejorDiff || (diff === mejorDiff && f.anio > mejor.anio)) {
+      mejor = f; mejorDiff = diff
+    }
+  }
+  return { fila: mejor, exacto: mejorDiff === 0 }
 }
 
 // ── Mapeo referencia → campos de la ficha del vehículo ──────────────────────

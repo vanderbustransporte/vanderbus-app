@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-09-02.
+Última actualización: 2026-09-02 (todas las ramas integradas).
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -17,7 +17,8 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
 
 | Persona | Área que está tocando | Rama | Desde |
 |---|---|---|---|
-| Diego | — (rebranding y estimador de consumo, ambos mergeados a `main`) | — | — |
+| Diego | Simplificación UX de la ficha de consumo (Flota) | `ux/estimador-ficha-simplificada` | 2026-08-25 |
+| Diego | Catálogo de referencia — TANDA 6 (datos, sin sembrar) | `datos/catalogo-referencia-tanda6` | 2026-08-25 |
 | Nico | — | — | — |
 
 > Completar antes de empezar a trabajar. Es el mecanismo barato para no pisarnos
@@ -110,10 +111,98 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   ya se hizo el mismo día: la tabla pasó de 11 a 19 filas** (ver "TANDA 6" más
   abajo para el chequeo previo y el detalle).
 
-- **Lo único que queda sin integrar** (2026-09-02, no se toca todavía):
-  - `ux/estimador-ficha-simplificada` — tip `994d80c`, "año más cercano" en el
-    buscador de referencia. **Es la única rama con remoto propio**
-    (`origin/ux/estimador-ficha-simplificada`).
+- **2026-09-02: `ux/estimador-ficha-simplificada` MERGEADA. Con esto NO QUEDA
+  NINGUNA RAMA SIN INTEGRAR** — es la última de la tanda de agosto. Se mergeó
+  con `--no-ff` (conflicto en este doc, resuelto conservando las dos historias),
+  build verde, y se borraron la rama local y la remota
+  `origin/ux/estimador-ficha-simplificada`. Contenido: la simplificación
+  completa del estimador de consumo en dos bloques, más el arreglo del panel de
+  versiones (abajo).
+
+  **Qué trae** (auditoría de la sesión: mapa de la estructura, diagnóstico de
+  sobrecarga de config, propuesta en 3 niveles / Bloques A y B). **Bloque A** (`13360e4`, `d09b52c`) reescribe "Consumo y
+  pesos" en `Vehiculo.jsx` de una pantalla con ~20 campos siempre visibles a:
+  **Nivel 1** un buscador único (reemplaza la cascada marca→modelo→año→versión
+  de `PrecargaReferencia` y el select con optgroups de `motores.js` por un
+  `<input list>` + `<datalist>`, filtrado 100% client-side — `vehiculosRef.js`
+  cambió `listarMarcas`/`listarModelos`/`listarAnios`/`listarVersiones`/
+  `obtenerFicha` por `listarFichas()` + `etiquetaFicha()`), **Nivel 2** sólo
+  los dos datos que mueven el cálculo (consumo urbano/ruta + tara, en lenguaje
+  llano) más la fuente del consumo — como **pregunta binaria** ("¿Es el dato
+  oficial de la ficha técnica de fábrica?" Sí/No → `homologado`/
+  `benchmark_flota`; el primer commit la había dejado como select de 4
+  términos técnicos por error, corregido en `d09b52c` tras revisión), y
+  **Nivel 3** "Ficha técnica completa (opcional)" colapsada por defecto
+  (auto-expandida si la ficha ya trae datos ahí). **Bloque B** reestructura el
+  modal de Viajes: distancia/tipo de recorrido visibles bajo el título
+  "Estimar combustible", topografía/ralentí detrás de "Ajustes del recorrido"
+  (auto-expandido si ya tienen algo distinto del default), el peso de la
+  carga (`carga_peso_kg`) aparece en ese mismo bloque **sólo cuando "Datos de
+  despacho" está colapsado** — evita el campo duplicado cuando el usuario ya
+  tiene despacho abierto — y `ConsumoEstimado.jsx` se achicó a rango + costo +
+  una línea de origen (`banda.nivel`, ya calculado) + supuestos colapsados;
+  los "tres números" (teórico/real/usado) y el desvío quedaron sólo en Flota,
+  no duplicados acá. **Verificado en navegador** en ambos bloques contra la
+  Master 2.5 real y un vehículo de prueba: precarga, badges de verificación,
+  auto-expand, la pregunta binaria resaltando la opción elegida, el peso
+  apareciendo/desapareciendo según el estado de despacho sin perder el valor,
+  y el panel de resultado achicado con el rango correcto. Sin errores de
+  consola, `npm run build` verde en cada paso.
+  **"Año más cercano" (2026-08-25, pedido explícito):** el buscador ahora
+  también ofrece, cuando una marca+modelo tiene 2+ filas, la etiqueta
+  agregada `"Marca Modelo — cualquier año"` (`agruparPorMarcaModelo()` /
+  `etiquetaAgregada()` / `filaMasCercana()` en `vehiculosRef.js`). Elegirla
+  resuelve contra la fila cuyo año tiene **menor diferencia absoluta** con el
+  campo "Año" de la unidad (`form.anio`, pasado como prop `vehiculoAnio`);
+  en empate gana **la más nueva**; sin año cargado en la unidad, directamente
+  la más nueva del grupo. Si el año usado no fue exacto, un aviso amarillo
+  dice de dónde salió ("Tu unidad es del 2020 y el catálogo no tiene esa
+  versión. Usamos los datos de la versión 2021 (la más parecida disponible)
+  — revisá que coincida con tu unidad.") sin bloquear nada — el form sigue
+  100% editable. **Verificado en navegador**: la flota real no tiene ningún
+  vehículo en un grupo marca+modelo con 2+ filas (la Master es grupo de una
+  sola fila, no aplica), así que se probó con "Agregar vehículo" (sin
+  guardar) → Iveco Tector, año 2020 → el catálogo tiene Tector 2019 (×2
+  versiones) y 2021: **2020 es un empate exacto** (diferencia 1 a cada
+  lado) y resolvió a **2021** por la regla de desempate ("más nueva"),
+  con el aviso correcto. Repetido sin año cargado: mismo resultado (2021)
+  con el mensaje de "sin año declarado". `npm run build` verde.
+
+- **El bug del catálogo que encontró el diagnóstico del merge (arreglado en
+  `b60bcc3`, 2026-09-02).** "Cualquier año" resolvía el AÑO pero **no la
+  VERSIÓN**: un mismo marca+modelo+año puede tener varias filas y son vehículos
+  distintos — el Tector 2019 está cargado como `90 (9tn)` (PBT 8500) y
+  `110 (11tn)` (PBT 10600). `filaMasCercana()` se quedaba con **la primera que
+  devolvía la base** (un orden que nadie controla) y encima **sin avisar**,
+  porque la diferencia contra el año declarado era 0 y `exacto` daba `true`:
+  specs equivocadas precargadas en silencio, el peor modo de falla para alguien
+  que no puede detectarlo. Ahora, **sólo** cuando el año resuelto tiene 2+
+  versiones, no se precarga nada y se ofrecen las candidatas para que el usuario
+  elija (`versionesDelAnio()`); con una sola versión se precarga directo como
+  siempre, así el paso extra aparece únicamente si hay ambigüedad real. Las
+  opciones se describen por **tonelaje y carga útil** (`descriptorFila()`), no
+  por el código de versión: "8,5 toneladas · carga útil 5.061 kg" es lo que un
+  operario reconoce, "90 (9tn) 4x2" no. Cae a potencia o motor si la fila no
+  trae pesos, y al código de versión pelado si no trae nada.
+  **Verificado en navegador el 2026-09-02** con las 19 filas reales del
+  catálogo: **Tector 2021 precarga directo** (una sola versión ese año, sin
+  panel y sin fricción); **Tector 2019 muestra el panel ámbar** con los dos
+  botones de tonelaje y **no precarga nada hasta elegir**; Tector 2018 muestra
+  el mismo panel con el texto de año aproximado. Probado también el peso de la
+  carga en Viajes (visible con despacho cerrado, un solo input a la vista, el
+  valor se conserva al abrir despacho) y el panel de resultado achicado.
+
+- **Trampa de tooling encontrada de paso (mismo commit):** `vehiculosRef.js`
+  tenía un **byte NUL literal** dentro del template string que arma la clave de
+  agrupación (`` `${r.marca}\0${r.modelo}` ``). Funcionaba, pero hacía que git
+  tratara el archivo como **binario**: el commit `994d80c` mostraba
+  `Bin 7029 -> 10074 bytes` en vez de un diff, o sea que **los cambios a ese
+  archivo pasaban sin poder revisarse**. Reemplazado por `\u0000` escapado —
+  mismo comportamiento exacto, archivo de texto — y saneados los fines de línea.
+  Efecto secundario a saber: como el blob viejo era binario, `b60bcc3` figura
+  como reescritura completa del archivo; **de ahí en adelante los diffs salen
+  normales**. Si aparece otro archivo como `Bin` en un diffstat de código, es
+  este mismo síntoma.
 
 ---
 

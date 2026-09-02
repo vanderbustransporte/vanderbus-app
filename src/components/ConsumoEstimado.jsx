@@ -1,7 +1,7 @@
 // Panel de consumo estimado de un viaje. Se usa dentro del modal de Viajes y
 // lee el form en vivo: al tipear los km o el peso, el número se recalcula.
 //
-// Tres reglas de esta pantalla:
+// Dos reglas de esta pantalla:
 //
 //  1. El resultado es un RANGO, no un número puntual, y el rango va grande y
 //     arriba. Si un transportista cotiza un flete con esto y le erra, la
@@ -9,111 +9,30 @@
 //     tooltip.
 //  2. Nunca mostrar el estimado solo. Siempre al lado va de dónde salió (ficha
 //     del fabricante, benchmark, historial real) y qué se dio por sentado.
-//  3. Los tres números de la unidad —teórico, real medido y usado— se muestran
-//     juntos con el n de cargas y el desvío. El desvío es información valiosa
-//     por sí sola: una unidad sostenidamente 20% arriba del teórico tiene algo
-//     (inyectores, chofer, neumáticos, o combustible que se va por otro lado).
+//
+// (Rediseño 2026-08-25, Bloque B de la auditoría del estimador.) El panel se
+// achicó a lo mínimo que un operario necesita ver de entrada: el rango, el
+// costo, y una línea de dónde salió el número — la banda de confianza ya lo
+// dice (`banda.nivel`: "N cargas reales medidas", "ficha completa, sin cargas
+// reales", "estimado por clase, sin ficha de la unidad"...). Los "tres
+// números" de la unidad (teórico/real/usado) y el desvío contra la ficha son
+// info de LA UNIDAD, no de este viaje puntual: viven en Flota → editar unidad,
+// no acá. El desglose (precio del litro, vacío vs. cargado, ralentí,
+// aprovechamiento de peso/volumen) quedó afuera por la misma razón: son datos
+// de apoyo, no el número que el operario vino a buscar.
 //
 // El modelo está en utils/consumo.js y la calibración en utils/calibracion.js,
 // incluido lo que NO calculan.
 
 import React, { useMemo, useState } from 'react'
-import { Fuel, TriangleAlert, Info, Gauge, ChevronDown, ChevronRight } from 'lucide-react'
-import { formatARS, formatDate } from '../utils/format'
+import { Fuel, TriangleAlert, Info, ChevronDown, ChevronRight } from 'lucide-react'
+import { formatARS } from '../utils/format'
 import {
   estimarConsumo, consumoRealVehiculo, precioLitroReciente,
   specsVehiculo, baseTeorica, SUPUESTOS_NO_MODELADOS,
-  fmtL100, fmtLitros, fmtPct,
+  fmtL100, fmtLitros,
 } from '../utils/consumo'
 import { calibracionVehiculo } from '../utils/calibracion'
-
-function Dato({ label, valor, color, sub }) {
-  return (
-    <div style={{ minWidth: 0 }}>
-      <div className="db-slabel" style={{ marginBottom: 4 }}>{label}</div>
-      <div className="nums" style={{ fontSize: 17, fontWeight: 700, color: color || 'var(--text-1)', lineHeight: 1.2 }}>{valor}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 3 }}>{sub}</div>}
-    </div>
-  )
-}
-
-// Barra de aprovechamiento (peso o volumen). Pasada de 100% se pone en danger:
-// es sobrepeso, y eso es una multa, no un detalle de consumo.
-function Barra({ label, pct, detalle }) {
-  const exceso = pct > 1
-  const color = exceso ? 'var(--danger)' : pct > 0.85 ? 'var(--warning)' : 'var(--accent)'
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
-        <span>{label}</span>
-        <span className="num" style={{ color, fontWeight: 600 }}>{fmtPct(pct)}{detalle ? ` · ${detalle}` : ''}</span>
-      </div>
-      <div style={{ height: 5, borderRadius: 999, background: 'var(--bg-overlay)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(pct, 1) * 100}%`, background: color, borderRadius: 999 }} />
-      </div>
-    </div>
-  )
-}
-
-// Los tres números de la unidad. `usado` se resalta porque es el que estima;
-// los otros dos están para poder discutirlo.
-function TresNumeros({ cal, teorico }) {
-  const celda = (label, valor, sub, destacado) => (
-    <div style={{
-      padding: '9px 11px', borderRadius: 'var(--radius-sm)', minWidth: 0,
-      background: destacado ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-      border: `1px solid ${destacado ? 'transparent' : 'var(--border)'}`,
-    }}>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: destacado ? 'var(--accent)' : 'var(--text-3)' }}>{label}</div>
-      <div className="num" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginTop: 3 }}>{valor}</div>
-      {sub && <div style={{ fontSize: 10.5, color: 'var(--text-2)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>}
-    </div>
-  )
-
-  const hayReal = cal && cal.ok && cal.real != null
-  return (
-    <div style={{ marginTop: 14 }}>
-      <div className="db-slabel" style={{ marginBottom: 7 }}>Consumo de la unidad (vacía, en este tipo de recorrido)</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-        {celda('Teórico', fmtL100(teorico), 'de la ficha, corregido por la fuente', !hayReal)}
-        {celda(
-          'Real medido',
-          hayReal ? fmtL100(cal.real) : '—',
-          hayReal
-            ? `${cal.n} ${cal.n === 1 ? 'carga medible' : 'cargas medibles'} a tanque lleno${cal.nVentana < cal.n ? ` (promedio de las últimas ${cal.nVentana})` : ''}`
-            : 'hace falta al menos una carga a tanque lleno con odómetro',
-          false,
-        )}
-        {celda(
-          'Usado',
-          fmtL100(hayReal ? cal.usadoBase : teorico),
-          hayReal ? `el medido pesa ${Math.round(cal.w * 100)}%` : 'todavía es el teórico',
-          hayReal,
-        )}
-      </div>
-
-      {hayReal && cal.desvio != null && Math.abs(cal.desvio) > 0.10 && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)' }}>
-          <Gauge size={13} style={{ color: 'var(--text-2)', flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.5 }}>
-            Esta unidad consume un{' '}
-            <strong style={{ color: cal.desvio > 0 ? 'var(--warning)' : 'var(--positive)' }}>
-              {fmtPct(Math.abs(cal.desvio))} {cal.desvio > 0 ? 'más' : 'menos'}
-            </strong>{' '}
-            de lo que dice su ficha.
-            {cal.desvio > 0.15 && ' Si el desvío se sostiene conviene mirar inyectores, presión de neumáticos, estilo de manejo — o si el combustible se está yendo por otro lado.'}
-          </span>
-        </div>
-      )}
-
-      {(cal?.avisos || []).length > 0 && (
-        <ul style={{ margin: '8px 0 0', paddingLeft: 0, listStyle: 'none', fontSize: 10.5, color: 'var(--text-3)', lineHeight: 1.6 }}>
-          {cal.avisos.map((a, i) => <li key={i}>· {a}</li>)}
-        </ul>
-      )}
-    </div>
-  )
-}
 
 export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }) {
   const [verSupuestos, setVerSupuestos] = useState(false)
@@ -130,15 +49,13 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }
   // Calibración: el consumo teórico de la ficha mezclado con el medido en las
   // cargas a tanque lleno de ESTA unidad. `teoricoBase` depende de la mezcla
   // urbano/ruta del viaje, por eso se calcula acá y no adentro del estimador.
-  const { cal, teorico } = useMemo(() => {
-    if (!vehiculo?.id) return { cal: null, teorico: null }
+  // No se muestra directamente (eso vive en Flota): sólo alimenta el cálculo.
+  const cal = useMemo(() => {
+    if (!vehiculo?.id) return null
     const specs = specsVehiculo(vehiculo)
-    if (!specs.ok) return { cal: null, teorico: null }
+    if (!specs.ok) return null
     const t = baseTeorica(specs, viaje.ruta_tipo)
-    const c = calibracionVehiculo({
-      combustible, viajes, vehiculoId: vehiculo.id, specs, teoricoBase: t,
-    })
-    return { cal: c, teorico: t }
+    return calibracionVehiculo({ combustible, viajes, vehiculoId: vehiculo.id, specs, teoricoBase: t })
   }, [vehiculo, combustible, viajes, viaje.ruta_tipo])
 
   const est = useMemo(() => estimarConsumo({
@@ -203,17 +120,18 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }
     )
   }
 
-  const { aprovechamiento: ap, banda, rangoLitros, rangoCosto } = est
+  const { banda, rangoLitros, rangoCosto } = est
 
   return (
     <div style={marco}>
       {titulo}
 
       {/* El rango, grande y primero. El número puntual queda debajo y en chico:
-          es el centro del rango, no una promesa. */}
+          es el centro del rango, no una promesa. La banda ya dice de dónde
+          salió el número (nivel), así que no hace falta una línea aparte. */}
       <div style={{
         padding: '12px 14px', borderRadius: 'var(--radius)',
-        background: 'var(--accent-dim)', marginBottom: 14,
+        background: 'var(--accent-dim)',
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 10px' }}>
           <span className="num" style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)', lineHeight: 1.1, letterSpacing: '-.02em' }}>
@@ -228,68 +146,10 @@ export default function ConsumoEstimado({ vehiculo, viaje, combustible, viajes }
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 5, lineHeight: 1.5 }}>
           Centro <span className="num" style={{ color: 'var(--text-1)', fontWeight: 600 }}>{fmtLitros(est.litros)}</span>
-          {' '}· banda <strong style={{ color: 'var(--text-1)' }}>±{Math.round(banda.pct * 100)}%</strong> ({banda.nivel})
-          {' '}· {fmtL100(est.l100)} en el viaje
+          {' '}({fmtL100(est.l100)}) · banda <strong style={{ color: 'var(--text-1)' }}>±{Math.round(banda.pct * 100)}%</strong>
+          {' '}— {banda.nivel}
         </div>
       </div>
-
-      {/* Cuando la base NO es la ficha sino el promedio del historial de cargas,
-          se dice a la vista (no colapsado): el usuario tiene que saber que este
-          número lo está aprendiendo de sus cargas reales, no de una spec de
-          fábrica, y que mejora a medida que suma cargas medibles. */}
-      {est.specs?.fuente === 'historico' && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)' }}>
-          <Gauge size={13} style={{ color: 'var(--text-2)', flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.5 }}>
-            Este número sale del <strong style={{ color: 'var(--text-1)' }}>historial de cargas</strong> de esta unidad, no de una spec de fábrica: todavía no tiene consumo en la ficha. Se va a ir afinando a medida que sumes cargas a tanque lleno con odómetro.
-          </span>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 14 }}>
-        <Dato
-          label="Precio del litro"
-          valor={est.precioLitro != null ? formatARS(est.precioLitro) : '—'}
-          color={est.precioLitro != null ? 'var(--positive)' : 'var(--text-3)'}
-          sub={est.precioLitro != null
-            ? `${precio.propio ? 'última carga de la unidad' : 'última carga de la flota'}${precio.fecha ? ` (${formatDate(precio.fecha)})` : ''}`
-            : 'Cargá una carga de combustible con importe para tener costo'}
-        />
-        <Dato
-          label="Vacío vs. cargado"
-          valor={fmtLitros(est.litrosVacio)}
-          sub={est.litrosPorCarga > 0.05
-            ? `+${est.litrosPorCarga.toFixed(1)} L por la carga`
-            : 'sin carga declarada'}
-        />
-        {est.litrosRalenti > 0 && (
-          <Dato
-            label="Ralentí"
-            valor={fmtLitros(est.litrosRalenti)}
-            sub={`${est.horasRalenti} h de motor detenido`}
-          />
-        )}
-      </div>
-
-      {teorico != null && <TresNumeros cal={cal} teorico={teorico} />}
-
-      {(ap.peso != null || ap.volumen != null) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
-          {ap.peso != null && (
-            <Barra
-              label="Aprovechamiento de peso"
-              pct={ap.peso}
-              detalle={est.specs.cargaMax ? `${Math.round(est.specs.cargaMax).toLocaleString('es-AR')} kg útiles` : null}
-            />
-          )}
-          {ap.volumen != null && (
-            <div style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.5, alignSelf: 'center' }}>
-              <span className="num" style={{ color: 'var(--text-1)', fontWeight: 600 }}>{ap.volumen} m³</span> declarados.
-              El volumen no cambia el consumo en un furgón cerrado: se usa para ver si el viaje cubica antes de pesar.
-            </div>
-          )}
-        </div>
-      )}
 
       {est.sobrepeso && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 12, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-dim)' }}>
