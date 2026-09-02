@@ -106,7 +106,9 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   rebaseó sobre `main` (único conflicto: la línea de "Última actualización" de
   este mismo doc) y se mergeó con `--no-ff`. Build OK. **Que el archivo del seed
   esté en `main` NO significa que las filas estén en la base:** la siembra es un
-  paso manual aparte, en el SQL editor de Supabase (ver "TANDA 6" más abajo).
+  paso manual aparte, en el SQL editor de Supabase. En este caso **el paso manual
+  ya se hizo el mismo día: la tabla pasó de 11 a 19 filas** (ver "TANDA 6" más
+  abajo para el chequeo previo y el detalle).
 
 - **Lo único que queda sin integrar** (2026-09-02, no se toca todavía):
   - `ux/estimador-ficha-simplificada` — tip `994d80c`, "año más cercano" en el
@@ -140,8 +142,8 @@ de un tenant no lo ven todos. **Verificado en vivo el 2026-07-28**: como anónim
 consulta devuelve 0 filas, como autenticado devuelve las sembradas.
 
 El **seed** (`supabase/seeds/vehiculos_referencia.sql`) está corrido **entero, hasta la
-TANDA 5: 11 filas en la base, verificadas con un `select` real el 2026-08-13** (incluida
-la TANDA 5: Ford Cargo 1723 2016 y VW Delivery 11.180 2019). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
+TANDA 6: 19 filas en la base, confirmadas contra producción el 2026-09-02** (antes eran
+11 hasta la TANDA 5, verificadas con un `select` real el 2026-08-13). Es idempotente: reejecutarlo actualiza, no duplica. Se corre desde el SQL
 editor del dashboard o con la service_role key — desde el cliente con la anon key no se
 puede insertar, que es justamente el punto.
 
@@ -294,16 +296,27 @@ Dos esqueletos, ambos con fuente argentina (pruebas de MotorMagazine), ambos con
   NULL (sale como chasis pelado; **la tara sube al carrozarlo** y hay que corregirla en
   la ficha de la unidad, o el factor de carga miente).
 
-**TANDA 6 — EL ARCHIVO ESTÁ EN `main` (mergeado el 2026-09-02), LA BASE
-TODAVÍA NO** (escrita el 2026-08-25 en la rama `datos/catalogo-referencia-tanda6`,
-ya mergeada). Repetir la trampa porque es exactamente este caso: **mergear el seed
-no siembra nada**. Correrlo es un paso manual en el SQL editor y después
-verificar con un `select`. **Al 2026-09-02 la base sigue en 11 filas: NO
-sembrado.** Además, antes de correrlo hay que chequear que ninguna fila haya sido
-editada a mano después de sembrarse (`updated_at > created_at`): el seed pisa las
-columnas **sin `coalesce`**, así que a una fila editada a mano le borra el
-trabajo. 8 filas nuevas con fuente citada, todas
-`verificado=false`; con esto la base pasaría de 11 a **19 filas**:
+**TANDA 6 — ESCRITA, MERGEADA Y SEMBRADA EN PRODUCCIÓN (2026-09-02).** Los tres
+pasos son distintos y esta tanda los recorrió los tres en el día: se escribió el
+2026-08-25 en la rama `datos/catalogo-referencia-tanda6`, se mergeó a `main` el
+2026-09-02 y **recién ahí se corrió a mano en el SQL editor**. Confirmado contra
+producción: **la tabla pasó de 11 a 19 filas**, 8 nuevas con fuente citada, todas
+`verificado=false`. **16 de las 19 no tienen consumo cargado, y es a propósito**:
+sin homologación publicada no se inventa un número — el estimador lo marca como
+estimado por clase y lo aprende del historial de cargas.
+
+> **Chequeo previo que conviene repetir en cada tanda:** el seed pisa columna por
+> columna **sin `coalesce`**, así que a una fila editada a mano después de sembrarse
+> le borraría el trabajo. Antes de correrlo se listó `updated_at > created_at`:
+> daban **9 filas "editadas después", pero todas con el MISMO `updated_at`
+> (2026-08-01 23:32)** — un timestamp uniforme es la firma de una re-corrida del
+> propio seed, no de ediciones humanas (que caerían en momentos distintos). Con eso
+> quedó claro que no había trabajo humano en riesgo y correrlo era seguro. Ojo al
+> leer esa columna: el trigger `vehiculos_referencia_touch` toca `updated_at` en
+> cualquier update, así que **no distingue por sí sola** edición manual de
+> re-corrida del seed — lo que las separa es si los timestamps coinciden o no.
+
+Las 8 filas de la tanda:
 
 - **Livianos:** Fiat Fiorino 2021 Endurance (motor + carga útil 650; la ficha AR
   **no publica consumo** — los 9.0/6.0 que circulan son del 1.4 europeo de 77 cv,
