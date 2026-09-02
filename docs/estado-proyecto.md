@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
-Última actualización: 2026-09-01.
+Última actualización: 2026-09-02.
 
 > **El producto se llama TransAllInOne** (antes "Vanderbus App"), renombrado en
 > agosto 2026. *Vanderbus Transporte* sigue siendo el nombre de la **empresa**
@@ -102,14 +102,16 @@ Documento vivo. **Actualizarlo es parte de terminar una tarea**, no un extra.
   perdió nada. Siguen sin barrer las dos reglas CSS muertas de `src/index.css`
   (`.sb-badge`, `.sb-badge-dot`), sin uso en JSX.
 
-- **Lo único que queda sin integrar** (2026-09-01, no se tocan todavía):
+- **2026-09-02: `datos/catalogo-referencia-tanda6` MERGEADA a `main`.** Se
+  rebaseó sobre `main` (único conflicto: la línea de "Última actualización" de
+  este mismo doc) y se mergeó con `--no-ff`. Build OK. **Que el archivo del seed
+  esté en `main` NO significa que las filas estén en la base:** la siembra es un
+  paso manual aparte, en el SQL editor de Supabase (ver "TANDA 6" más abajo).
+
+- **Lo único que queda sin integrar** (2026-09-02, no se toca todavía):
   - `ux/estimador-ficha-simplificada` — tip `994d80c`, "año más cercano" en el
     buscador de referencia. **Es la única rama con remoto propio**
     (`origin/ux/estimador-ficha-simplificada`).
-  - `datos/catalogo-referencia-tanda6` — tip `283cf90`, TANDA 6 del catálogo
-    (livianos, semi-pesados y tractores con fuente citada). Ojo: escribir el
-    seed **no lo aplica**, hay que correrlo en el SQL editor y verificar con un
-    `select` (ver la trampa documentada más abajo).
 
 ---
 
@@ -292,9 +294,15 @@ Dos esqueletos, ambos con fuente argentina (pruebas de MotorMagazine), ambos con
   NULL (sale como chasis pelado; **la tara sube al carrozarlo** y hay que corregirla en
   la ficha de la unidad, o el factor de carga miente).
 
-**TANDA 6 (2026-08-25) — escrita en el seed, TODAVÍA SIN SEMBRAR** (rama
-`datos/catalogo-referencia-tanda6`; recordar la trampa: escribir el bloque no lo
-aplica, verificar con `select`). 8 filas nuevas con fuente citada, todas
+**TANDA 6 — EL ARCHIVO ESTÁ EN `main` (mergeado el 2026-09-02), LA BASE
+TODAVÍA NO** (escrita el 2026-08-25 en la rama `datos/catalogo-referencia-tanda6`,
+ya mergeada). Repetir la trampa porque es exactamente este caso: **mergear el seed
+no siembra nada**. Correrlo es un paso manual en el SQL editor y después
+verificar con un `select`. **Al 2026-09-02 la base sigue en 11 filas: NO
+sembrado.** Además, antes de correrlo hay que chequear que ninguna fila haya sido
+editada a mano después de sembrarse (`updated_at > created_at`): el seed pisa las
+columnas **sin `coalesce`**, así que a una fila editada a mano le borra el
+trabajo. 8 filas nuevas con fuente citada, todas
 `verificado=false`; con esto la base pasaría de 11 a **19 filas**:
 
 - **Livianos:** Fiat Fiorino 2021 Endurance (motor + carga útil 650; la ficha AR
