@@ -292,6 +292,30 @@ Dos esqueletos, ambos con fuente argentina (pruebas de MotorMagazine), ambos con
   NULL (sale como chasis pelado; **la tara sube al carrozarlo** y hay que corregirla en
   la ficha de la unidad, o el factor de carga miente).
 
+**TANDA 6 (2026-08-25) — escrita en el seed, TODAVÍA SIN SEMBRAR** (rama
+`datos/catalogo-referencia-tanda6`; recordar la trampa: escribir el bloque no lo
+aplica, verificar con `select`). 8 filas nuevas con fuente citada, todas
+`verificado=false`; con esto la base pasaría de 11 a **19 filas**:
+
+- **Livianos:** Fiat Fiorino 2021 Endurance (motor + carga útil 650; la ficha AR
+  **no publica consumo** — los 9.0/6.0 que circulan son del 1.4 europeo de 77 cv,
+  otro vehículo), Renault Kangoo 2022 Express Furgón 1.5 dCi (**mixto 5.1
+  `homologado` europeo** — única fila de la tanda con consumo; urbano/ruta los
+  deriva el estimador), VW Saveiro 2023 CS Trendline (tara 1119 / carga 668;
+  clase declarada `auto` a propósito: la clase `pickup` modela medianas).
+- **Semi-pesados:** Iveco Daily 2024 35-150 chasis (fila mínima con la ficha
+  oficial de Iveco AR linkeada — PDF ilegible en esta pasada, completar), MB
+  Atego 1726 2021 (OM 926 / PBT 17100 / tanque 300; tara NULL, la fuente da un
+  rango 5260–5845).
+- **Tractores:** VW Constellation 17.280 2016 (tara 5958 / PBT 17100; la prueba
+  midió 28/29 L/100 **con 30 t** → NO va en consumo_*, que es en vacío), Volvo
+  FH 500 2022 6x2T (tara 8500 / tanque 855), MB Actros 2045 2021 (OM 460 449 cv /
+  tara 9282; tanque NULL — los 730 L citados eran del 2545).
+- **Buscados y NO cargados** (motivo al pie del seed): VW Delivery 9.170 y MB
+  Accelo 1016 (sin ficha citable; sólo existen los redondeados de `motores.js`),
+  Ford Cargo 2429 / Atego 2430 (ídem), consumos de Fiorino y Saveiro (las fichas
+  AR no los publican).
+
 **Buscados en la misma vuelta y NO cargados** — el motivo está escrito al pie del seed,
 porque es la parte que se olvida:
 
