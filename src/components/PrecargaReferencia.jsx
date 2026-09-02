@@ -25,6 +25,17 @@
 // desempate. Cuando el año usado no es EXACTO el que declaró la unidad, se
 // avisa en una línea, mismo tono que el resto de la trazabilidad: se prellena
 // igual (no bloquea nada) pero queda claro que hay que revisarlo.
+//
+// ── Desambiguación de versión (2026-09-02) ──────────────────────────────────
+// El año resuelto puede tener MÁS DE UNA versión cargada, y son vehículos
+// distintos (el Tector 2019 va de 9 a 11 toneladas según cuál). Antes se
+// precargaba la primera que devolvía la base, sin avisar: specs equivocadas en
+// silencio, que es el peor modo de falla para alguien que no puede detectarlo.
+// Ahora, SÓLO en ese caso, se corta y se ofrecen las versiones para que elija —
+// descriptas por tonelaje y carga útil (`descriptorFila`), no por el código de
+// versión, que no le dice nada a un operario. Con una sola versión para ese año
+// no hay ambigüedad y se precarga directo, igual que siempre: el paso extra
+// aparece únicamente cuando hace falta.
 // ── Trazabilidad y verificación ──────────────────────────────────────────────
 // El dato SIEMPRE se muestra y se prellena, esté verificado o no. `verificado`
 // es una propiedad de la FILA de referencia (el doble check contra la ficha de la
@@ -39,10 +50,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { Field, Input } from './shared/Field'
-import { CheckCircle, ShieldAlert, ExternalLink, TriangleAlert } from 'lucide-react'
+import { CheckCircle, ShieldAlert, ExternalLink, TriangleAlert, ChevronRight } from 'lucide-react'
 import {
   listarFichas, etiquetaFicha, specsDesdeReferencia, trazabilidad,
   agruparPorMarcaModelo, etiquetaAgregada, filaMasCercana,
+  versionesDelAnio, descriptorFila,
 } from '../utils/vehiculosRef'
 import { CLASES, CARROCERIAS, FUENTES_CONSUMO, COMBUSTIBLES_MOTOR } from '../data/clases'
 
@@ -94,6 +106,9 @@ export default function PrecargaReferencia({ fichaExt, vehiculoAnio, onPrecargar
   // { objetivo, anioUsado } cuando la precarga vino de "año más cercano" y NO
   // fue exacta; null cuando no aplica (elección directa, o exacta igual).
   const [avisoAnio, setAvisoAnio] = useState(null)
+  // { candidatas, exacto, objetivo } cuando el año resuelto tiene 2+ versiones
+  // y hay que preguntar cuál; null el resto del tiempo.
+  const [eleccionVersion, setEleccionVersion] = useState(null)
 
   // Catálogo completo al montar (una sola consulta: ver nota de vehiculosRef.js).
   useEffect(() => { let vivo = true; listarFichas().then(v => vivo && setFichas(v)); return () => { vivo = false } }, [])
@@ -102,7 +117,7 @@ export default function PrecargaReferencia({ fichaExt, vehiculoAnio, onPrecargar
   // "cualquier año" (con una sola fila, la etiqueta completa ya alcanza).
   const grupos = useMemo(() => agruparPorMarcaModelo(fichas), [fichas])
 
-  const limpiarFicha = () => { setFicha(null); setTraza(null); setSpecs([]); setAvisoAnio(null) }
+  const limpiarFicha = () => { setFicha(null); setTraza(null); setSpecs([]); setAvisoAnio(null); setEleccionVersion(null) }
 
   const elegir = (row) => {
     const mapa = specsDesdeReferencia(row, { fichaExt })
@@ -127,17 +142,31 @@ export default function PrecargaReferencia({ fichaExt, vehiculoAnio, onPrecargar
     if (!v) { limpiarFicha(); return }
 
     const filaExacta = fichas.find(r => etiquetaFicha(r) === v)
-    if (filaExacta) { setAvisoAnio(null); elegir(filaExacta); return }
+    if (filaExacta) { setAvisoAnio(null); setEleccionVersion(null); elegir(filaExacta); return }
 
     const grupo = grupos.find(g => etiquetaAgregada(g[0]) === v)
     if (grupo) {
       const { fila, exacto } = filaMasCercana(grupo, vehiculoAnio)
-      // El input pasa a mostrar la etiqueta completa de lo que realmente se
-      // aplicó — no se queda en "cualquier año", que ya cumplió su propósito.
-      setTexto(etiquetaFicha(fila))
-      setAvisoAnio(exacto ? null : { objetivo: vehiculoAnio || null, anioUsado: fila.anio })
-      elegir(fila)
+      const candidatas = versionesDelAnio(grupo, fila.anio)
+      if (candidatas.length > 1) {
+        // Ambigüedad real: ese año tiene varias versiones y son vehículos
+        // distintos. No se precarga NADA todavía — se pregunta.
+        limpiarFicha()
+        setEleccionVersion({ candidatas, exacto, objetivo: vehiculoAnio || null })
+        return
+      }
+      aplicarFila(fila, exacto)
     }
+  }
+
+  // Aplica una fila ya desambiguada: precarga, deja el input mostrando la
+  // etiqueta completa de lo que REALMENTE se aplicó (no se queda en "cualquier
+  // año", que ya cumplió su propósito) y avisa si el año no fue el exacto.
+  const aplicarFila = (fila, exacto) => {
+    setTexto(etiquetaFicha(fila))
+    setAvisoAnio(exacto ? null : { objetivo: vehiculoAnio || null, anioUsado: fila.anio })
+    setEleccionVersion(null)
+    elegir(fila)
   }
 
   const verificado = traza?.verificado === true
@@ -156,6 +185,52 @@ export default function PrecargaReferencia({ fichaExt, vehiculoAnio, onPrecargar
           {grupos.map(g => <option key={etiquetaAgregada(g[0])} value={etiquetaAgregada(g[0])} />)}
         </datalist>
       </Field>
+
+      {/* Elegir versión: aparece SÓLO cuando el año resuelto tiene 2+ versiones
+          cargadas. Hasta que el usuario pique una no se precarga nada — es
+          justamente el caso en que adivinar sale caro y en silencio. Cada opción
+          se describe por tonelaje / carga útil, que es como se reconoce una
+          unidad en el playón, con el código de versión como dato secundario. */}
+      {eleccionVersion && (
+        <div className="surface" style={{ padding: 14, marginTop: 12, background: 'var(--bg-overlay)', border: '1px solid var(--warning)' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 10 }}>
+            <TriangleAlert size={13} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 2 }} />
+            <span style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.5 }}>
+              {eleccionVersion.exacto
+                ? <>El catálogo tiene <strong style={{ color: 'var(--text-1)' }}>{eleccionVersion.candidatas.length} versiones</strong> del {eleccionVersion.candidatas[0].anio}, y no son el mismo camión. <strong style={{ color: 'var(--text-1)' }}>Elegí la tuya</strong> para prellenar los datos correctos.</>
+                : <>Tu unidad es del <strong style={{ color: 'var(--text-1)' }}>{eleccionVersion.objetivo || '—'}</strong> y el catálogo no tiene ese año. Lo más parecido es el <strong style={{ color: 'var(--text-1)' }}>{eleccionVersion.candidatas[0].anio}</strong>, que viene en <strong style={{ color: 'var(--text-1)' }}>{eleccionVersion.candidatas.length} versiones</strong> distintas. <strong style={{ color: 'var(--text-1)' }}>Elegí la que se parezca a la tuya</strong> y revisá los datos después.</>}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {eleccionVersion.candidatas.map(c => {
+              const desc = descriptorFila(c)
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => aplicarFila(c, eleccionVersion.exacto)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                    width: '100%', textAlign: 'left', cursor: 'pointer',
+                    padding: '9px 11px', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)' }}>
+                      {desc || c.version}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {desc ? c.version : 'sin datos de peso en el catálogo'}
+                    </span>
+                  </span>
+                  <ChevronRight size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Aviso de año aproximado: sólo cuando la precarga vino de "cualquier
           año" y NO coincidió exacto. No bloquea nada — el form queda editable
